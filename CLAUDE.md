@@ -7,7 +7,7 @@ The app never applies to jobs automatically.
 
 ## Commands
 - `npm run dev` — http://localhost:3000 (demo login: `demo@applyai.dev` / `applyai-demo`)
-- `npm test` — Vitest (29 tests). Run before every commit.
+- `npm test` — Vitest (36 tests). Run before every commit.
 - `npx tsc --noEmit` — typecheck. `npm run build` — production build.
 - No API key needed: every AI workflow falls back to a deterministic mock provider. Set `ANTHROPIC_API_KEY` in `.env.local` for real output.
 - Data lives in an in-memory store (`src/server/store/memory.ts`) and resets on restart. Prisma schema exists; `PrismaAppStore` is not built yet.
@@ -52,7 +52,7 @@ Prisma schema (PostgreSQL), @react-pdf/renderer + docx + jszip for exports, unpd
 - Don't add dependencies without saying why. Don't weaken the fabrication guard to make a test pass.
 
 ## Roadmap (next)
-1. UI: Job Match screen polish; profile editor progress per section; Documents page (rename/duplicate/delete).
+1. UI: Documents page (rename/duplicate/delete). Job Match screen and profile-editor section progress are done.
 2. `PrismaAppStore` implementing `AppStore`, so accounts and documents persist; file storage for uploads.
 3. Stripe plans + credit packs (webhook → ledger GRANT/PURCHASE), admin pricing page.
 4. Rate limits, prompt-evaluation set with real job descriptions, more resume templates.

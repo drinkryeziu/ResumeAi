@@ -1,0 +1,563 @@
+// ApplyAI — relational data model.
+// Rules: profile data is normalized (one table per section); AI outputs are validated JSON
+// on analysis rows (read whole, shape evolves with prompts); money and credits are append-only ledgers.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────── Identity (Auth.js adapter tables) ─────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts       Account[]
+  sessions       Session[]
+  profile        Profile?
+  jobs           Job[]
+  resumes        Resume[]
+  coverLetters   CoverLetter[]
+  uploadedFiles  UploadedFile[]
+  aiRuns         AIRun[]
+  creditBalance  CreditBalance?
+  creditLedger   CreditLedger[]
+  subscriptions  Subscription[]
+  payments       Payment[]
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+// ───────────────────────────── Master Profile ─────────────────────────────
+
+model Profile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName   String   @default("")
+  lastName    String   @default("")
+  headline    String   @default("") // professional title
+  email       String   @default("")
+  phone       String?
+  city        String?
+  state       String?
+  country     String?
+  summary     String?  @db.Text
+  linkedinUrl String?
+  portfolioUrl String?
+  githubUrl   String?
+  behanceUrl  String?
+  dribbbleUrl String?
+  websiteUrl  String?
+  updatedAt   DateTime @updatedAt
+
+  experiences    WorkExperience[]
+  education      Education[]
+  skills         Skill[]
+  certifications Certification[]
+  projects       Project[]
+  extras         ProfileExtra[]
+  approvedFacts  ApprovedFact[]
+}
+
+model WorkExperience {
+  id               String   @id @default(cuid())
+  profileId        String
+  profile          Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  company          String
+  title            String
+  location         String?
+  startDate        String   // "YYYY-MM" — month precision is what resumes use
+  endDate          String?  // null when isCurrent
+  isCurrent        Boolean  @default(false)
+  responsibilities String[]
+  achievements     String[]
+  tools            String[]
+  sortOrder        Int      @default(0)
+
+  @@index([profileId])
+}
+
+model Education {
+  id          String  @id @default(cuid())
+  profileId   String
+  profile     Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  school      String
+  degree      String?
+  field       String?
+  startDate   String?
+  endDate     String?
+  description String? @db.Text
+  sortOrder   Int     @default(0)
+
+  @@index([profileId])
+}
+
+enum SkillCategory {
+  PROFESSIONAL
+  TECHNICAL
+  TOOL
+  DOMAIN
+  SOFT
+}
+
+model Skill {
+  id        String        @id @default(cuid())
+  profileId String
+  profile   Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  name      String
+  category  SkillCategory
+
+  @@unique([profileId, name])
+}
+
+model Certification {
+  id           String  @id @default(cuid())
+  profileId    String
+  profile      Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  name         String
+  issuer       String?
+  issueDate    String?
+  expiryDate   String?
+  credentialId String?
+  url          String?
+
+  @@index([profileId])
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  profileId   String
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  name        String
+  description String?  @db.Text
+  role        String?
+  tools       String[]
+  results     String?  @db.Text
+
+  @@index([profileId])
+}
+
+enum ExtraKind {
+  LANGUAGE
+  AWARD
+  PUBLICATION
+  VOLUNTEER
+}
+
+model ProfileExtra {
+  id        String    @id @default(cuid())
+  profileId String
+  profile   Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  kind      ExtraKind
+  title     String
+  detail    String?   @db.Text
+
+  @@index([profileId, kind])
+}
+
+enum FactStatus {
+  APPROVED
+  DECLINED
+}
+
+/// Answers to gap questions ("Do you have accessibility testing experience?").
+/// The ONLY way new facts enter AI context besides the profile itself.
+model ApprovedFact {
+  id        String     @id @default(cuid())
+  profileId String
+  profile   Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  jobId     String?
+  job       Job?       @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  topic     String     // the requirement asked about
+  question  String
+  answer    String?    @db.Text
+  status    FactStatus
+  createdAt DateTime   @default(now())
+
+  @@index([profileId])
+}
+
+// ───────────────────────────── Jobs & analyses ─────────────────────────────
+
+enum JobStatus {
+  DRAFT
+  ANALYZED
+  MATCHED
+  OPTIMIZED
+  READY
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  company     String
+  location    String?
+  url         String?
+  description String    @db.Text
+  status      JobStatus @default(DRAFT)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  analyses      JobAnalysis[]
+  matchReports  MatchReport[]
+  resumes       Resume[]
+  coverLetters  CoverLetter[]
+  approvedFacts ApprovedFact[]
+  ledgerEntries CreditLedger[]
+
+  @@index([userId, createdAt])
+}
+
+model JobAnalysis {
+  id            String   @id @default(cuid())
+  jobId         String
+  job           Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  result        Json     // JobAnalysis zod schema
+  schemaVersion Int
+  promptVersion String
+  aiRunId       String?  @unique
+  aiRun         AIRun?   @relation(fields: [aiRunId], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@index([jobId, createdAt])
+}
+
+enum MatchKind {
+  JOB_MATCH
+  ATS
+}
+
+model MatchReport {
+  id              String         @id @default(cuid())
+  jobId           String
+  job             Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  resumeVersionId String?
+  resumeVersion   ResumeVersion? @relation(fields: [resumeVersionId], references: [id], onDelete: SetNull)
+  kind            MatchKind
+  overallScore    Int            // a column, so lists can sort and filter by it
+  result          Json
+  aiRunId         String?        @unique
+  aiRun           AIRun?         @relation(fields: [aiRunId], references: [id])
+  createdAt       DateTime       @default(now())
+
+  @@index([jobId, kind, createdAt])
+}
+
+// ───────────────────────────── Documents & versions ─────────────────────────────
+
+enum VersionLabel {
+  ORIGINAL
+  AI_OPTIMIZED
+  USER_EDITED
+  FINAL
+}
+
+model Resume {
+  id               String          @id @default(cuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId            String?         // null = a general (untargeted) resume
+  job              Job?            @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  name             String
+  templateId       String          @default("classic")
+  currentVersionId String?         @unique
+  currentVersion   ResumeVersion?  @relation("CurrentResumeVersion", fields: [currentVersionId], references: [id])
+  versions         ResumeVersion[] @relation("ResumeVersions")
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([userId, updatedAt])
+}
+
+/// Immutable. "Restore" copies an old version forward as a new number.
+model ResumeVersion {
+  id           String        @id @default(cuid())
+  resumeId     String
+  resume       Resume        @relation("ResumeVersions", fields: [resumeId], references: [id], onDelete: Cascade)
+  currentOf    Resume?       @relation("CurrentResumeVersion")
+  number       Int
+  label        VersionLabel
+  content      Json          // ResumeDocument
+  changeNotes  Json?
+  aiRunId      String?
+  createdAt    DateTime      @default(now())
+  matchReports MatchReport[]
+
+  @@unique([resumeId, number])
+}
+
+enum CoverLetterTone {
+  PROFESSIONAL
+  CONVERSATIONAL
+  EXECUTIVE
+  CONCISE
+  ENTHUSIASTIC
+}
+
+model CoverLetter {
+  id               String               @id @default(cuid())
+  userId           String
+  user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId            String?
+  job              Job?                 @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  name             String
+  currentVersionId String?              @unique
+  currentVersion   CoverLetterVersion?  @relation("CurrentCoverLetterVersion", fields: [currentVersionId], references: [id])
+  versions         CoverLetterVersion[] @relation("CoverLetterVersions")
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([userId, updatedAt])
+}
+
+model CoverLetterVersion {
+  id            String          @id @default(cuid())
+  coverLetterId String
+  coverLetter   CoverLetter     @relation("CoverLetterVersions", fields: [coverLetterId], references: [id], onDelete: Cascade)
+  currentOf     CoverLetter?    @relation("CurrentCoverLetterVersion")
+  number        Int
+  label         VersionLabel
+  tone          CoverLetterTone
+  content       Json            // CoverLetterDocument
+  aiRunId       String?
+  createdAt     DateTime        @default(now())
+
+  @@unique([coverLetterId, number])
+}
+
+enum FileKind {
+  RESUME_UPLOAD
+  EXPORT_PDF
+  EXPORT_DOCX
+  EXPORT_PACKAGE
+}
+
+model UploadedFile {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind          FileKind
+  fileName      String
+  storageKey    String    @unique // private bucket key: <userId>/<id>
+  mimeType      String
+  sizeBytes     Int
+  extractedText String?   @db.Text
+  parsedAt      DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId, kind])
+}
+
+// ───────────────────────────── AI accounting ─────────────────────────────
+
+enum AIRunStatus {
+  SUCCEEDED
+  FAILED
+}
+
+/// One row per model call: provider, model, tokens, USD cost. Joined to the ledger for margin reports.
+model AIRun {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workflow      String
+  provider      String
+  model         String
+  promptVersion String
+  inputTokens   Int          @default(0)
+  outputTokens  Int          @default(0)
+  costUsd       Decimal      @default(0) @db.Decimal(10, 6)
+  latencyMs     Int          @default(0)
+  status        AIRunStatus
+  error         String?
+  createdAt     DateTime     @default(now())
+
+  jobAnalysis   JobAnalysis?
+  matchReport   MatchReport?
+  ledgerEntries CreditLedger[]
+
+  @@index([userId, createdAt])
+  @@index([workflow, createdAt])
+}
+
+// ───────────────────────────── Credits & billing ─────────────────────────────
+
+/// The configurable price list. Changing a price is a row edit, never a deploy.
+model CreditAction {
+  key         String   @id // ANALYZE_JOB, JOB_MATCH, OPTIMIZE_RESUME, …
+  label       String
+  description String?
+  credits     Int
+  active      Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+}
+
+/// Cached balance, updated in the same transaction as each ledger write.
+model CreditBalance {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Int      @default(0)
+  version   Int      @default(0) // optimistic concurrency
+  updatedAt DateTime @updatedAt
+}
+
+enum LedgerReason {
+  GRANT
+  PURCHASE
+  CONSUME
+  REFUND
+  EXPIRE
+  ADJUST
+}
+
+/// Append-only. Every AI action that costs credits has exactly one CONSUME row (and a REFUND on failure).
+model CreditLedger {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  delta          Int
+  balanceAfter   Int
+  reason         LedgerReason
+  actionKey      String?
+  jobId          String?
+  job            Job?         @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  documentId     String?      // resume or cover-letter version produced
+  aiRunId        String?
+  aiRun          AIRun?       @relation(fields: [aiRunId], references: [id])
+  refundOfId     String?      @unique
+  note           String?
+  idempotencyKey String       @unique
+  createdAt      DateTime     @default(now())
+
+  @@index([userId, createdAt])
+  @@index([actionKey, createdAt])
+}
+
+enum BillingInterval {
+  NONE
+  MONTH
+  YEAR
+}
+
+model Plan {
+  key            String          @id // FREE, STARTER, PRO, PREMIUM
+  name           String
+  priceCents     Int
+  currency       String          @default("usd")
+  interval       BillingInterval
+  monthlyCredits Int
+  signupCredits  Int             @default(0)
+  rolloverCredits Boolean        @default(false)
+  stripePriceId  String?
+  sortOrder      Int             @default(0)
+  active         Boolean         @default(true)
+  subscriptions  Subscription[]
+}
+
+model CreditPack {
+  id            String  @id @default(cuid())
+  name          String
+  credits       Int
+  priceCents    Int
+  currency      String  @default("usd")
+  stripePriceId String?
+  active        Boolean @default(true)
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planKey              String
+  plan                 Plan               @relation(fields: [planKey], references: [key])
+  status               SubscriptionStatus
+  currentPeriodEnd     DateTime
+  stripeSubscriptionId String?            @unique
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([userId])
+}
+
+enum PaymentKind {
+  SUBSCRIPTION
+  CREDIT_PACK
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+model Payment {
+  id                    String        @id @default(cuid())
+  userId                String
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind                  PaymentKind
+  amountCents           Int
+  currency              String        @default("usd")
+  status                PaymentStatus
+  stripePaymentIntentId String?       @unique
+  stripeEventId         String?       @unique // webhook idempotency
+  createdAt             DateTime      @default(now())
+
+  @@index([userId, createdAt])
+}

@@ -1,0 +1,45 @@
+import type { z } from "zod/v4";
+
+/**
+ * The only contract workflows know about. Vendor SDKs live behind it, so adding or swapping
+ * a provider never touches business logic.
+ */
+export interface Usage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export interface StructuredRequest<T> {
+  model: string;
+  system: string;
+  user: string;
+  /** Zod schema the output must satisfy; converted to JSON Schema for the vendor. */
+  schema: z.ZodType<T>;
+  schemaName: string;
+  maxTokens: number;
+  temperature?: number;
+}
+
+export interface StructuredResponse {
+  /** Unvalidated JSON from the model — the runner validates it with the schema. */
+  raw: unknown;
+  usage: Usage;
+}
+
+export interface AIProvider {
+  readonly name: ProviderName;
+  generateStructured<T>(req: StructuredRequest<T>): Promise<StructuredResponse>;
+}
+
+export type ProviderName = "anthropic" | "openai" | "mock";
+
+export class AIProviderError extends Error {
+  constructor(
+    message: string,
+    readonly provider: ProviderName,
+    readonly retryable: boolean,
+  ) {
+    super(message);
+    this.name = "AIProviderError";
+  }
+}

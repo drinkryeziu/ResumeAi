@@ -1,0 +1,40 @@
+/*
+ * ApplyAiJobBoard design system tokens.
+ * Source of truth: the "ApplyAiJobBoard Design System" artifact (project/tokens.css).
+ * Do not invent values here — add them to the design system first, then copy them in.
+ */
+:root {
+  /* Color */
+  --navy-900: #17233c; /* ink: headings, body, icons */
+  --blue-700: #0a4195; /* links, hover/pressed of blue-600 */
+  --blue-600: #0751c2; /* the single action color */
+  --sky-50: #ecf7fe;   /* soft surfaces, selected rows */
+  --sand-300: #ffad1c; /* one warm accent per page, never text or buttons */
+  --gray-100: #f5f7f9; /* input wells, quiet chips */
+  --gray-500: #757474; /* placeholders, 24px+ muted text only */
+  --gray-400: #5d5d5d; /* disabled */
+  --white: #ffffff;
+
+  /* Shadow */
+  --shadow-header: 0px 0px 11px 0px rgba(0, 0, 0, 0.1);
+  --shadow-search: 0px 0px 13px 0px rgba(0, 0, 0, 0.25);
+  --shadow-card: 0px 0px 18px 0px rgba(0, 0, 0, 0.11);
+
+  /* Spacing */
+  --space-1: 5px;
+  --space-2: 10px;
+  --space-3: 12px;
+  --space-4: 20px;
+  --space-5: 32px;
+  --space-6: 64px;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 10px;
+  --radius-search: 40.5px;
+  --radius-pill: 51px;
+  --radius-circle: 50%;
+
+  /* Type — Avenir Next is licensed and not bundled; add the webfont to use it. */
+  --font-sans: AvenirNext, Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}

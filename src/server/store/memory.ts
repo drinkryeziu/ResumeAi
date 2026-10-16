@@ -1,0 +1,194 @@
+import { randomUUID } from "node:crypto";
+import type { AIRunRecord } from "@/server/ai/runner";
+import { MemoryCreditStore } from "@/server/credits/memory-store";
+import { CreditService } from "@/server/credits/service";
+import { DEMO_PROFILE, DEMO_USER_ID } from "@/server/demo/fixtures";
+import type { ProfileSnapshot } from "@/server/domain/profile";
+import { hashPassword } from "@/server/auth/password";
+import { DEMO_EMAIL, DEMO_PASSWORD } from "@/server/demo/fixtures";
+import type { AnalysisRecord, AppStore, AtsRecord, CoverLetterRecord, CvImport, JobRecord, MatchRecord, ResumeRecord, UserRecord } from "./types";
+
+const id = (prefix: string) => `${prefix}_${randomUUID().slice(0, 8)}`;
+const latest = <T extends { createdAt: Date }>(rows: T[]) => rows.sort((a, b) => +b.createdAt - +a.createdAt)[0] ?? null;
+
+/** In-memory AppStore for demo mode (no DATABASE_URL). Data resets when the server restarts. */
+export class MemoryAppStore implements AppStore {
+  private creditStore = new MemoryCreditStore();
+  credits = new CreditService(this.creditStore);
+
+  private users: UserRecord[] = [];
+  private cvImports = new Map<string, CvImport>();
+  private profiles = new Map<string, ProfileSnapshot>();
+  private jobs: JobRecord[] = [];
+  private analyses: AnalysisRecord[] = [];
+  private matches: MatchRecord[] = [];
+  private atsReports: AtsRecord[] = [];
+  private resumes: ResumeRecord[] = [];
+  private letters: CoverLetterRecord[] = [];
+  private runs: AIRunRecord[] = [];
+
+  aiRuns = {
+    record: async (run: Omit<AIRunRecord, "id" | "createdAt">) => {
+      const rec = { ...run, id: id("run"), createdAt: new Date() };
+      this.runs.push(rec);
+      return rec;
+    },
+    listForUser: async (userId: string) => this.runs.filter((r) => r.userId === userId),
+  };
+
+  async seedDemo() {
+    this.users.push({ id: DEMO_USER_ID, email: DEMO_EMAIL, name: "Alex Rivera", passwordHash: await hashPassword(DEMO_PASSWORD), createdAt: new Date() });
+    this.profiles.set(DEMO_USER_ID, structuredClone(DEMO_PROFILE));
+    await this.credits.grant(DEMO_USER_ID, 1840, "GRANT", "demo-signup-grant", "Demo starting balance");
+  }
+
+  async getCvImport(userId: string) {
+    return this.cvImports.get(userId) ?? null;
+  }
+  async setCvImport(userId: string, value: CvImport | null) {
+    if (value) this.cvImports.set(userId, value);
+    else this.cvImports.delete(userId);
+  }
+
+  async createUser(u: { email: string; name: string; passwordHash: string | null }) {
+    const email = u.email.trim().toLowerCase();
+    if (await this.findUserByEmail(email)) throw new Error("An account with this email already exists.");
+    const rec: UserRecord = { id: id("usr"), email, name: u.name.trim(), passwordHash: u.passwordHash, createdAt: new Date() };
+    this.users.push(rec);
+    return rec;
+  }
+  async findUserByEmail(email: string) {
+    return this.users.find((x) => x.email === email.trim().toLowerCase()) ?? null;
+  }
+  async getUser(userId: string) {
+    return this.users.find((x) => x.id === userId) ?? null;
+  }
+
+  private own<T extends { userId: string }>(rows: T[], userId: string) {
+    return rows.filter((r) => r.userId === userId);
+  }
+  private ownedJobIds(userId: string) {
+    return new Set(this.own(this.jobs, userId).map((j) => j.id));
+  }
+
+  async getProfile(userId: string) {
+    const p = this.profiles.get(userId);
+    if (!p) throw new Error("Profile not found");
+    return structuredClone(p);
+  }
+  async findProfile(userId: string) {
+    const p = this.profiles.get(userId);
+    return p ? structuredClone(p) : null;
+  }
+  async saveProfile(userId: string, profile: ProfileSnapshot) {
+    // Approved gap answers live with the profile but are managed by the match flow, so keep them.
+    const existing = this.profiles.get(userId);
+    this.profiles.set(userId, structuredClone({ ...profile, approvedFacts: existing?.approvedFacts ?? profile.approvedFacts }));
+  }
+
+  async addApprovedFact(userId: string, fact: Parameters<AppStore["addApprovedFact"]>[1]) {
+    const p = this.profiles.get(userId);
+    if (!p) throw new Error("Profile not found");
+    const rec = { id: id("fact"), topic: fact.topic, question: fact.question, answer: fact.answer, status: fact.status };
+    p.approvedFacts = [...p.approvedFacts.filter((f) => f.topic !== fact.topic), rec];
+    return rec;
+  }
+
+  async createJob(userId: string, job: Parameters<AppStore["createJob"]>[1]) {
+    const now = new Date();
+    const rec: JobRecord = { ...job, id: id("job"), userId, status: "DRAFT", createdAt: now, updatedAt: now };
+    this.jobs.push(rec);
+    return rec;
+  }
+  async getJob(userId: string, jobId: string) {
+    return this.own(this.jobs, userId).find((j) => j.id === jobId) ?? null;
+  }
+  async listJobs(userId: string) {
+    return this.own(this.jobs, userId).sort((a, b) => +b.updatedAt - +a.updatedAt);
+  }
+  async setJobStatus(userId: string, jobId: string, status: JobRecord["status"]) {
+    const j = await this.getJob(userId, jobId);
+    if (j) Object.assign(j, { status, updatedAt: new Date() });
+  }
+
+  async saveAnalysis(userId: string, a: Omit<AnalysisRecord, "id" | "createdAt">) {
+    if (!this.ownedJobIds(userId).has(a.jobId)) throw new Error("Job not found");
+    const rec = { ...a, id: id("ana"), createdAt: new Date() };
+    this.analyses.push(rec);
+    return rec;
+  }
+  async latestAnalysis(userId: string, jobId: string) {
+    return this.ownedJobIds(userId).has(jobId) ? latest(this.analyses.filter((a) => a.jobId === jobId)) : null;
+  }
+
+  async saveMatch(userId: string, m: Omit<MatchRecord, "id" | "createdAt">) {
+    if (!this.ownedJobIds(userId).has(m.jobId)) throw new Error("Job not found");
+    const rec = { ...m, id: id("mat"), createdAt: new Date() };
+    this.matches.push(rec);
+    return rec;
+  }
+  async latestMatch(userId: string, jobId: string) {
+    return this.ownedJobIds(userId).has(jobId) ? latest(this.matches.filter((m) => m.jobId === jobId)) : null;
+  }
+  async saveAts(userId: string, m: Omit<AtsRecord, "id" | "createdAt">) {
+    if (!this.ownedJobIds(userId).has(m.jobId)) throw new Error("Job not found");
+    const rec = { ...m, id: id("ats"), createdAt: new Date() };
+    this.atsReports.push(rec);
+    return rec;
+  }
+  async latestAts(userId: string, jobId: string) {
+    return this.ownedJobIds(userId).has(jobId) ? latest(this.atsReports.filter((m) => m.jobId === jobId)) : null;
+  }
+
+  async resumeForJob(userId: string, jobId: string | null) {
+    return this.own(this.resumes, userId).find((r) => r.jobId === jobId) ?? null;
+  }
+  async listResumes(userId: string) {
+    return this.own(this.resumes, userId).sort((a, b) => +b.updatedAt - +a.updatedAt);
+  }
+  async addResumeVersion(userId: string, jobId: string | null, v: Parameters<AppStore["addResumeVersion"]>[2]) {
+    let r = await this.resumeForJob(userId, jobId);
+    const now = new Date();
+    if (!r) {
+      r = { id: id("res"), userId, jobId, name: v.name, versions: [], currentVersionId: "", createdAt: now, updatedAt: now };
+      this.resumes.push(r);
+    }
+    const ver = { id: id("rv"), number: r.versions.length + 1, label: v.label, content: v.content, changeNotes: v.changeNotes, createdAt: now };
+    r.versions.push(ver);
+    r.currentVersionId = ver.id;
+    r.updatedAt = now;
+    return r;
+  }
+  async restoreResumeVersion(userId: string, resumeId: string, versionId: string) {
+    const r = this.own(this.resumes, userId).find((x) => x.id === resumeId);
+    const old = r?.versions.find((v) => v.id === versionId);
+    if (!r || !old) throw new Error("Version not found");
+    // Restore copies forward — history is never rewritten.
+    return this.addResumeVersion(userId, r.jobId, {
+      label: "USER_EDITED",
+      content: structuredClone(old.content),
+      changeNotes: [`Restored from version ${old.number}`],
+      name: r.name,
+    });
+  }
+
+  async coverLetterForJob(userId: string, jobId: string | null) {
+    return this.own(this.letters, userId).find((r) => r.jobId === jobId) ?? null;
+  }
+  async listCoverLetters(userId: string) {
+    return this.own(this.letters, userId).sort((a, b) => +b.updatedAt - +a.updatedAt);
+  }
+  async addCoverLetterVersion(userId: string, jobId: string | null, v: Parameters<AppStore["addCoverLetterVersion"]>[2]) {
+    let r = await this.coverLetterForJob(userId, jobId);
+    const now = new Date();
+    if (!r) {
+      r = { id: id("cl"), userId, jobId, name: v.name, versions: [], currentVersionId: "", createdAt: now, updatedAt: now };
+      this.letters.push(r);
+    }
+    const ver = { id: id("clv"), number: r.versions.length + 1, label: v.label, content: v.content, tone: v.tone, changeNotes: [], createdAt: now };
+    r.versions.push(ver);
+    r.currentVersionId = ver.id;
+    r.updatedAt = now;
+    return r;
+  }
+}

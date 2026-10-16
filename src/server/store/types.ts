@@ -1,0 +1,135 @@
+import type { AtsAdvice, AtsScores, JobAnalysis, MatchReport, ProfileDraft, Tone } from "@/server/ai";
+import type { AIRunStore } from "@/server/ai/runner";
+import type { CreditService } from "@/server/credits/service";
+import type { CoverLetterDocument, ResumeDocument } from "@/server/documents/model";
+import type { ApprovedFactItem, JobInput, ProfileSnapshot } from "@/server/domain/profile";
+
+export type JobStatus = "DRAFT" | "ANALYZED" | "MATCHED" | "OPTIMIZED" | "READY";
+export type VersionLabel = "ORIGINAL" | "AI_OPTIMIZED" | "USER_EDITED" | "FINAL";
+
+export interface CvImport {
+  fileName: string;
+  draft: ProfileDraft;
+  createdAt: Date;
+}
+
+export interface UserRecord {
+  id: string;
+  email: string;
+  name: string;
+  passwordHash: string | null; // null for Google / LinkedIn accounts
+  createdAt: Date;
+}
+
+export interface JobRecord extends JobInput {
+  userId: string;
+  status: JobStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AnalysisRecord {
+  id: string;
+  jobId: string;
+  result: JobAnalysis;
+  promptVersion: string;
+  aiRunId: string;
+  createdAt: Date;
+}
+
+export interface MatchRecord {
+  id: string;
+  jobId: string;
+  kind: "JOB_MATCH";
+  overallScore: number;
+  result: MatchReport;
+  aiRunId: string;
+  createdAt: Date;
+}
+
+export interface AtsRecord {
+  id: string;
+  jobId: string;
+  kind: "ATS";
+  resumeVersionId: string;
+  overallScore: number;
+  result: { scores: AtsScores; advice: AtsAdvice };
+  aiRunId: string;
+  createdAt: Date;
+}
+
+export interface Version<T> {
+  id: string;
+  number: number;
+  label: VersionLabel;
+  content: T;
+  changeNotes: string[];
+  createdAt: Date;
+}
+
+export interface ResumeRecord {
+  id: string;
+  userId: string;
+  jobId: string | null;
+  name: string;
+  versions: Version<ResumeDocument>[];
+  currentVersionId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CoverLetterRecord {
+  id: string;
+  userId: string;
+  jobId: string | null;
+  name: string;
+  versions: Array<Version<CoverLetterDocument> & { tone: Tone }>;
+  currentVersionId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Persistence contract for the app. Every method is scoped by userId — there is no way to load
+ * another user's record. MemoryAppStore implements it for demo mode; PrismaAppStore comes in phase 2.
+ */
+export interface AppStore {
+  credits: CreditService;
+  aiRuns: AIRunStore & { listForUser(userId: string): Promise<Array<{ workflow: string; costUsd: number; model: string; createdAt: Date }>> };
+
+  createUser(u: { email: string; name: string; passwordHash: string | null }): Promise<UserRecord>;
+  findUserByEmail(email: string): Promise<UserRecord | null>;
+  getUser(userId: string): Promise<UserRecord | null>;
+
+  /** Throws if the user has no profile yet — use findProfile to check. */
+  getProfile(userId: string): Promise<ProfileSnapshot>;
+  findProfile(userId: string): Promise<ProfileSnapshot | null>;
+  saveProfile(userId: string, profile: ProfileSnapshot): Promise<void>;
+  /** A parsed CV waiting for the user to review and save (REVIEW → EDIT → APPROVE → SAVE). */
+  getCvImport(userId: string): Promise<CvImport | null>;
+  setCvImport(userId: string, value: CvImport | null): Promise<void>;
+  addApprovedFact(userId: string, fact: Omit<ApprovedFactItem, "id"> & { jobId: string }): Promise<ApprovedFactItem>;
+
+  createJob(userId: string, job: Omit<JobInput, "id">): Promise<JobRecord>;
+  getJob(userId: string, jobId: string): Promise<JobRecord | null>;
+  listJobs(userId: string): Promise<JobRecord[]>;
+  setJobStatus(userId: string, jobId: string, status: JobStatus): Promise<void>;
+
+  saveAnalysis(userId: string, a: Omit<AnalysisRecord, "id" | "createdAt">): Promise<AnalysisRecord>;
+  latestAnalysis(userId: string, jobId: string): Promise<AnalysisRecord | null>;
+
+  saveMatch(userId: string, m: Omit<MatchRecord, "id" | "createdAt">): Promise<MatchRecord>;
+  latestMatch(userId: string, jobId: string): Promise<MatchRecord | null>;
+  saveAts(userId: string, m: Omit<AtsRecord, "id" | "createdAt">): Promise<AtsRecord>;
+  latestAts(userId: string, jobId: string): Promise<AtsRecord | null>;
+
+  /** jobId null = the Master Resume (and below, the Master Cover Letter). */
+  resumeForJob(userId: string, jobId: string | null): Promise<ResumeRecord | null>;
+  listResumes(userId: string): Promise<ResumeRecord[]>;
+  addResumeVersion(userId: string, jobId: string | null, v: { label: VersionLabel; content: ResumeDocument; changeNotes: string[]; name: string }): Promise<ResumeRecord>;
+  restoreResumeVersion(userId: string, resumeId: string, versionId: string): Promise<ResumeRecord>;
+
+  coverLetterForJob(userId: string, jobId: string | null): Promise<CoverLetterRecord | null>;
+  listCoverLetters(userId: string): Promise<CoverLetterRecord[]>;
+  addCoverLetterVersion(userId: string, jobId: string | null, v: { label: VersionLabel; content: CoverLetterDocument; tone: Tone; name: string }): Promise<CoverLetterRecord>;
+}

@@ -5,6 +5,7 @@ import { useActionState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/cn";
 import type { ActionState } from "@/app/(app)/jobs/actions";
 
 type Action = (state: ActionState, fd: FormData) => Promise<ActionState>;
@@ -20,6 +21,7 @@ export function ActionForm({
   pendingLabel,
   cost,
   variant = "primary",
+  fullWidth = false,
   children,
   className,
 }: {
@@ -29,6 +31,8 @@ export function ActionForm({
   pendingLabel?: string;
   cost?: number;
   variant?: "primary" | "secondary";
+  /** Stretch the button to its container — for a card whose main action is this button. */
+  fullWidth?: boolean;
   children?: ReactNode;
   className?: string;
 }) {
@@ -39,18 +43,18 @@ export function ActionForm({
         <input key={k} type="hidden" name={k} value={v} />
       ))}
       {children}
-      <div className="flex flex-col items-start gap-ds-2">
-        <Submit label={label} pendingLabel={pendingLabel} cost={cost} variant={variant} />
+      <div className={cn("flex flex-col gap-ds-2", fullWidth ? "items-stretch" : "items-start")}>
+        <Submit label={label} pendingLabel={pendingLabel} cost={cost} variant={variant} className={fullWidth ? "w-full" : undefined} />
         <FormMessage state={state} />
       </div>
     </form>
   );
 }
 
-function Submit({ label, pendingLabel, cost, variant }: { label: string; pendingLabel?: string; cost?: number; variant: "primary" | "secondary" }) {
+function Submit({ label, pendingLabel, cost, variant, className }: { label: string; pendingLabel?: string; cost?: number; variant: "primary" | "secondary"; className?: string }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" variant={variant} disabled={pending} cost={pending ? undefined : cost} icon={pending ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : undefined}>
+    <Button type="submit" variant={variant} className={className} disabled={pending} cost={pending ? undefined : cost} icon={pending ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : undefined}>
       {pending ? (pendingLabel ?? "Working…") : label}
     </Button>
   );

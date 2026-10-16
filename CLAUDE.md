@@ -7,7 +7,7 @@ The app never applies to jobs automatically.
 
 ## Commands
 - `npm run dev` — http://localhost:3000 (demo login: `demo@applyai.dev` / `applyai-demo`)
-- `npm test` — Vitest (36 tests). Run before every commit.
+- `npm test` — Vitest (39 tests). Run before every commit.
 - `npx tsc --noEmit` — typecheck. `npm run build` — production build.
 - No API key needed: every AI workflow falls back to a deterministic mock provider. Set `ANTHROPIC_API_KEY` in `.env.local` for real output.
 - Data lives in an in-memory store (`src/server/store/memory.ts`) and resets on restart. Prisma schema exists; `PrismaAppStore` is not built yet.

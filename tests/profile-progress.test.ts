@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEMO_PROFILE } from "@/server/demo/fixtures";
 import { toProfileInput } from "@/server/domain/profile-mapping";
 import { ProfileInputSchema, type ProfileInput } from "@/server/domain/profile-schema";
-import { profileProgress, SECTIONS } from "@/components/features/profile/profile-progress";
+import { issuesForStep, profileProgress, SECTIONS, SETUP_STEPS } from "@/components/features/profile/profile-progress";
 
 const complete = (): ProfileInput => structuredClone(toProfileInput(DEMO_PROFILE, "alex.rivera@example.com", ""));
 
@@ -71,5 +71,35 @@ describe("profile editor progress", () => {
     expect(p.issues.length).toBeGreaterThan(0);
     expect(p.errors.get("email")).toBeTruthy();
     expect(p.errors.get("links.linkedin")).toMatch(/https:\/\//);
+  });
+});
+
+describe("first-time setup steps", () => {
+  it("puts every editor section on exactly one step, with review last and empty", () => {
+    const all = SETUP_STEPS.flatMap((s) => [...s.sections]);
+    expect(all.sort()).toEqual(SECTIONS.map(([id]) => id).sort());
+    expect(new Set(all).size).toBe(all.length);
+    expect(SETUP_STEPS.at(-1)?.key).toBe("review");
+    expect(SETUP_STEPS.at(-1)?.sections).toHaveLength(0);
+  });
+
+  it("blocks a step only for its own required items", () => {
+    const input = complete();
+    input.firstName = "";
+    input.experiences[0]!.company = "";
+    const p = profileProgress(input);
+    expect(issuesForStep(p, 0).map((i) => i.field)).toEqual(["firstName"]);
+    expect(issuesForStep(p, 1).map((i) => i.field)).toEqual(["experiences.0.company"]);
+    expect(issuesForStep(p, 2)).toEqual([]);
+    expect(issuesForStep(p, 3)).toEqual([]);
+  });
+
+  it("lets a brand-new blank profile through no step until the basics are filled in", () => {
+    const blank = toProfileInput(null, "", "");
+    blank.experiences = [{ id: "exp_x", company: "", title: "", location: "", startDate: "", endDate: "", isCurrent: false, responsibilities: [], achievements: [], tools: [] }];
+    const p = profileProgress(blank);
+    expect(issuesForStep(p, 0).length).toBeGreaterThan(0);
+    expect(issuesForStep(p, 1).length).toBeGreaterThan(0);
+    expect(issuesForStep(p, 2)).toEqual([]);
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useActionState, useContext, useId, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { createContext, useActionState, useContext, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { Check, CircleAlert, CircleDashed, Plus, Trash2 } from "lucide-react";
 import { saveProfile } from "@/app/(app)/profile/actions";
@@ -10,7 +10,9 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { errorProps, Field, Input, Textarea } from "@/components/ui/Field";
 import { cn } from "@/lib/cn";
 import type { ProfileInput } from "@/server/domain/profile-schema";
-import { profileProgress, SECTIONS, type ProfileIssue, type SectionId, type SectionStatus } from "./profile-progress";
+import { issuesForStep, profileProgress, SECTIONS, SETUP_STEPS, type ProfileIssue, type SectionId, type SectionStatus } from "./profile-progress";
+import { ReviewStep } from "./ReviewStep";
+import { SetupSteps } from "./SetupSteps";
 
 type Exp = ProfileInput["experiences"][number];
 type Edu = ProfileInput["education"][number];
@@ -49,7 +51,7 @@ const fromCsv = (s: string) =>
     .filter(Boolean);
 
 /** Inline errors appear once the user has tried to save; before that the nav and save bar show what's missing. */
-const ErrorsContext = createContext<{ errors: Map<string, string>; show: boolean }>({ errors: new Map(), show: false });
+const ErrorsContext = createContext<{ errors: Map<string, string>; show: boolean; wizard: boolean }>({ errors: new Map(), show: false, wizard: false });
 
 /** Scroll to a field (or its section) and focus it. */
 function jumpTo(field: string, section: SectionId) {
@@ -58,15 +60,45 @@ function jumpTo(field: string, section: SectionId) {
   el?.focus({ preventScroll: true });
 }
 
-export function ProfileEditor({ initial, firstTime, requestId }: { initial: ProfileInput; firstTime: boolean; requestId: string }) {
+/** `intro` (first-time setup only) shows above the fields on the first step, outside the form, e.g. the "import your CV" options. */
+export function ProfileEditor({ initial, firstTime, requestId, intro }: { initial: ProfileInput; firstTime: boolean; requestId: string; intro?: ReactNode }) {
   const [p, setP] = useState<ProfileInput>(() => (initial.experiences.length ? initial : { ...initial, experiences: [blankExp()] }));
   const [state, action] = useActionState(saveProfile, undefined);
   const [attempted, setAttempted] = useState(false);
   const progress = useMemo(() => profileProgress(p), [p]);
   const first = progress.issues[0];
   const sec = (id: SectionId) => progress.sections[id];
+
+  // First-time setup runs as steps; later edits use the single-page editor.
+  const wizard = firstTime;
+  const [step, setStep] = useState(0);
+  const lastStep = SETUP_STEPS.length - 1;
+  const stepIssues = wizard ? issuesForStep(progress, step) : progress.issues;
+  const stepFirst = stepIssues[0];
+  const inStep = (id: SectionId) => !wizard || (SETUP_STEPS[step]!.sections as readonly SectionId[]).includes(id);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const moved = useRef(false);
+  useEffect(() => {
+    if (!moved.current) return;
+    window.scrollTo({ top: 0 });
+    headingRef.current?.focus();
+  }, [step]);
+  const go = (to: number) => {
+    moved.current = true;
+    setAttempted(false);
+    setStep(to);
+  };
+
   // Saving with required items missing would only bounce back from the server one error at a time: show them all instead.
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    if (wizard && step < lastStep) {
+      e.preventDefault(); // Enter in a field means "Continue", never "Create"
+      if (stepFirst) {
+        setAttempted(true);
+        jumpTo(stepFirst.field, stepFirst.section);
+      } else go(step + 1);
+      return;
+    }
     if (!first) return;
     e.preventDefault();
     setAttempted(true);
@@ -78,37 +110,55 @@ export function ProfileEditor({ initial, firstTime, requestId }: { initial: Prof
   const remove = (k: "experiences" | "education" | "certifications" | "projects", i: number) => setP((x) => ({ ...x, [k]: (x[k] as unknown[]).filter((_, j) => j !== i) }));
 
   return (
-    <ErrorsContext.Provider value={{ errors: progress.errors, show: attempted }}>
-      <form action={action} onSubmit={onSubmit} noValidate className="grid gap-ds-4 lg:grid-cols-[232px_1fr]">
+    <ErrorsContext.Provider value={{ errors: progress.errors, show: attempted, wizard }}>
+      {wizard && (
+        <div className="mb-ds-4 flex flex-col gap-ds-4">
+          <SetupSteps current={step} />
+          <div>
+            <p className="text-caption">
+              Step {step + 1} of {SETUP_STEPS.length}
+            </p>
+            <h2 ref={headingRef} tabIndex={-1} className="text-heading-section outline-none">
+              {step === lastStep ? "Review your details" : SETUP_STEPS[step]!.label}
+            </h2>
+          </div>
+          {/* Outside the form on purpose: the CV options are forms themselves, and forms can't nest. */}
+          {step === 0 && intro}
+        </div>
+      )}
+      <form action={action} onSubmit={onSubmit} noValidate className={cn("grid gap-ds-4", !wizard && "lg:grid-cols-[232px_1fr]")}>
         <input type="hidden" name="profile" value={JSON.stringify(p)} />
         <input type="hidden" name="requestId" value={requestId} />
 
-        <nav aria-label="Profile sections" className="hidden lg:block">
-          <div className="sticky top-[84px] flex flex-col gap-ds-3">
-            <Progress done={progress.completeCount} total={SECTIONS.length} />
-            <ol className="flex flex-col gap-1">
-              {SECTIONS.map(([id, label]) => (
-                <li key={id}>
-                  <a href={`#${id}`} className="flex items-start gap-ds-2 rounded-sm px-ds-2 py-1 text-body-sm no-underline hover:bg-sky-50 hover:text-blue-700">
-                    <span className="mt-0.5">
-                      <StatusIcon status={sec(id).status} />
-                    </span>
-                    <span className="flex flex-1 flex-col">
-                      {label}
-                      <span className={cn("text-caption", sec(id).status === "attention" ? "font-bold text-warning" : "sr-only")}>
-                        <span className="sr-only">: </span>
-                        {STATUS_LABEL[sec(id).status]}
+        {!wizard && (
+          <nav aria-label="Profile sections" className="hidden lg:block">
+            <div className="sticky top-[84px] flex flex-col gap-ds-3">
+              <Progress done={progress.completeCount} total={SECTIONS.length} />
+              <ol className="flex flex-col gap-1">
+                {SECTIONS.map(([id, label]) => (
+                  <li key={id}>
+                    <a href={`#${id}`} className="flex items-start gap-ds-2 rounded-sm px-ds-2 py-1 text-body-sm no-underline hover:bg-sky-50 hover:text-blue-700">
+                      <span className="mt-0.5">
+                        <StatusIcon status={sec(id).status} />
                       </span>
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </nav>
+                      <span className="flex flex-1 flex-col">
+                        {label}
+                        <span className={cn("text-caption", sec(id).status === "attention" ? "font-bold text-warning" : "sr-only")}>
+                          <span className="sr-only">: </span>
+                          {STATUS_LABEL[sec(id).status]}
+                        </span>
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </nav>
+        )}
 
         <div className="flex flex-col gap-ds-4">
-          <div className="rounded-md bg-sky-50 p-ds-4 lg:hidden">
+          {step === lastStep && wizard && <ReviewStep p={p} />}
+          <div className={cn("rounded-md bg-sky-50 p-ds-4 lg:hidden", wizard && "hidden")}>
             <Progress done={progress.completeCount} total={SECTIONS.length} onTint />
             {first && (
               <p className="mt-ds-2 text-body-sm">
@@ -120,195 +170,217 @@ export function ProfileEditor({ initial, firstTime, requestId }: { initial: Prof
             )}
           </div>
 
-          <Section id="personal" {...sec("personal")} title="Personal information">
-            <Grid>
-              <F label="First name" field="firstName" required value={p.firstName} onChange={(v) => set("firstName", v)} />
-              <F label="Last name" field="lastName" required value={p.lastName} onChange={(v) => set("lastName", v)} />
-              <F label="Professional title" field="headline" required value={p.headline} onChange={(v) => set("headline", v)} placeholder="e.g. Senior Product Designer" />
-              <F label="Email" field="email" required type="email" value={p.email} onChange={(v) => set("email", v)} />
-              <F label="Phone" value={p.phone ?? ""} onChange={(v) => set("phone", v)} />
-              <F label="City" value={p.city ?? ""} onChange={(v) => set("city", v)} />
-              <F label="State / region" value={p.state ?? ""} onChange={(v) => set("state", v)} />
-              <F label="Country" value={p.country ?? ""} onChange={(v) => set("country", v)} />
-            </Grid>
-          </Section>
+          <StepPane show={inStep("personal")}>
+            <Section id="personal" {...sec("personal")} title="Personal information">
+              <Grid>
+                <F label="First name" field="firstName" required value={p.firstName} onChange={(v) => set("firstName", v)} />
+                <F label="Last name" field="lastName" required value={p.lastName} onChange={(v) => set("lastName", v)} />
+                <F label="Professional title" field="headline" required value={p.headline} onChange={(v) => set("headline", v)} placeholder="e.g. Senior Product Designer" />
+                <F label="Email" field="email" required type="email" value={p.email} onChange={(v) => set("email", v)} />
+                <F label="Phone" value={p.phone ?? ""} onChange={(v) => set("phone", v)} />
+                <F label="City" value={p.city ?? ""} onChange={(v) => set("city", v)} />
+                <F label="State / region" value={p.state ?? ""} onChange={(v) => set("state", v)} />
+                <F label="Country" value={p.country ?? ""} onChange={(v) => set("country", v)} />
+              </Grid>
+            </Section>
+          </StepPane>
 
-          <Section id="links" {...sec("links")} title="Professional links">
-            <Grid>
-              {(["linkedin", "portfolio", "github", "behance", "dribbble", "website"] as const).map((k) => (
-                <F
-                  key={k}
-                  field={`links.${k}`}
-                  label={{ linkedin: "LinkedIn", portfolio: "Portfolio", github: "GitHub", behance: "Behance", dribbble: "Dribbble", website: "Personal website" }[k]}
-                  type="url"
-                  placeholder="https://"
-                  value={p.links[k] ?? ""}
-                  onChange={(v) => set("links", { ...p.links, [k]: v })}
-                />
-              ))}
-            </Grid>
-          </Section>
-
-          <Section
-            id="summary"
-            {...sec("summary")}
-            title="Professional summary"
-            subtitle="3–4 sentences about what you do and what you're best at. We'll polish it for your Master Resume."
-          >
-            <Textarea aria-label="Professional summary" className="min-h-32" value={p.summary ?? ""} onChange={(e) => set("summary", e.target.value)} />
-          </Section>
-
-          <Section
-            id="experience"
-            {...sec("experience")}
-            title="Work experience"
-            subtitle="Most recent first. Achievements with real numbers make the strongest resumes — we never invent them."
-          >
-            {p.experiences.map((e, i) => (
-              <Item key={e.id} title={e.title || e.company ? `${e.title || "Role"}${e.company ? `, ${e.company}` : ""}` : `Job ${i + 1}`} onRemove={() => remove("experiences", i)}>
-                <Grid>
-                  <F label="Company" field={`experiences.${i}.company`} required value={e.company} onChange={(v) => setItem("experiences", i, { company: v })} />
-                  <F label="Job title" field={`experiences.${i}.title`} required value={e.title} onChange={(v) => setItem("experiences", i, { title: v })} />
-                  <F label="Location" value={e.location ?? ""} onChange={(v) => setItem("experiences", i, { location: v })} />
-                  <div />
+          <StepPane show={inStep("links")}>
+            <Section id="links" {...sec("links")} title="Professional links">
+              <Grid>
+                {(["linkedin", "portfolio", "github", "behance", "dribbble", "website"] as const).map((k) => (
                   <F
-                    label="Start month"
-                    field={`experiences.${i}.startDate`}
-                    required
-                    type="month"
-                    value={e.startDate}
-                    onChange={(v) => setItem("experiences", i, { startDate: v })}
+                    key={k}
+                    field={`links.${k}`}
+                    label={{ linkedin: "LinkedIn", portfolio: "Portfolio", github: "GitHub", behance: "Behance", dribbble: "Dribbble", website: "Personal website" }[k]}
+                    type="url"
+                    placeholder="https://"
+                    value={p.links[k] ?? ""}
+                    onChange={(v) => set("links", { ...p.links, [k]: v })}
                   />
-                  {e.isCurrent ? (
+                ))}
+              </Grid>
+            </Section>
+          </StepPane>
+
+          <StepPane show={inStep("summary")}>
+            <Section
+              id="summary"
+              {...sec("summary")}
+              title="Professional summary"
+              subtitle="3–4 sentences about what you do and what you're best at. We'll polish it for your Master Resume."
+            >
+              <Textarea aria-label="Professional summary" className="min-h-32" value={p.summary ?? ""} onChange={(e) => set("summary", e.target.value)} />
+            </Section>
+          </StepPane>
+
+          <StepPane show={inStep("experience")}>
+            <Section
+              id="experience"
+              {...sec("experience")}
+              title="Work experience"
+              subtitle="Most recent first. Achievements with real numbers make the strongest resumes — we never invent them."
+            >
+              {p.experiences.map((e, i) => (
+                <Item
+                  key={e.id}
+                  title={e.title || e.company ? `${e.title || "Role"}${e.company ? `, ${e.company}` : ""}` : `Job ${i + 1}`}
+                  onRemove={() => remove("experiences", i)}
+                >
+                  <Grid>
+                    <F label="Company" field={`experiences.${i}.company`} required value={e.company} onChange={(v) => setItem("experiences", i, { company: v })} />
+                    <F label="Job title" field={`experiences.${i}.title`} required value={e.title} onChange={(v) => setItem("experiences", i, { title: v })} />
+                    <F label="Location" value={e.location ?? ""} onChange={(v) => setItem("experiences", i, { location: v })} />
                     <div />
-                  ) : (
                     <F
-                      label="End month"
-                      field={`experiences.${i}.endDate`}
+                      label="Start month"
+                      field={`experiences.${i}.startDate`}
                       required
                       type="month"
-                      value={e.endDate ?? ""}
-                      onChange={(v) => setItem("experiences", i, { endDate: v })}
+                      value={e.startDate}
+                      onChange={(v) => setItem("experiences", i, { startDate: v })}
                     />
-                  )}
-                </Grid>
-                <label className="flex items-center gap-ds-2 text-body-sm">
-                  <input
-                    type="checkbox"
-                    checked={e.isCurrent}
-                    onChange={(ev) => setItem("experiences", i, { isCurrent: ev.target.checked })}
-                    className="size-4 accent-[var(--blue-600)]"
+                    {e.isCurrent ? (
+                      <div />
+                    ) : (
+                      <F
+                        label="End month"
+                        field={`experiences.${i}.endDate`}
+                        required
+                        type="month"
+                        value={e.endDate ?? ""}
+                        onChange={(v) => setItem("experiences", i, { endDate: v })}
+                      />
+                    )}
+                  </Grid>
+                  <label className="flex items-center gap-ds-2 text-body-sm">
+                    <input
+                      type="checkbox"
+                      checked={e.isCurrent}
+                      onChange={(ev) => setItem("experiences", i, { isCurrent: ev.target.checked })}
+                      className="size-4 accent-[var(--blue-600)]"
+                    />
+                    I currently work here
+                  </label>
+                  <TA
+                    label="Responsibilities"
+                    hint="One per line."
+                    value={toLines(e.responsibilities)}
+                    onChange={(v) => setItem("experiences", i, { responsibilities: fromLines(v) })}
                   />
-                  I currently work here
-                </label>
+                  <TA
+                    label="Achievements"
+                    hint="One per line — include results and numbers where you have them."
+                    value={toLines(e.achievements)}
+                    onChange={(v) => setItem("experiences", i, { achievements: fromLines(v) })}
+                  />
+                  <CSV label="Technologies and tools" hint="Separate with commas." value={e.tools} onChange={(v) => setItem("experiences", i, { tools: v })} />
+                </Item>
+              ))}
+              <AddButton onClick={() => set("experiences", [...p.experiences, blankExp()])}>Add a job</AddButton>
+            </Section>
+          </StepPane>
+
+          <StepPane show={inStep("education")}>
+            <Section id="education" {...sec("education")} title="Education">
+              {p.education.map((e, i) => (
+                <Item key={e.id} title={e.school || `Education ${i + 1}`} onRemove={() => remove("education", i)}>
+                  <Grid>
+                    <F label="School or university" field={`education.${i}.school`} required value={e.school} onChange={(v) => setItem("education", i, { school: v })} />
+                    <F label="Degree" value={e.degree ?? ""} onChange={(v) => setItem("education", i, { degree: v })} placeholder="e.g. B.A." />
+                    <F label="Field of study" value={e.field ?? ""} onChange={(v) => setItem("education", i, { field: v })} />
+                    <div />
+                    <F label="Start month" type="month" value={e.startDate ?? ""} onChange={(v) => setItem("education", i, { startDate: v })} />
+                    <F label="End month" type="month" value={e.endDate ?? ""} onChange={(v) => setItem("education", i, { endDate: v })} />
+                  </Grid>
+                  <TA label="Description" value={e.description ?? ""} onChange={(v) => setItem("education", i, { description: v })} />
+                </Item>
+              ))}
+              <AddButton onClick={() => set("education", [...p.education, blankEdu()])}>Add education</AddButton>
+            </Section>
+          </StepPane>
+
+          <StepPane show={inStep("skills")}>
+            <Section id="skills" {...sec("skills")} title="Skills" subtitle="Separate with commas. Only list what you'd be comfortable discussing in an interview.">
+              {(
+                [
+                  ["PROFESSIONAL", "Professional skills", "User research, Prototyping"],
+                  ["TECHNICAL", "Technical skills", "HTML, CSS, SQL"],
+                  ["TOOL", "Tools", "Figma, Jira"],
+                  ["DOMAIN", "Industry knowledge", "Financial services, SaaS"],
+                  ["SOFT", "Soft skills", "Communication, Mentoring"],
+                ] as const
+              ).map(([k, label, ph]) => (
+                <CSV key={k} label={label} placeholder={ph} value={p.skills[k]} onChange={(v) => set("skills", { ...p.skills, [k]: v })} />
+              ))}
+            </Section>
+          </StepPane>
+
+          <StepPane show={inStep("certifications")}>
+            <Section id="certifications" {...sec("certifications")} title="Certifications">
+              {p.certifications.map((c, i) => (
+                <Item key={c.id} title={c.name || `Certification ${i + 1}`} onRemove={() => remove("certifications", i)}>
+                  <Grid>
+                    <F label="Certification" field={`certifications.${i}.name`} required value={c.name} onChange={(v) => setItem("certifications", i, { name: v })} />
+                    <F label="Issuing organization" value={c.issuer ?? ""} onChange={(v) => setItem("certifications", i, { issuer: v })} />
+                    <F label="Issue month" type="month" value={c.issueDate ?? ""} onChange={(v) => setItem("certifications", i, { issueDate: v })} />
+                    <F label="Expiration month" type="month" value={c.expiryDate ?? ""} onChange={(v) => setItem("certifications", i, { expiryDate: v })} />
+                    <F label="Credential ID" value={c.credentialId ?? ""} onChange={(v) => setItem("certifications", i, { credentialId: v })} />
+                    <F label="Credential URL" type="url" value={c.url ?? ""} onChange={(v) => setItem("certifications", i, { url: v })} />
+                  </Grid>
+                </Item>
+              ))}
+              <AddButton onClick={() => set("certifications", [...p.certifications, blankCert()])}>Add certification</AddButton>
+            </Section>
+          </StepPane>
+
+          <StepPane show={inStep("projects")}>
+            <Section id="projects" {...sec("projects")} title="Projects">
+              {p.projects.map((x, i) => (
+                <Item key={x.id} title={x.name || `Project ${i + 1}`} onRemove={() => remove("projects", i)}>
+                  <Grid>
+                    <F label="Project name" field={`projects.${i}.name`} required value={x.name} onChange={(v) => setItem("projects", i, { name: v })} />
+                    <F label="Your role" value={x.role ?? ""} onChange={(v) => setItem("projects", i, { role: v })} />
+                  </Grid>
+                  <TA label="Description" value={x.description ?? ""} onChange={(v) => setItem("projects", i, { description: v })} />
+                  <CSV label="Technologies and tools" hint="Separate with commas." value={x.tools} onChange={(v) => setItem("projects", i, { tools: v })} />
+                  <TA label="Results" value={x.results ?? ""} onChange={(v) => setItem("projects", i, { results: v })} />
+                </Item>
+              ))}
+              <AddButton onClick={() => set("projects", [...p.projects, blankProj()])}>Add project</AddButton>
+            </Section>
+          </StepPane>
+
+          <StepPane show={inStep("additional")}>
+            <Section id="additional" {...sec("additional")} title="Languages & more" subtitle="One per line.">
+              <Grid>
                 <TA
-                  label="Responsibilities"
-                  hint="One per line."
-                  value={toLines(e.responsibilities)}
-                  onChange={(v) => setItem("experiences", i, { responsibilities: fromLines(v) })}
+                  label="Languages"
+                  hint="e.g. Spanish — professional working proficiency"
+                  value={toLines(p.extras.LANGUAGE)}
+                  onChange={(v) => set("extras", { ...p.extras, LANGUAGE: fromLines(v) })}
                 />
-                <TA
-                  label="Achievements"
-                  hint="One per line — include results and numbers where you have them."
-                  value={toLines(e.achievements)}
-                  onChange={(v) => setItem("experiences", i, { achievements: fromLines(v) })}
-                />
-                <CSV label="Technologies and tools" hint="Separate with commas." value={e.tools} onChange={(v) => setItem("experiences", i, { tools: v })} />
-              </Item>
-            ))}
-            <AddButton onClick={() => set("experiences", [...p.experiences, blankExp()])}>Add a job</AddButton>
-          </Section>
-
-          <Section id="education" {...sec("education")} title="Education">
-            {p.education.map((e, i) => (
-              <Item key={e.id} title={e.school || `Education ${i + 1}`} onRemove={() => remove("education", i)}>
-                <Grid>
-                  <F label="School or university" field={`education.${i}.school`} required value={e.school} onChange={(v) => setItem("education", i, { school: v })} />
-                  <F label="Degree" value={e.degree ?? ""} onChange={(v) => setItem("education", i, { degree: v })} placeholder="e.g. B.A." />
-                  <F label="Field of study" value={e.field ?? ""} onChange={(v) => setItem("education", i, { field: v })} />
-                  <div />
-                  <F label="Start month" type="month" value={e.startDate ?? ""} onChange={(v) => setItem("education", i, { startDate: v })} />
-                  <F label="End month" type="month" value={e.endDate ?? ""} onChange={(v) => setItem("education", i, { endDate: v })} />
-                </Grid>
-                <TA label="Description" value={e.description ?? ""} onChange={(v) => setItem("education", i, { description: v })} />
-              </Item>
-            ))}
-            <AddButton onClick={() => set("education", [...p.education, blankEdu()])}>Add education</AddButton>
-          </Section>
-
-          <Section id="skills" {...sec("skills")} title="Skills" subtitle="Separate with commas. Only list what you'd be comfortable discussing in an interview.">
-            {(
-              [
-                ["PROFESSIONAL", "Professional skills", "User research, Prototyping"],
-                ["TECHNICAL", "Technical skills", "HTML, CSS, SQL"],
-                ["TOOL", "Tools", "Figma, Jira"],
-                ["DOMAIN", "Industry knowledge", "Financial services, SaaS"],
-                ["SOFT", "Soft skills", "Communication, Mentoring"],
-              ] as const
-            ).map(([k, label, ph]) => (
-              <CSV key={k} label={label} placeholder={ph} value={p.skills[k]} onChange={(v) => set("skills", { ...p.skills, [k]: v })} />
-            ))}
-          </Section>
-
-          <Section id="certifications" {...sec("certifications")} title="Certifications">
-            {p.certifications.map((c, i) => (
-              <Item key={c.id} title={c.name || `Certification ${i + 1}`} onRemove={() => remove("certifications", i)}>
-                <Grid>
-                  <F label="Certification" field={`certifications.${i}.name`} required value={c.name} onChange={(v) => setItem("certifications", i, { name: v })} />
-                  <F label="Issuing organization" value={c.issuer ?? ""} onChange={(v) => setItem("certifications", i, { issuer: v })} />
-                  <F label="Issue month" type="month" value={c.issueDate ?? ""} onChange={(v) => setItem("certifications", i, { issueDate: v })} />
-                  <F label="Expiration month" type="month" value={c.expiryDate ?? ""} onChange={(v) => setItem("certifications", i, { expiryDate: v })} />
-                  <F label="Credential ID" value={c.credentialId ?? ""} onChange={(v) => setItem("certifications", i, { credentialId: v })} />
-                  <F label="Credential URL" type="url" value={c.url ?? ""} onChange={(v) => setItem("certifications", i, { url: v })} />
-                </Grid>
-              </Item>
-            ))}
-            <AddButton onClick={() => set("certifications", [...p.certifications, blankCert()])}>Add certification</AddButton>
-          </Section>
-
-          <Section id="projects" {...sec("projects")} title="Projects">
-            {p.projects.map((x, i) => (
-              <Item key={x.id} title={x.name || `Project ${i + 1}`} onRemove={() => remove("projects", i)}>
-                <Grid>
-                  <F label="Project name" field={`projects.${i}.name`} required value={x.name} onChange={(v) => setItem("projects", i, { name: v })} />
-                  <F label="Your role" value={x.role ?? ""} onChange={(v) => setItem("projects", i, { role: v })} />
-                </Grid>
-                <TA label="Description" value={x.description ?? ""} onChange={(v) => setItem("projects", i, { description: v })} />
-                <CSV label="Technologies and tools" hint="Separate with commas." value={x.tools} onChange={(v) => setItem("projects", i, { tools: v })} />
-                <TA label="Results" value={x.results ?? ""} onChange={(v) => setItem("projects", i, { results: v })} />
-              </Item>
-            ))}
-            <AddButton onClick={() => set("projects", [...p.projects, blankProj()])}>Add project</AddButton>
-          </Section>
-
-          <Section id="additional" {...sec("additional")} title="Languages & more" subtitle="One per line.">
-            <Grid>
-              <TA
-                label="Languages"
-                hint="e.g. Spanish — professional working proficiency"
-                value={toLines(p.extras.LANGUAGE)}
-                onChange={(v) => set("extras", { ...p.extras, LANGUAGE: fromLines(v) })}
-              />
-              <TA label="Awards" value={toLines(p.extras.AWARD)} onChange={(v) => set("extras", { ...p.extras, AWARD: fromLines(v) })} />
-              <TA label="Publications" value={toLines(p.extras.PUBLICATION)} onChange={(v) => set("extras", { ...p.extras, PUBLICATION: fromLines(v) })} />
-              <TA label="Volunteer work" value={toLines(p.extras.VOLUNTEER)} onChange={(v) => set("extras", { ...p.extras, VOLUNTEER: fromLines(v) })} />
-            </Grid>
-          </Section>
+                <TA label="Awards" value={toLines(p.extras.AWARD)} onChange={(v) => set("extras", { ...p.extras, AWARD: fromLines(v) })} />
+                <TA label="Publications" value={toLines(p.extras.PUBLICATION)} onChange={(v) => set("extras", { ...p.extras, PUBLICATION: fromLines(v) })} />
+                <TA label="Volunteer work" value={toLines(p.extras.VOLUNTEER)} onChange={(v) => set("extras", { ...p.extras, VOLUNTEER: fromLines(v) })} />
+              </Grid>
+            </Section>
+          </StepPane>
 
           <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-ds-4 rounded-md bg-white p-ds-4 shadow-card">
             <div className="flex max-w-md flex-col gap-ds-2">
-              {first && (
+              {stepFirst && (
                 <p role={attempted ? "alert" : undefined} className="text-body-sm">
                   <span className="font-bold text-warning">
-                    {progress.issues.length} required {progress.issues.length === 1 ? "item" : "items"} missing.
+                    {stepIssues.length} required {stepIssues.length === 1 ? "item" : "items"} missing.
                   </span>{" "}
-                  <button type="button" onClick={() => jumpTo(first.field, first.section)} className="text-blue-700 underline">
+                  <button type="button" onClick={() => jumpTo(stepFirst.field, stepFirst.section)} className="text-blue-700 underline">
                     Show me
                   </button>
                 </p>
               )}
-              {firstTime ? (
-                <p className="text-body-sm">When you save, we&apos;ll create your Master Resume and Master Cover Letter from this profile.</p>
+              {wizard ? (
+                step === lastStep && <p className="text-body-sm">Creating your documents is free. We only use what you entered here.</p>
               ) : (
                 <label className="flex items-center gap-ds-2 text-body-sm">
                   <input type="checkbox" name="regenerate" defaultChecked className="size-4 accent-[var(--blue-600)]" />
@@ -316,19 +388,37 @@ export function ProfileEditor({ initial, firstTime, requestId }: { initial: Prof
                 </label>
               )}
             </div>
-            <div className="flex w-full flex-col gap-ds-2 sm:w-auto sm:items-end">
-              <SaveButton label={firstTime ? "Save & create my documents" : "Save profile"} />
-              {state?.error && (
-                <p role="alert" className="text-body-sm text-danger">
-                  {state.error}
-                </p>
+            <div className="flex w-full flex-wrap items-center gap-ds-4 sm:w-auto sm:justify-end">
+              {wizard && step > 0 && (
+                <button type="button" onClick={() => go(step - 1)} className="text-body-sm text-blue-700 underline">
+                  Back
+                </button>
               )}
+              <div className="flex flex-1 flex-col gap-ds-2 sm:flex-none sm:items-end">
+                {wizard && step < lastStep ? (
+                  <Button type="submit" className="w-full sm:w-auto">
+                    Continue
+                  </Button>
+                ) : (
+                  <SaveButton label={wizard ? "Create my master documents" : "Save profile"} />
+                )}
+                {state?.error && (
+                  <p role="alert" className="text-body-sm text-danger">
+                    {state.error}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </form>
     </ErrorsContext.Provider>
   );
+}
+
+/** Keeps every section mounted (so typed text is never lost) and shows only the current step's. */
+function StepPane({ show, children }: { show: boolean; children: ReactNode }) {
+  return <div hidden={!show}>{children}</div>;
 }
 
 function SaveButton({ label }: { label: string }) {
@@ -385,7 +475,7 @@ function Section({
 }) {
   // Several empty fields in one job would repeat the same wording, so list each message once.
   // Once inline errors are showing they say the same thing next to each field.
-  const { show } = useContext(ErrorsContext);
+  const { show, wizard } = useContext(ErrorsContext);
   const todo = show ? [] : [...new Set(issues.map((i) => i.message))];
   return (
     <Card id={id} tabIndex={-1} aria-labelledby={`${id}-h`} className="scroll-mt-[84px] outline-none">
@@ -393,10 +483,12 @@ function Section({
         title={
           <span className="flex flex-wrap items-center gap-x-ds-3 gap-y-ds-1">
             <span id={`${id}-h`}>{title}</span>
-            <Badge tone={status === "complete" ? "success" : status === "attention" ? "warning" : "neutral"}>
-              <StatusIcon status={status} size={12} />
-              {STATUS_LABEL[status]}
-            </Badge>
+            {!wizard && (
+              <Badge tone={status === "complete" ? "success" : status === "attention" ? "warning" : "neutral"}>
+                <StatusIcon status={status} size={12} />
+                {STATUS_LABEL[status]}
+              </Badge>
+            )}
           </span>
         }
         subtitle={subtitle}

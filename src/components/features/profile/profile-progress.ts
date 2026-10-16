@@ -15,6 +15,14 @@ export const SECTIONS = [
 
 export type SectionId = (typeof SECTIONS)[number][0];
 
+/** The first-time setup, in order. Every editor section belongs to exactly one step; "review" has none. */
+export const SETUP_STEPS = [
+  { key: "details", label: "Your details", sections: ["personal", "links", "summary"] },
+  { key: "experience", label: "Experience", sections: ["experience"] },
+  { key: "education", label: "Education and skills", sections: ["education", "skills", "certifications", "projects", "additional"] },
+  { key: "review", label: "Review", sections: [] },
+] as const satisfies ReadonlyArray<{ key: string; label: string; sections: readonly SectionId[] }>;
+
 /** complete: filled in · attention: a required field is missing or invalid · empty: optional and not added yet. */
 export type SectionStatus = "complete" | "attention" | "empty";
 
@@ -104,4 +112,10 @@ export function profileProgress(p: ProfileInput): ProfileProgress {
     sections[id] = { status, issues: own };
   }
   return { issues, errors, sections, completeCount };
+}
+
+/** The required items still missing on one setup step. A step can't be left until this is empty. */
+export function issuesForStep(progress: ProfileProgress, step: number): ProfileIssue[] {
+  const sections: readonly SectionId[] = SETUP_STEPS[step]?.sections ?? [];
+  return progress.issues.filter((i) => sections.includes(i.section));
 }

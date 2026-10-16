@@ -44,7 +44,7 @@ export async function saveProfile(_: ProfileState, fd: FormData): Promise<Profil
     }
   }
   revalidatePath("/", "layout");
-  redirect(firstTime ? "/dashboard?welcome=1" : "/profile?saved=1");
+  redirect(firstTime ? "/onboarding/done" : "/profile?saved=1");
 }
 
 const RETURN_TO = { onboarding: "/onboarding", edit: "/profile/edit" } as const;
@@ -57,7 +57,10 @@ const RETURN_TO = { onboarding: "/onboarding", edit: "/profile/edit" } as const;
 export async function importCv(_: ProfileState, fd: FormData): Promise<ProfileState> {
   const user = await requireUser();
   const back = RETURN_TO[fd.get("returnTo") === "edit" ? "edit" : "onboarding"];
-  const file = fd.get("cv");
+  // Either an uploaded file or pasted text; pasted text goes through the same reader as a .txt file.
+  const pasted = String(fd.get("cvText") ?? "").trim();
+  if (fd.has("cvText") && pasted.length < 100) return { error: "Paste your whole CV (at least a few lines) so we have enough to read." };
+  const file = pasted ? new File([pasted], "Pasted CV.txt", { type: "text/plain" }) : fd.get("cv");
   if (!(file instanceof File) || file.size === 0) return { error: "Choose your CV file first (PDF or Word)." };
   const store = await getStore();
   try {

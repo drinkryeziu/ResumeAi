@@ -21,7 +21,7 @@ export function ImportBanner({ fileName, added, returnTo }: { fileName: string; 
           <p className="text-label-bold text-success">We filled in your profile from {fileName}</p>
           <p className="text-body-sm">
             {found.length ? `Added ${found.join(", ")}.` : "Your profile already had everything we found."} Check every field below — especially dates — and fix anything we
-            read wrong. <strong>Nothing is saved until you click Save.</strong>
+            read wrong. <strong>Nothing is saved until you save your profile.</strong>
           </p>
           {added.missingStart.length > 0 && (
             <p className="text-body-sm text-warning">

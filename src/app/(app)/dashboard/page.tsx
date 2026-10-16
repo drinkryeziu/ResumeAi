@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { Briefcase, ChevronRight, Coins, FileText, Gauge, Mail, PartyPopper, UserRound } from "lucide-react";
+import { ArrowRight, Briefcase, ClipboardPaste, FileCheck2, FileText, Mail, Target } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
-import { Card, CardHeader } from "@/components/ui/Card";
 import { ScoreBar } from "@/components/ui/ScoreBar";
-import { StatCard } from "@/components/ui/StatCard";
 import { formatDate, formatNumber } from "@/lib/format";
 import { profileStrength } from "@/server/ai";
 import { requireProfile } from "@/server/auth/session";
@@ -12,6 +10,25 @@ import { jobSummaries, STATUS_LABEL } from "@/server/queries/jobs";
 import { getStore } from "@/server/store";
 
 export const metadata = { title: "Dashboard" };
+
+type Summary = Awaited<ReturnType<typeof jobSummaries>>[number];
+
+/** The one thing to do next, decided from where the user actually is. */
+function nextStep(jobs: Summary[]): { title: string; detail: string; href: string; cta: string } {
+  const unfinished = jobs.find((j) => j.matchScore !== null && !(j.hasResume && j.hasLetter));
+  if (unfinished) {
+    return {
+      title: `Finish your application for ${unfinished.job.title}`,
+      detail: `${unfinished.job.company} — you match ${unfinished.matchScore}%. Create your tailored resume and cover letter.`,
+      href: `/jobs/${unfinished.job.id}/match`,
+      cta: "Continue",
+    };
+  }
+  if (jobs.length === 0) {
+    return { title: "Tailor your resume to your first job", detail: "Paste or upload a job description to see how well you match.", href: "/jobs/new", cta: "Tailor resume to a job" };
+  }
+  return { title: "Applying somewhere else?", detail: "Add another job description and get a resume and cover letter tailored to it.", href: "/jobs/new", cta: "Tailor resume to a job" };
+}
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const { user, profile } = await requireProfile();
@@ -26,85 +43,119 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const strength = profileStrength(profile);
   const price = (k: string) => prices.find((p) => p.key === k)?.credits ?? 0;
   const applicationCost = price("ANALYZE_JOB") + price("JOB_MATCH") + price("OPTIMIZE_RESUME") + price("GENERATE_COVER_LETTER");
-  const ready = jobs.filter((j) => j.hasResume && j.hasLetter).length;
   const welcome = (await searchParams).welcome === "1";
+  const next = nextStep(jobs);
+  const applicationsLeft = applicationCost ? Math.floor(balance / applicationCost) : 0;
 
   const masters = [
-    { key: "resume", title: "Master Resume", icon: <FileText size={24} />, record: masterResume },
-    { key: "cover-letter", title: "Master Cover Letter", icon: <Mail size={24} />, record: masterLetter },
+    { key: "resume", title: "Master Resume", icon: <FileText size={20} />, record: masterResume },
+    { key: "cover-letter", title: "Master Cover Letter", icon: <Mail size={20} />, record: masterLetter },
   ] as const;
 
   return (
     <div className="flex flex-col gap-ds-5">
-      {welcome && (
-        <p role="status" className="flex items-center gap-ds-3 rounded-md bg-[#e7f5ef] p-ds-4 text-body text-success">
-          <PartyPopper size={22} aria-hidden="true" />
-          Your profile is saved and your Master Resume and Cover Letter are ready. Next, tailor them to a job.
+      <header className="flex flex-col gap-ds-1">
+        <h1 className="text-heading-section">{welcome ? `Welcome, ${user.firstName}` : `Welcome back, ${user.firstName}`}</h1>
+        <p className="text-body">
+          {welcome
+            ? "Your profile is saved and your Master Resume and Cover Letter are ready."
+            : `You have ${formatNumber(balance)} credits — enough for about ${applicationsLeft} more ${applicationsLeft === 1 ? "application" : "applications"}.`}
         </p>
-      )}
-      <h1 className="text-heading-section">{welcome ? `Welcome, ${user.firstName}` : `Welcome back, ${user.firstName}`}</h1>
+      </header>
 
-      {/* The page's one sand-300 moment, per the design system's PromoPanel rule. */}
-      <section className="relative grid items-center gap-ds-5 overflow-hidden rounded-md bg-sky-50 p-ds-5 md:grid-cols-[1.4fr_1fr]">
-        <div className="relative z-10 flex flex-col gap-ds-3">
-          <h2 className="text-heading-section">Tailor your resume to a job</h2>
-          <p className="text-body max-w-lg">Upload or paste a job description. We&apos;ll show your Job Match Score, then create a resume and cover letter tailored to that job.</p>
-          <div className="flex flex-wrap items-center gap-ds-4">
-            <ButtonLink href="/jobs/new" icon={<Briefcase size={14} aria-hidden="true" />}>
-              Tailor resume to a job
-            </ButtonLink>
-            <span className="text-caption">About {applicationCost} credits per application</span>
-          </div>
+      {/* Next step: one clear action, computed from the user's progress. */}
+      <section aria-labelledby="next-step" className="flex flex-wrap items-center justify-between gap-ds-4 rounded-md bg-sky-50 p-ds-5">
+        <div className="flex max-w-xl flex-col gap-ds-1">
+          <h2 id="next-step" className="text-card-title">
+            {next.title}
+          </h2>
+          <p className="text-body-sm">{next.detail}</p>
         </div>
-        <div aria-hidden="true" className="relative hidden h-40 md:block">
-          <div className="absolute top-4 -left-3 h-36 w-1/2 rounded-md bg-sand-300" />
-          <div className="relative z-10 ml-6 flex h-36 flex-col justify-center gap-2 rounded-md bg-white p-ds-4 shadow-card">
-            <span className="text-caption">Example job match</span>
-            <span className="text-display-hero text-blue-600">86%</span>
-            <span className="h-2 w-full rounded-pill bg-sky-50">
-              <span className="block h-2 w-[86%] rounded-pill bg-blue-600" />
-            </span>
-          </div>
-        </div>
+        <ButtonLink href={next.href} icon={next.cta === "Continue" ? undefined : <Briefcase size={14} aria-hidden="true" />}>
+          {next.cta}
+        </ButtonLink>
       </section>
 
-      <section aria-label="Your numbers" className="grid gap-ds-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Profile strength" value={`${strength.score}%`} icon={<Gauge size={24} />} />
-        <StatCard label="Jobs analyzed" value={jobs.length} icon={<Briefcase size={24} />} />
-        <StatCard label="Applications ready" value={ready} icon={<FileText size={24} />} />
-        <StatCard label="Available credits" value={formatNumber(balance)} icon={<Coins size={24} />} />
-      </section>
+      <div className="grid gap-ds-5 lg:grid-cols-[1fr_340px]">
+        <section aria-labelledby="applications">
+          <div className="mb-ds-3 flex items-baseline justify-between">
+            <h2 id="applications" className="text-card-title">
+              Your applications
+            </h2>
+            {jobs.length > 0 && (
+              <Link href="/jobs" className="text-body-sm text-blue-700 underline">
+                All jobs
+              </Link>
+            )}
+          </div>
 
-      <div className="grid gap-ds-4 lg:grid-cols-[1.5fr_1fr]">
-        <Card>
-          <CardHeader title="Your applications" action={jobs.length > 0 ? <ButtonLink href="/jobs" variant="link">See all</ButtonLink> : undefined} />
           {jobs.length === 0 ? (
-            <p className="text-body-sm">No applications yet. Add a job description to see how well you match.</p>
-          ) : (
-            <ul className="flex flex-col divide-y divide-gray-100">
-              {jobs.slice(0, 6).map(({ job, matchScore, hasResume, hasLetter }) => (
-                <li key={job.id}>
-                  <Link href={hasResume && hasLetter ? `/jobs/${job.id}` : `/jobs/${job.id}/match`} className="flex items-center gap-ds-3 py-ds-3 no-underline hover:text-blue-600">
-                    <div className="flex flex-1 flex-col">
-                      <span className="text-label-bold">
-                        {job.title} — {job.company}
+            <div className="rounded-md bg-white p-ds-5 shadow-card">
+              <p className="text-body mb-ds-4">Each job you add gets its own tailored resume and cover letter. Here&apos;s how it goes:</p>
+              <ol className="flex flex-col gap-ds-4">
+                {[
+                  { icon: <ClipboardPaste size={22} />, t: "Add a job", d: "Paste the description or upload it as a file." },
+                  { icon: <Target size={22} />, t: "See your match", d: `Your Job Match Score, matching skills and gaps (${price("ANALYZE_JOB") + price("JOB_MATCH")} credits).` },
+                  { icon: <FileCheck2 size={22} />, t: "Create your application", d: `A tailored resume and cover letter, ready to download (${price("OPTIMIZE_RESUME") + price("GENERATE_COVER_LETTER")} credits).` },
+                ].map((s, i) => (
+                  <li key={s.t} className="flex gap-ds-3">
+                    <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-full bg-sky-50 text-blue-600">
+                      {s.icon}
+                    </span>
+                    <span className="flex flex-col">
+                      <span className="text-heading-feature">
+                        {i + 1}. {s.t}
                       </span>
-                      <span className="text-body-sm">{formatDate(job.updatedAt)}</span>
-                    </div>
-                    <Badge tone={job.status === "READY" ? "success" : "info"}>{STATUS_LABEL[job.status]}</Badge>
-                    {matchScore !== null && <span className="w-24 text-right text-label-bold">Match {matchScore}%</span>}
-                    <ChevronRight size={16} aria-hidden="true" />
-                  </Link>
-                </li>
-              ))}
+                      <span className="text-body-sm">{s.d}</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-100 overflow-hidden rounded-md bg-white shadow-card">
+              {jobs.slice(0, 8).map(({ job, matchScore, hasResume, hasLetter }) => {
+                const ready = hasResume && hasLetter;
+                return (
+                  <li key={job.id}>
+                    <Link href={ready ? `/jobs/${job.id}` : `/jobs/${job.id}/match`} className="group grid grid-cols-[1fr_auto] items-center gap-x-ds-4 gap-y-ds-1 px-ds-4 py-ds-3 no-underline hover:bg-sky-50 sm:grid-cols-[1fr_auto_64px_16px]">
+                      <span className="flex min-w-0 flex-col">
+                        <span className="truncate text-label-bold group-hover:text-blue-700">{job.title}</span>
+                        <span className="truncate text-body-sm">
+                          {job.company}
+                          <span className="hidden sm:inline">, {formatDate(job.updatedAt)}</span>
+                          {matchScore !== null && <span className="sm:hidden">, {matchScore}% match</span>}
+                        </span>
+                      </span>
+                      <Badge tone={ready ? "success" : "info"}>{STATUS_LABEL[job.status]}</Badge>
+                      <span className="hidden text-right sm:block">
+                        {matchScore !== null && (
+                          <>
+                            <span className="text-label-bold">{matchScore}%</span>
+                            <span className="sr-only"> job match</span>
+                          </>
+                        )}
+                      </span>
+                      <ArrowRight size={16} aria-hidden="true" className="hidden text-blue-600 sm:block" />
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           )}
-        </Card>
+        </section>
 
-        <div className="flex flex-col gap-ds-4">
-          <Card>
-            <CardHeader title="Your professional profile" subtitle="The source of truth for every resume and cover letter." />
-            <ScoreBar label="Profile strength" value={strength.score} />
+        <aside className="flex flex-col gap-ds-5">
+          <section aria-labelledby="profile-h" className="rounded-md bg-white p-ds-4 shadow-card">
+            <div className="mb-ds-3 flex items-baseline justify-between">
+              <h2 id="profile-h" className="text-card-title">
+                Your profile
+              </h2>
+              <Link href="/profile" className="text-body-sm text-blue-700 underline">
+                View
+              </Link>
+            </div>
+            <ScoreBar label="Complete" value={strength.score} />
             {strength.nextSteps.length > 0 && (
               <ul className="mt-ds-3 flex list-disc flex-col gap-ds-1 pl-5 text-body-sm">
                 {strength.nextSteps.slice(0, 3).map((s) => (
@@ -112,52 +163,46 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 ))}
               </ul>
             )}
-            <div className="mt-ds-4 flex flex-wrap items-center gap-ds-4">
-              <ButtonLink href="/profile/edit" variant="secondary" icon={<UserRound size={14} aria-hidden="true" />}>
-                Update profile
-              </ButtonLink>
-              <ButtonLink href="/profile" variant="link">
-                View profile
-              </ButtonLink>
-            </div>
-          </Card>
-          <Card>
-            <CardHeader title="Master documents" subtitle="Built from your profile — the starting point for every application." />
-            <ul className="flex flex-col gap-ds-3">
+            <ButtonLink href="/profile/edit" variant="secondary" className="mt-ds-4 w-full">
+              Update profile
+            </ButtonLink>
+          </section>
+
+          <section aria-labelledby="master-h">
+            <h2 id="master-h" className="text-card-title mb-ds-1">
+              Master documents
+            </h2>
+            <p className="text-body-sm mb-ds-3">Built from your profile. Every application starts from these.</p>
+            <ul className="flex flex-col gap-ds-2">
               {masters.map((m) => {
                 const v = m.record?.versions.find((x) => x.id === m.record!.currentVersionId);
                 return (
-                  <li key={m.key} className="flex flex-col gap-ds-2 rounded-md bg-gray-100 p-ds-3">
-                    <span className="flex items-center gap-ds-2 text-label-bold">
-                      <span className="text-blue-600" aria-hidden="true">
-                        {m.icon}
-                      </span>
-                      {m.title}
-                      {v && <span className="text-caption font-normal">· V{v.number}, {formatDate(v.createdAt)}</span>}
+                  <li key={m.key} className="flex items-center gap-ds-3 rounded-md bg-gray-100 px-ds-3 py-ds-3">
+                    <span className="text-blue-600" aria-hidden="true">
+                      {m.icon}
                     </span>
-                    {v ? (
-                      <span className="flex gap-ds-4 text-body-sm">
-                        <Link href={`/master?doc=${m.key}`} className="text-blue-700 underline">
-                          Preview
-                        </Link>
+                    <span className="flex flex-1 flex-col">
+                      <Link href={`/master?doc=${m.key}`} className="text-label-bold no-underline hover:text-blue-700">
+                        {m.title}
+                      </Link>
+                      <span className="text-caption">{v ? `Version ${v.number}, ${formatDate(v.createdAt)}` : "Not created yet"}</span>
+                    </span>
+                    {v && (
+                      <span className="flex gap-ds-3 text-body-sm">
                         <Link href={`/master?doc=${m.key}&mode=edit`} className="text-blue-700 underline">
                           Edit
                         </Link>
                         <a href={`/api/jobs/master/download?doc=${m.key}&format=pdf`} className="text-blue-700 underline">
-                          Download
+                          PDF
                         </a>
                       </span>
-                    ) : (
-                      <Link href="/master" className="text-body-sm text-blue-700 underline">
-                        Create it
-                      </Link>
                     )}
                   </li>
                 );
               })}
             </ul>
-          </Card>
-        </div>
+          </section>
+        </aside>
       </div>
     </div>
   );

@@ -6,10 +6,12 @@ export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
-  const balance = await (await getStore()).credits.balance(user.id);
+  const store = await getStore();
+  const [balance, account, profile] = await Promise.all([store.credits.balance(user.id), store.getUser(user.id), store.findProfile(user.id)]);
+  const name = profile ? `${profile.firstName} ${profile.lastName}`.trim() : (account?.name ?? user.email);
   return (
     <>
-      <SiteHeader creditBalance={balance} />
+      <SiteHeader creditBalance={balance} name={name} email={user.email} />
       <main className="mx-auto w-full max-w-[1120px] px-ds-4 py-ds-5 md:px-ds-5">{children}</main>
     </>
   );

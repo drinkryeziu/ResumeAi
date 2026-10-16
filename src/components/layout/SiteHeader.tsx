@@ -2,75 +2,156 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Coins, LogOut } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { ChevronDown, Coins, LogOut, Settings } from "lucide-react";
 import { signOutAction } from "@/app/(auth)/actions";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
 
+/** The four places people go. Credits, settings and sign-out live in the account menu. */
 export const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/profile", label: "My Profile" },
-  { href: "/jobs", label: "Jobs" },
-  { href: "/resumes", label: "My Resumes" },
-  { href: "/documents", label: "Documents" },
-  { href: "/credits", label: "Credits" },
-  { href: "/settings", label: "Settings" },
+  { href: "/dashboard", label: "Dashboard", match: ["/dashboard"] },
+  { href: "/jobs", label: "Jobs", match: ["/jobs"] },
+  { href: "/documents", label: "Documents", match: ["/documents", "/resumes", "/master"] },
+  { href: "/profile", label: "Profile", match: ["/profile", "/onboarding"] },
 ] as const;
+
+const isActive = (pathname: string, match: readonly string[]) => match.some((m) => pathname === m || pathname.startsWith(`${m}/`));
 
 /**
  * Design-system SiteHeader: 60px white bar, shadow-header, wordmark left, plain body-sm links right.
- * The credit balance is a text link — the system forbids a filled CTA in the bar.
+ * No filled button in the bar (design-system rule); the account menu opens a sky-50 panel.
  */
-export function SiteHeader({ creditBalance }: { creditBalance: number }) {
+export function SiteHeader({ creditBalance, name, email }: { creditBalance: number; name: string; email: string }) {
   const pathname = usePathname();
   return (
-    <header className="sticky top-0 z-20 flex h-[60px] items-center justify-between bg-white px-ds-4 py-ds-2 shadow-header md:px-ds-5">
-      <Link href="/dashboard" className="text-[20px] leading-none font-bold tracking-[-0.3px] text-blue-700 no-underline">
-        ApplyAI
-      </Link>
-      <nav aria-label="Main" className="hidden items-center gap-6 lg:flex">
-        {NAV_ITEMS.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className={cn("text-body-sm no-underline hover:text-blue-600", active ? "font-bold text-blue-600" : "text-navy-900")}
-            >
-              {item.label}
-            </Link>
-          );
-        })}
-        <Link href="/credits" className="flex items-center gap-1 text-label-bold text-navy-900 no-underline hover:text-blue-600">
-          <Coins size={16} aria-hidden="true" className="text-blue-600" />
-          {formatNumber(creditBalance)} credits
+    <header className="sticky top-0 z-20 bg-white shadow-header">
+      <div className="mx-auto flex h-[60px] w-full max-w-[1120px] items-center justify-between px-ds-4 md:px-ds-5">
+        <Link href="/dashboard" className="text-[20px] leading-none font-bold tracking-[-0.3px] text-blue-700 no-underline">
+          ApplyAI
         </Link>
-        <form action={signOutAction}>
-          <button type="submit" className="inline-flex items-center gap-1 text-body-sm text-navy-900 hover:text-blue-600">
-            <LogOut size={16} aria-hidden="true" /> Sign out
-          </button>
-        </form>
-      </nav>
-      <MobileNav creditBalance={creditBalance} />
+        <nav aria-label="Main" className="hidden items-center gap-ds-5 md:flex">
+          {NAV_ITEMS.map((item) => {
+            const active = isActive(pathname, item.match);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "relative py-[19px] text-body-sm no-underline hover:text-blue-600",
+                  active ? "font-bold text-blue-600 after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:rounded-t after:bg-blue-600" : "text-navy-900",
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+          <AccountMenu creditBalance={creditBalance} name={name} email={email} />
+        </nav>
+        <MobileNav creditBalance={creditBalance} pathname={pathname} />
+      </div>
     </header>
   );
 }
 
-/** Below lg: logo + menu; the open menu is a sky-50 panel, per the design system. */
-function MobileNav({ creditBalance }: { creditBalance: number }) {
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? (parts.at(-1)?.[0] ?? "") : "")).toUpperCase() || "?";
+}
+
+/** Closes on outside click and on Escape; <details> keeps it keyboard-operable without extra state. */
+function useDismissible() {
+  const ref = useRef<HTMLDetailsElement>(null);
+  const pathname = usePathname();
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.open = false; // close after navigating
+    const onClick = (e: MouseEvent) => {
+      if (el.open && !el.contains(e.target as Node)) el.open = false;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && el.open) {
+        el.open = false;
+        el.querySelector("summary")?.focus();
+      }
+    };
+    document.addEventListener("click", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("click", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [pathname]);
+  return ref;
+}
+
+function AccountMenu({ creditBalance, name, email }: { creditBalance: number; name: string; email: string }) {
+  const ref = useDismissible();
   return (
-    <details className="relative lg:hidden">
-      <summary className="cursor-pointer list-none text-label-bold">Menu</summary>
-      <nav aria-label="Main" className="absolute right-0 mt-ds-3 flex w-56 flex-col gap-ds-3 rounded-md bg-sky-50 p-ds-4 shadow-card">
+    <details ref={ref} className="group relative">
+      <summary className="flex cursor-pointer list-none items-center gap-ds-3 rounded-pill py-1 pr-2 pl-1 hover:bg-gray-100 [&::-webkit-details-marker]:hidden">
+        <span aria-hidden="true" className="grid size-8 place-items-center rounded-full bg-sky-50 text-label-bold text-blue-700">
+          {initials(name)}
+        </span>
+        <span className="flex items-center gap-1 text-label-bold">
+          <Coins size={16} aria-hidden="true" className="text-blue-600" />
+          {formatNumber(creditBalance)}
+          <span className="sr-only"> credits. Account menu</span>
+        </span>
+        <ChevronDown size={14} aria-hidden="true" className="transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="absolute right-0 mt-ds-2 flex w-64 flex-col rounded-md bg-sky-50 p-ds-2 shadow-card">
+        <div className="px-ds-3 py-ds-2">
+          <p className="text-label-bold">{name}</p>
+          <p className="text-caption truncate">{email}</p>
+        </div>
+        <Link href="/credits" className="flex items-center justify-between rounded-sm px-ds-3 py-ds-2 text-body-sm no-underline hover:bg-white">
+          <span className="flex items-center gap-ds-2">
+            <Coins size={16} aria-hidden="true" className="text-blue-600" /> Credits
+          </span>
+          <span className="text-label-bold">{formatNumber(creditBalance)}</span>
+        </Link>
+        <Link href="/settings" className="flex items-center gap-ds-2 rounded-sm px-ds-3 py-ds-2 text-body-sm no-underline hover:bg-white">
+          <Settings size={16} aria-hidden="true" className="text-blue-600" /> Settings
+        </Link>
+        <form action={signOutAction}>
+          <button type="submit" className="flex w-full items-center gap-ds-2 rounded-sm px-ds-3 py-ds-2 text-left text-body-sm hover:bg-white">
+            <LogOut size={16} aria-hidden="true" className="text-blue-600" /> Sign out
+          </button>
+        </form>
+      </div>
+    </details>
+  );
+}
+
+/** Below md: logo + menu; the open menu is a sky-50 panel, per the design system. */
+function MobileNav({ creditBalance, pathname }: { creditBalance: number; pathname: string }) {
+  const ref = useDismissible();
+  return (
+    <details ref={ref} className="relative md:hidden">
+      <summary className="cursor-pointer list-none rounded-pill px-ds-3 py-ds-2 text-label-bold hover:bg-gray-100 [&::-webkit-details-marker]:hidden">Menu</summary>
+      <nav aria-label="Main" className="absolute right-0 mt-ds-2 flex w-60 flex-col rounded-md bg-sky-50 p-ds-2 shadow-card">
         {NAV_ITEMS.map((item) => (
-          <Link key={item.href} href={item.href} className="text-body-sm no-underline">
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={isActive(pathname, item.match) ? "page" : undefined}
+            className={cn("rounded-sm px-ds-3 py-ds-2 text-body-sm no-underline hover:bg-white", isActive(pathname, item.match) && "font-bold text-blue-700")}
+          >
             {item.label}
           </Link>
         ))}
-        <span className="text-label-bold">{formatNumber(creditBalance)} credits</span>
+        <span className="my-ds-1 h-px bg-white" aria-hidden="true" />
+        <Link href="/credits" className="flex justify-between rounded-sm px-ds-3 py-ds-2 text-body-sm no-underline hover:bg-white">
+          Credits <span className="text-label-bold">{formatNumber(creditBalance)}</span>
+        </Link>
+        <Link href="/settings" className="rounded-sm px-ds-3 py-ds-2 text-body-sm no-underline hover:bg-white">
+          Settings
+        </Link>
         <form action={signOutAction}>
-          <button type="submit" className="text-body-sm underline">
+          <button type="submit" className="w-full rounded-sm px-ds-3 py-ds-2 text-left text-body-sm hover:bg-white">
             Sign out
           </button>
         </form>

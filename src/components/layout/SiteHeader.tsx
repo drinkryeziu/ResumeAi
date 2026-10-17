@@ -8,7 +8,7 @@ import { signOutAction } from "@/app/(auth)/actions";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
 
-/** The four places people go. Credits, settings and sign-out live in the account menu. */
+/** The four places people go. Credits and settings live in the account menu; "Sign out" is a plain text link in the bar. */
 export const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", match: ["/dashboard"] },
   { href: "/jobs", label: "Jobs", match: ["/jobs"] },
@@ -21,9 +21,24 @@ const isActive = (pathname: string, match: readonly string[]) => match.some((m) 
 /**
  * Design-system SiteHeader: 60px white bar, shadow-header, wordmark left, plain body-sm links right.
  * No filled button in the bar (design-system rule); the account menu opens a sky-50 panel.
+ * `setup` (first-time users who have no profile yet) drops the nav, since every page just sends them back to setup:
+ * only the wordmark and Sign out remain.
  */
-export function SiteHeader({ creditBalance, name, email }: { creditBalance: number; name: string; email: string }) {
+export function SiteHeader({ creditBalance, name, email, setup = false }: { creditBalance: number; name: string; email: string; setup?: boolean }) {
   const pathname = usePathname();
+  if (setup) {
+    return (
+      <header className="sticky top-0 z-20 bg-white shadow-header">
+        <div className="mx-auto flex h-[60px] w-full max-w-[1120px] items-center justify-between px-ds-4 md:px-ds-5">
+          <span className="text-[20px] leading-none font-bold tracking-[-0.3px] text-blue-700">ApplyAI</span>
+          <div className="flex items-center gap-ds-4">
+            <span className="hidden text-body-sm sm:inline">Setting up {email}</span>
+            <SignOutLink />
+          </div>
+        </div>
+      </header>
+    );
+  }
   return (
     <header className="sticky top-0 z-20 bg-white shadow-header">
       <div className="mx-auto flex h-[60px] w-full max-w-[1120px] items-center justify-between px-ds-4 md:px-ds-5">
@@ -48,10 +63,22 @@ export function SiteHeader({ creditBalance, name, email }: { creditBalance: numb
             );
           })}
           <AccountMenu creditBalance={creditBalance} name={name} email={email} />
+          <SignOutLink />
         </nav>
         <MobileNav creditBalance={creditBalance} pathname={pathname} />
       </div>
     </header>
+  );
+}
+
+/** A text link in the bar (no filled button, per the design system). Works with or without JavaScript. */
+function SignOutLink() {
+  return (
+    <form action={signOutAction}>
+      <button type="submit" className="inline-flex items-center gap-1 text-body-sm text-navy-900 hover:text-blue-600">
+        <LogOut size={16} aria-hidden="true" className="text-blue-600" /> Sign out
+      </button>
+    </form>
   );
 }
 
@@ -116,11 +143,6 @@ function AccountMenu({ creditBalance, name, email }: { creditBalance: number; na
         <Link href="/settings" className="flex items-center gap-ds-2 rounded-sm px-ds-3 py-ds-2 text-body-sm no-underline hover:bg-white">
           <Settings size={16} aria-hidden="true" className="text-blue-600" /> Settings
         </Link>
-        <form action={signOutAction}>
-          <button type="submit" className="flex w-full items-center gap-ds-2 rounded-sm px-ds-3 py-ds-2 text-left text-body-sm hover:bg-white">
-            <LogOut size={16} aria-hidden="true" className="text-blue-600" /> Sign out
-          </button>
-        </form>
       </div>
     </details>
   );

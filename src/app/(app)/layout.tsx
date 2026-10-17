@@ -11,7 +11,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const name = profile ? `${profile.firstName} ${profile.lastName}`.trim() : (account?.name ?? user.email);
   return (
     <>
-      <SiteHeader creditBalance={balance} name={name} email={user.email} />
+      <SiteHeader creditBalance={balance} name={name} email={user.email} setup={!profile} />
       <main className="mx-auto w-full max-w-[1120px] px-ds-4 py-ds-5 md:px-ds-5">{children}</main>
     </>
   );

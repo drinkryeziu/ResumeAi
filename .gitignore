@@ -7,3 +7,8 @@ next-env.d.ts
 .env*.local
 .DS_Store
 coverage/
+
+# Local credentials and editor scratch: never commit
+*.env
+*credentials*
+.claude/

@@ -146,6 +146,51 @@ describe("accounts and profiles", () => {
   });
 });
 
+describe("delete application", () => {
+  it("removes one application and everything made for it, and nothing else", async () => {
+    const store = new MemoryAppStore();
+    await store.seedDemo();
+    await pipeline.generateMasterDocuments(store, U, "seed");
+    const keep = await pipeline.createJob(store, U, { ...DEMO_JOB, title: "Keep me" });
+    const drop = await pipeline.createJob(store, U, DEMO_JOB);
+    for (const j of [keep, drop]) {
+      await pipeline.analyzeJob(store, U, j.id, `a-${j.id}`);
+      await pipeline.createApplication(store, U, j.id, `c-${j.id}`);
+    }
+    const profile = structuredClone(await store.getProfile(U));
+    const master = structuredClone(await store.resumeForJob(U, null));
+    const masterLetter = structuredClone(await store.coverLetterForJob(U, null));
+    const balance = await store.credits.balance(U);
+    const runs = (await store.aiRuns.listForUser(U)).length;
+
+    await pipeline.deleteApplication(store, U, drop.id);
+
+    expect(await store.getJob(U, drop.id)).toBeNull();
+    expect(await store.latestAnalysis(U, drop.id)).toBeNull();
+    expect(await store.latestMatch(U, drop.id)).toBeNull();
+    expect(await store.resumeForJob(U, drop.id)).toBeNull();
+    expect(await store.coverLetterForJob(U, drop.id)).toBeNull();
+    expect((await store.listJobs(U)).map((j) => j.id)).toEqual([keep.id]);
+    expect(await store.resumeForJob(U, keep.id)).not.toBeNull();
+    expect(await store.getProfile(U)).toEqual(profile);
+    expect(await store.resumeForJob(U, null)).toEqual(master);
+    expect(await store.coverLetterForJob(U, null)).toEqual(masterLetter);
+    expect(await store.credits.balance(U)).toBe(balance); // credits already used are not refunded
+    expect((await store.aiRuns.listForUser(U)).length).toBe(runs); // the audit log keeps its history
+  });
+
+  it("is owner-scoped and refuses unknown jobs", async () => {
+    const store = new MemoryAppStore();
+    await store.seedDemo();
+    const other = await store.createUser({ email: "other@example.com", name: "Other", passwordHash: null });
+    const job = await pipeline.createJob(store, U, DEMO_JOB);
+    await expect(pipeline.deleteApplication(store, other.id, job.id)).rejects.toThrow(/couldn't find/i);
+    expect(await store.getJob(U, job.id)).not.toBeNull();
+    await expect(pipeline.deleteApplication(store, U, "job_nope")).rejects.toThrow(/couldn't find/i);
+    expect(await store.deleteJob(other.id, job.id)).toBe(false);
+  });
+});
+
 describe("job description upload", () => {
   it("reads text from PDF and Word files and rejects other types", async () => {
     const { extractText, UploadError } = await import("@/server/documents/extract-text");

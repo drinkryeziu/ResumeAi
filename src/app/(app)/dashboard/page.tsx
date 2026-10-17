@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Briefcase, ClipboardPaste, FileCheck2, FileText, Mail, Target } from "lucide-react";
+import { DeleteApplicationButton } from "@/components/features/job-flow/DeleteApplicationButton";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { ScoreBar } from "@/components/ui/ScoreBar";
@@ -25,9 +26,19 @@ function nextStep(jobs: Summary[]): { title: string; detail: string; href: strin
     };
   }
   if (jobs.length === 0) {
-    return { title: "Tailor your resume to your first job", detail: "Paste or upload a job description to see how well you match.", href: "/jobs/new", cta: "Tailor resume to a job" };
+    return {
+      title: "Tailor your resume to your first job",
+      detail: "Paste or upload a job description to see how well you match.",
+      href: "/jobs/new",
+      cta: "Tailor resume to a job",
+    };
   }
-  return { title: "Applying somewhere else?", detail: "Add another job description and get a resume and cover letter tailored to it.", href: "/jobs/new", cta: "Tailor resume to a job" };
+  return {
+    title: "Applying somewhere else?",
+    detail: "Add another job description and get a resume and cover letter tailored to it.",
+    href: "/jobs/new",
+    cta: "Tailor resume to a job",
+  };
 }
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
@@ -96,7 +107,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 {[
                   { icon: <ClipboardPaste size={22} />, t: "Add a job", d: "Paste the description or upload it as a file." },
                   { icon: <Target size={22} />, t: "See your match", d: `Your Job Match Score, matching skills and gaps (${price("ANALYZE_JOB") + price("JOB_MATCH")} credits).` },
-                  { icon: <FileCheck2 size={22} />, t: "Create your application", d: `A tailored resume and cover letter, ready to download (${price("OPTIMIZE_RESUME") + price("GENERATE_COVER_LETTER")} credits).` },
+                  {
+                    icon: <FileCheck2 size={22} />,
+                    t: "Create your application",
+                    d: `A tailored resume and cover letter, ready to download (${price("OPTIMIZE_RESUME") + price("GENERATE_COVER_LETTER")} credits).`,
+                  },
                 ].map((s, i) => (
                   <li key={s.t} className="flex gap-ds-3">
                     <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-full bg-sky-50 text-blue-600">
@@ -117,8 +132,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               {jobs.slice(0, 8).map(({ job, matchScore, hasResume, hasLetter }) => {
                 const ready = hasResume && hasLetter;
                 return (
-                  <li key={job.id}>
-                    <Link href={ready ? `/jobs/${job.id}` : `/jobs/${job.id}/match`} className="group grid grid-cols-[1fr_auto] items-center gap-x-ds-4 gap-y-ds-1 px-ds-4 py-ds-3 no-underline hover:bg-sky-50 sm:grid-cols-[1fr_auto_64px_16px]">
+                  <li key={job.id} className="flex items-center hover:bg-sky-50">
+                    <Link
+                      href={ready ? `/jobs/${job.id}` : `/jobs/${job.id}/match`}
+                      className="group grid min-w-0 flex-1 grid-cols-[1fr_auto] items-center gap-x-ds-4 gap-y-ds-1 py-ds-3 pr-ds-2 pl-ds-4 no-underline sm:grid-cols-[1fr_auto_64px_16px]"
+                    >
                       <span className="flex min-w-0 flex-col">
                         <span className="truncate text-label-bold group-hover:text-blue-700">{job.title}</span>
                         <span className="truncate text-body-sm">
@@ -138,6 +156,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                       </span>
                       <ArrowRight size={16} aria-hidden="true" className="hidden text-blue-600 sm:block" />
                     </Link>
+                    <div className="pr-ds-2 pl-ds-1">
+                      <DeleteApplicationButton jobId={job.id} title={job.title} company={job.company} />
+                    </div>
                   </li>
                 );
               })}

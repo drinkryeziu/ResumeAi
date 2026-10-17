@@ -43,6 +43,12 @@ async function loadJob(store: AppStore, userId: string, jobId: string) {
   return job;
 }
 
+/** "Delete application": removes one job and everything created for it. Master documents and the profile are never touched. */
+export async function deleteApplication(store: AppStore, userId: string, jobId: string) {
+  await loadJob(store, userId, jobId);
+  await store.deleteJob(userId, jobId);
+}
+
 // ───────────── Master documents ─────────────
 
 /** Runs after the profile is created or updated. Free by default (configurable in CreditAction). */

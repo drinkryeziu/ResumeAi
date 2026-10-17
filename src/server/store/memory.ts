@@ -106,6 +106,16 @@ export class MemoryAppStore implements AppStore {
   async listJobs(userId: string) {
     return this.own(this.jobs, userId).sort((a, b) => +b.updatedAt - +a.updatedAt);
   }
+  async deleteJob(userId: string, jobId: string) {
+    if (!(await this.getJob(userId, jobId))) return false;
+    this.jobs = this.jobs.filter((j) => j.id !== jobId);
+    this.analyses = this.analyses.filter((a) => a.jobId !== jobId);
+    this.matches = this.matches.filter((m) => m.jobId !== jobId);
+    this.atsReports = this.atsReports.filter((r) => r.jobId !== jobId);
+    this.resumes = this.resumes.filter((r) => r.jobId !== jobId);
+    this.letters = this.letters.filter((l) => l.jobId !== jobId);
+    return true;
+  }
   async setJobStatus(userId: string, jobId: string, status: JobRecord["status"]) {
     const j = await this.getJob(userId, jobId);
     if (j) Object.assign(j, { status, updatedAt: new Date() });

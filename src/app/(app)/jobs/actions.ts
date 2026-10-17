@@ -177,6 +177,19 @@ export async function restoreVersion(fd: FormData) {
   revalidatePath(pathOf(jobId));
 }
 
+/** The dashboard's "X" on an application, after the user confirms. Already deleted (or not theirs) just refreshes the list. */
+export async function deleteApplication(fd: FormData) {
+  const { id } = await requireUser();
+  const jobId = z.string().min(1).parse(fd.get("jobId"));
+  try {
+    await pipeline.deleteApplication(await getStore(), id, jobId);
+  } catch (e) {
+    if (!(e instanceof pipeline.PipelineError)) throw e;
+  }
+  revalidatePath("/dashboard");
+  revalidatePath("/jobs");
+}
+
 export async function regenerateMasterDocuments(_: ActionState, fd: FormData): Promise<ActionState> {
   const { id } = await requireUser();
   try {

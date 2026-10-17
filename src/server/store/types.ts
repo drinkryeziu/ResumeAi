@@ -114,6 +114,12 @@ export interface AppStore {
   getJob(userId: string, jobId: string): Promise<JobRecord | null>;
   listJobs(userId: string): Promise<JobRecord[]>;
   setJobStatus(userId: string, jobId: string, status: JobStatus): Promise<void>;
+  /**
+   * Deletes one application: the job, its analysis, match and ATS reports, and its tailored resume and cover letter
+   * (every version). Never touches the profile, the Master documents, the credit ledger or the AI run log.
+   * Returns false when the job doesn't exist or isn't the user's.
+   */
+  deleteJob(userId: string, jobId: string): Promise<boolean>;
 
   saveAnalysis(userId: string, a: Omit<AnalysisRecord, "id" | "createdAt">): Promise<AnalysisRecord>;
   latestAnalysis(userId: string, jobId: string): Promise<AnalysisRecord | null>;

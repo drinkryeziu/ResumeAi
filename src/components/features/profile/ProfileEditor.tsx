@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { errorProps, Field, Input, Textarea } from "@/components/ui/Field";
+import { MonthField } from "@/components/ui/MonthField";
 import { cn } from "@/lib/cn";
 import type { ProfileInput } from "@/server/domain/profile-schema";
 import { issuesForStep, profileProgress, SECTIONS, SETUP_STEPS, type ProfileIssue, type SectionId, type SectionStatus } from "./profile-progress";
@@ -552,19 +553,24 @@ function F({
 }) {
   const id = useId();
   const { errors, show } = useContext(ErrorsContext);
-  const error = show && field ? errors.get(field) : undefined;
+  const [badText, setBadText] = useState(false); // month fields only: typed text that isn't a month and year
+  const error = badText ? "Enter a month and year, like Mar 2021." : show && field ? errors.get(field) : undefined;
   return (
     <Field label={label} htmlFor={id} required={required} hint={hint} error={error}>
-      <Input
-        id={id}
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        data-field={field}
-        aria-required={required || undefined}
-        onChange={(e) => onChange(e.target.value)}
-        {...errorProps(id, error)}
-      />
+      {type === "month" ? (
+        <MonthField id={id} value={value} onChange={onChange} onBadText={setBadText} data-field={field} aria-required={required || undefined} {...errorProps(id, error)} />
+      ) : (
+        <Input
+          id={id}
+          type={type}
+          value={value}
+          placeholder={placeholder}
+          data-field={field}
+          aria-required={required || undefined}
+          onChange={(e) => onChange(e.target.value)}
+          {...errorProps(id, error)}
+        />
+      )}
     </Field>
   );
 }

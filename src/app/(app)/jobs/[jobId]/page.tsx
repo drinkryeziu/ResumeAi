@@ -125,7 +125,7 @@ export default async function JobApplicationPage({ params, searchParams }: { par
       />
       <SoftPanel className="mt-ds-5 flex flex-wrap items-center justify-between gap-ds-4">
         <p className="text-body-sm max-w-xl">
-          <strong>Next: apply yourself.</strong> Upload these files on the company&apos;s careers site, LinkedIn, Indeed, Workday or Glassdoor. ApplyAI never submits applications for you.
+          <strong>Next: apply yourself.</strong> Upload these files on the company&apos;s careers site, LinkedIn, Indeed, Workday or Glassdoor. ResumeAi never submits applications for you.
         </p>
         {p.job.url && (
           <a href={p.job.url} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 text-body-sm text-blue-700 underline">

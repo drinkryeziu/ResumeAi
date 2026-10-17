@@ -1,4 +1,4 @@
-# ApplyAI — project guide for Claude Code
+# ResumeAi — project guide for Claude Code
 
 Resume & cover-letter tailoring web app. Users create a professional profile once (typed or imported from a CV),
 get a Master Resume + Master Cover Letter, then for each job: paste/upload the description → Analyze Job (Job Match
@@ -6,7 +6,7 @@ Score) → Create Application (tailored resume + cover letter) → review/edit �
 The app never applies to jobs automatically.
 
 ## Commands
-- `npm run dev` — http://localhost:3000 (demo login: `demo@applyai.dev` / `applyai-demo`)
+- `npm run dev` — http://localhost:3000 (demo login: `demo@resumeai.dev` / `resumeai-demo`)
 - `npm test` — Vitest (~100 tests). Run before every commit. The MongoDB tests start a throwaway local MongoDB (`mongodb-memory-server`); the first run downloads its binary.
 - `npx tsc --noEmit` — typecheck. `npm run build` — production build.
 - No API key needed: every AI workflow falls back to a deterministic mock provider. Set `ANTHROPIC_API_KEY` in `.env.local` for real output.

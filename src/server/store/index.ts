@@ -12,7 +12,7 @@ import type { AppStore } from "./types";
  *  - MONGODB_URI set  → MongoDB (Atlas). Data persists. The demo account is created only if MONGODB_SEED_DEMO=true.
  *  - otherwise        → in-memory demo store, seeded with the demo account. Data resets when the server restarts.
  */
-const g = globalThis as unknown as { __applyaiStore?: Promise<AppStore> };
+const g = globalThis as unknown as { __resumeaiStore?: Promise<AppStore> };
 
 async function openMongoStore(): Promise<AppStore> {
   const { client, db } = await connectMongo();
@@ -45,13 +45,13 @@ function assertStoreConfigured() {
 
 export function getStore(): Promise<AppStore> {
   assertStoreConfigured();
-  if (!g.__applyaiStore) {
-    g.__applyaiStore = (usesMongo() ? openMongoStore() : openMemoryStore()).catch((err) => {
-      g.__applyaiStore = undefined; // don't cache a failed start: the next request tries again
+  if (!g.__resumeaiStore) {
+    g.__resumeaiStore = (usesMongo() ? openMongoStore() : openMemoryStore()).catch((err) => {
+      g.__resumeaiStore = undefined; // don't cache a failed start: the next request tries again
       throw err;
     });
   }
-  return g.__applyaiStore;
+  return g.__resumeaiStore;
 }
 
 export type { AppStore } from "./types";

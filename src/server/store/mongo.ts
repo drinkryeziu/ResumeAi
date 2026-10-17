@@ -81,7 +81,7 @@ export class MongoAppStore implements AppStore {
   }
 
   /**
-   * Creates the demo account (demo@applyai.dev) if it isn't there yet. Only called when MONGODB_SEED_DEMO=true.
+   * Creates the demo account (demo@resumeai.dev) if it isn't there yet. Only called when MONGODB_SEED_DEMO=true.
    * Safe to run on every cold start: each step checks first, and the credit grant is idempotent.
    */
   async seedDemo() {

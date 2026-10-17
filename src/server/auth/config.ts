@@ -23,7 +23,7 @@ export const oauthProviders = {
 
 if (!process.env.AUTH_SECRET && process.env.NODE_ENV !== "production") {
   // Dev convenience only. Production refuses to start without AUTH_SECRET.
-  process.env.AUTH_SECRET = "applyai-dev-secret-change-me-please-0123456789";
+  process.env.AUTH_SECRET = "resumeai-dev-secret-change-me-please-0123456789";
 }
 
 const config: NextAuthConfig = {

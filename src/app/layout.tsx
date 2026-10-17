@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "ApplyAI — Tailor your resume to every job", template: "%s · ApplyAI" },
+  title: { default: "ResumeAi — Tailor your resume to every job", template: "%s · ResumeAi" },
   description: "Create your professional profile once, then tailor your resume and cover letter to every job.",
 };
 

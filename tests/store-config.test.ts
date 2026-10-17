@@ -9,7 +9,7 @@ afterEach(() => {
     if (saved[k] === undefined) delete process.env[k];
     else process.env[k] = saved[k];
   }
-  delete (globalThis as { __applyaiStore?: unknown }).__applyaiStore;
+  delete (globalThis as { __resumeaiStore?: unknown }).__resumeaiStore;
 });
 const reset = () => KEYS.forEach((k) => delete process.env[k]);
 
@@ -20,7 +20,7 @@ describe("which store and whether the demo account exists", () => {
     expect(usesMongo()).toBe(false);
     process.env.MONGODB_URI = "   ";
     expect(usesMongo()).toBe(false);
-    process.env.MONGODB_URI = "mongodb+srv://u:p@h/applyai";
+    process.env.MONGODB_URI = "mongodb+srv://u:p@h/resumeai";
     expect(usesMongo()).toBe(true);
   });
 
@@ -28,7 +28,7 @@ describe("which store and whether the demo account exists", () => {
     const { demoAccountEnabled } = await import("@/server/store/config");
     reset();
     expect(demoAccountEnabled()).toBe(true);
-    process.env.MONGODB_URI = "mongodb://x/applyai";
+    process.env.MONGODB_URI = "mongodb://x/resumeai";
     expect(demoAccountEnabled()).toBe(false);
     process.env.MONGODB_SEED_DEMO = "true";
     expect(demoAccountEnabled()).toBe(true);
@@ -49,7 +49,7 @@ describe("a deployment without a database", () => {
     const { getStore } = await import("@/server/store");
     reset();
     await expect(getStore()).resolves.toBeTruthy(); // local demo store
-    delete (globalThis as { __applyaiStore?: unknown }).__applyaiStore;
+    delete (globalThis as { __resumeaiStore?: unknown }).__resumeaiStore;
     process.env.VERCEL = "1";
     process.env.ALLOW_MEMORY_STORE = "true";
     await expect(getStore()).resolves.toBeTruthy();

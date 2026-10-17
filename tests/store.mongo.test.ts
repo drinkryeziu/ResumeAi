@@ -10,7 +10,7 @@ import { storeContract } from "./store-contract";
  *  - MONGODB_TEST_URI set: uses that server (a local replica set, or an Atlas cluster you don't mind writing to).
  *  - otherwise: starts a throwaway single-node replica set with mongodb-memory-server. The first run downloads an
  *    official MongoDB server binary (a few hundred MB, cached afterwards); no credentials or accounts involved.
- * Every test gets its own database named applyai_test_<random> and drops it afterwards.
+ * Every test gets its own database named resumeai_test_<random> and drops it afterwards.
  * If no server can be started (for example offline on the first run) these tests are skipped with a warning;
  * set MONGODB_TEST_REQUIRED=1 (CI) to fail instead.
  */
@@ -42,7 +42,7 @@ if (!uri) {
   const client = new MongoClient(uri, { serverSelectionTimeoutMS: 8000, maxPoolSize: 20 });
   await client.connect();
   storeContract("MongoDB", async () => {
-    const db = client.db(`applyai_test_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`);
+    const db = client.db(`resumeai_test_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`);
     const store = new MongoAppStore(client, db);
     await store.ensureIndexes();
     return {
@@ -56,7 +56,7 @@ if (!uri) {
     it("is created once, can sign in, and a second start changes nothing", async () => {
       const { DEMO_EMAIL, DEMO_PASSWORD, DEMO_USER_ID } = await import("@/server/demo/fixtures");
       const { verifyPassword } = await import("@/server/auth/password");
-      const db = client.db(`applyai_test_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`);
+      const db = client.db(`resumeai_test_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`);
       const store = new MongoAppStore(client, db);
       await store.ensureIndexes();
       await store.seedDemo();

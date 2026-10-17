@@ -1,4 +1,4 @@
-# ApplyAI — Resume & Cover Letter Optimizer
+# ResumeAi — Resume & Cover Letter Optimizer
 
 Create your professional profile once, then tailor your resume and cover letter to every job.
 Built on the **ApplyAiJobBoard design system** (tokens in `src/styles/tokens.css`).
@@ -20,7 +20,7 @@ npm test               # ~100 tests: credits, fabrication guard, full flow, acco
 ```
 
 Create an account, or sign in with the demo account shown on the sign-in page
-(`demo@applyai.dev` / `applyai-demo`). On "Tailor resume to a job", **Try a sample job** fills in a posting.
+(`demo@resumeai.dev` / `resumeai-demo`). On "Tailor resume to a job", **Try a sample job** fills in a posting.
 
 ### Sign-in
 Email + password works out of the box (scrypt-hashed). Google and LinkedIn buttons appear automatically when
@@ -43,7 +43,7 @@ phase and is **not used** today.
 The MongoDB tests start a throwaway local MongoDB with `mongodb-memory-server`. The first run downloads an official
 MongoDB server binary (a few hundred MB, cached afterwards); without network they are skipped with a warning
 (`MONGODB_TEST_REQUIRED=1` makes that an error). To test against your own server instead, set `MONGODB_TEST_URI`;
-each test uses a throwaway database named `applyai_test_<random>` and drops it.
+each test uses a throwaway database named `resumeai_test_<random>` and drops it.
 
 ## Deploy (Vercel + MongoDB Atlas)
 
@@ -54,7 +54,7 @@ The in-memory store cannot work on Vercel (every serverless instance would have 
 2. **Database Access** → add a database user with a strong password (read and write to any database).
 3. **Network Access** → allow `0.0.0.0/0`. Vercel has no fixed IP addresses. (Or install the *MongoDB Atlas* integration from the Vercel Marketplace, which manages this and sets the connection variable for you.)
 4. **Connect → Drivers** → copy the connection string and put the database name before the `?`:
-   `mongodb+srv://USER:PASSWORD@cluster0.xxxxx.mongodb.net/applyai?retryWrites=true&w=majority`
+   `mongodb+srv://USER:PASSWORD@cluster0.xxxxx.mongodb.net/resumeai?retryWrites=true&w=majority`
    (URL-encode special characters in the password.)
 
 You do not create collections or indexes by hand: on the first request the app creates its indexes and seeds the
@@ -74,7 +74,7 @@ Atlas is always a replica set, which the credit ledger needs (it writes balance 
 | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | no | without a key the deterministic mock writer is used |
 | `AI_FORCE_MOCK` | no | `true` forces the mock even when keys are set |
 | `ALLOW_MEMORY_STORE` | no | `true` lets a Vercel preview run on the temporary in-memory store (data is lost). Leave unset |
-| `MONGODB_SEED_DEMO` | no | `true` creates the public demo account (`demo@applyai.dev`). Leave unset in production |
+| `MONGODB_SEED_DEMO` | no | `true` creates the public demo account (`demo@resumeai.dev`). Leave unset in production |
 | `AUTH_GOOGLE_ID/SECRET`, `AUTH_LINKEDIN_ID/SECRET` | no | enable social sign-in |
 
 3. **Deploy.** Every push to `main` redeploys.

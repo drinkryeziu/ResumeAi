@@ -30,7 +30,7 @@ if (!server) {
   });
   describe("MongoDB without a replica set", () => {
     it("refuses credit changes with a message that says what to do", async () => {
-      const db = client.db("applyai_test_standalone");
+      const db = client.db("resumeai_test_standalone");
       const store = new MongoAppStore(client, db);
       await store.ensureIndexes();
       await expect(store.credits.grant("u1", 10, "GRANT", "k1")).rejects.toThrow(/replica set/i);

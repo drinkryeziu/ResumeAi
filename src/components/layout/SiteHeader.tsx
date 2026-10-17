@@ -30,7 +30,7 @@ export function SiteHeader({ creditBalance, name, email, setup = false }: { cred
     return (
       <header className="sticky top-0 z-20 bg-white shadow-header">
         <div className="mx-auto flex h-[60px] w-full max-w-[1120px] items-center justify-between px-ds-4 md:px-ds-5">
-          <span className="text-[20px] leading-none font-bold tracking-[-0.3px] text-blue-700">ApplyAI</span>
+          <span className="text-[20px] leading-none font-bold tracking-[-0.3px] text-blue-700">ResumeAi</span>
           <div className="flex items-center gap-ds-4">
             <span className="hidden text-body-sm sm:inline">Setting up {email}</span>
             <SignOutLink />
@@ -43,7 +43,7 @@ export function SiteHeader({ creditBalance, name, email, setup = false }: { cred
     <header className="sticky top-0 z-20 bg-white shadow-header">
       <div className="mx-auto flex h-[60px] w-full max-w-[1120px] items-center justify-between px-ds-4 md:px-ds-5">
         <Link href="/dashboard" className="text-[20px] leading-none font-bold tracking-[-0.3px] text-blue-700 no-underline">
-          ApplyAI
+          ResumeAi
         </Link>
         <nav aria-label="Main" className="hidden items-center gap-ds-5 md:flex">
           {NAV_ITEMS.map((item) => {

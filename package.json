@@ -1,8 +1,8 @@
 {
-  "name": "applyai-resume",
+  "name": "resumeai",
   "version": "0.1.0",
   "private": true,
-  "description": "ApplyAI — tailor your resume and cover letter to every job, from one Master Profile.",
+  "description": "ResumeAi — tailor your resume and cover letter to every job, from one Master Profile.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

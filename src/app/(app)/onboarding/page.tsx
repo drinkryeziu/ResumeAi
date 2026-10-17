@@ -52,7 +52,7 @@ export default async function OnboardingPage() {
   return (
     <div className="mx-auto w-full max-w-[760px]">
       <PageHeader
-        eyebrow="Welcome to ApplyAI"
+        eyebrow="Welcome to ResumeAi"
         title="Create your Master Resume and Cover Letter"
         description="Tell us about your work once. We build both master documents from it, and every job application starts from them. We only ever use what you put here, and creating them is free."
       />

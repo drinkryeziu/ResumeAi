@@ -1,4 +1,4 @@
-// ApplyAI — relational data model.
+// ResumeAi — relational data model.
 // Rules: profile data is normalized (one table per section); AI outputs are validated JSON
 // on analysis rows (read whole, shape evolves with prompts); money and credits are append-only ledgers.
 

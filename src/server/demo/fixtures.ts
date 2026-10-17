@@ -134,5 +134,5 @@ Nice to have:
 };
 
 /** Demo sign-in, shown on the sign-in page. Not a real account. */
-export const DEMO_EMAIL = "demo@applyai.dev";
-export const DEMO_PASSWORD = "applyai-demo";
+export const DEMO_EMAIL = "demo@resumeai.dev";
+export const DEMO_PASSWORD = "resumeai-demo";

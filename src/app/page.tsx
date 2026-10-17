@@ -7,7 +7,7 @@ import { FeatureItem } from "@/components/ui/FeatureItem";
 import { auth } from "@/server/auth/config";
 import { DEFAULT_PLANS } from "@/server/billing/catalog";
 
-export const metadata = { title: "ApplyAI — Tailor your resume to every job" };
+export const metadata = { title: "ResumeAi — Tailor your resume to every job" };
 
 /** A genuine sequence, so the steps are numbered. */
 const STEPS = [
@@ -32,7 +32,7 @@ export default async function LandingPage() {
                 Create your profile once. Tailor your application for every job.
               </h1>
               <p className="text-hero-subtitle max-w-[52ch] font-normal text-white/85">
-                Paste any job description. ApplyAI shows how well you match, then writes a resume and cover letter for that job using only what&apos;s true about you.
+                Paste any job description. ResumeAi shows how well you match, then writes a resume and cover letter for that job using only what&apos;s true about you.
               </p>
               <div className="mt-ds-2 flex flex-wrap items-center gap-ds-5">
                 <ButtonLink href="/sign-up" className="px-9 py-4">
@@ -64,7 +64,7 @@ export default async function LandingPage() {
         <section className="bg-sky-50 px-ds-4 py-ds-6 md:px-ds-5">
           <div className="mx-auto max-w-[1120px]">
             <h2 className="text-heading-section mb-ds-2">Nothing on your resume that isn&apos;t true</h2>
-            <p className="text-body mb-ds-5 max-w-[60ch]">ApplyAI rewords and reorders what you&apos;ve done to fit each job. It never adds experience, skills, schools or results you didn&apos;t give it.</p>
+            <p className="text-body mb-ds-5 max-w-[60ch]">ResumeAi rewords and reorders what you&apos;ve done to fit each job. It never adds experience, skills, schools or results you didn&apos;t give it.</p>
             <div className="grid gap-ds-5 sm:grid-cols-2 lg:grid-cols-4">
               <FeatureItem icon={<ShieldCheck size={36} strokeWidth={1.6} />} title="Your profile is the source">
                 Every line in a tailored resume traces back to something in your profile.
@@ -107,7 +107,7 @@ export default async function LandingPage() {
           <ButtonLink href="/sign-up">Create your resume</ButtonLink>
         </section>
       </main>
-      <footer className="border-t border-gray-100 px-ds-4 py-ds-5 text-center text-caption">© {new Date().getFullYear()} ApplyAI</footer>
+      <footer className="border-t border-gray-100 px-ds-4 py-ds-5 text-center text-caption">© {new Date().getFullYear()} ResumeAi</footer>
     </>
   );
 }

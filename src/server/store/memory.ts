@@ -157,7 +157,8 @@ export class MemoryAppStore implements AppStore {
     return this.own(this.resumes, userId).sort((a, b) => +b.updatedAt - +a.updatedAt);
   }
   async addResumeVersion(userId: string, jobId: string | null, v: Parameters<AppStore["addResumeVersion"]>[2]) {
-    let r = await this.resumeForJob(userId, jobId);
+    // No await between "find" and "create": two requests at once must not each create the document.
+    let r = this.own(this.resumes, userId).find((x) => x.jobId === jobId) ?? null;
     const now = new Date();
     if (!r) {
       r = { id: id("res"), userId, jobId, name: v.name, versions: [], currentVersionId: "", createdAt: now, updatedAt: now };
@@ -189,7 +190,7 @@ export class MemoryAppStore implements AppStore {
     return this.own(this.letters, userId).sort((a, b) => +b.updatedAt - +a.updatedAt);
   }
   async addCoverLetterVersion(userId: string, jobId: string | null, v: Parameters<AppStore["addCoverLetterVersion"]>[2]) {
-    let r = await this.coverLetterForJob(userId, jobId);
+    let r = this.own(this.letters, userId).find((x) => x.jobId === jobId) ?? null;
     const now = new Date();
     if (!r) {
       r = { id: id("cl"), userId, jobId, name: v.name, versions: [], currentVersionId: "", createdAt: now, updatedAt: now };

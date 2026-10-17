@@ -50,7 +50,7 @@ export function CvImport({ returnTo, requestId, compact }: { returnTo: "onboardi
           <FileUp size={24} className="shrink-0 text-blue-600" aria-hidden="true" />
           <span className="flex flex-col">
             <span className="text-label-bold">{fileName ?? (compact ? "Choose a CV file" : "Choose your CV")}</span>
-            <span className="text-caption">PDF or Word (.docx), up to 5 MB</span>
+            <span className="text-caption">PDF or Word (.docx), up to 4 MB</span>
           </span>
           <input
             type="file"

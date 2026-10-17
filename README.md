@@ -73,6 +73,7 @@ Atlas is always a replica set, which the credit ledger needs (it writes balance 
 | `MONGODB_DB` | no | overrides the database name in the URI |
 | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | no | without a key the deterministic mock writer is used |
 | `AI_FORCE_MOCK` | no | `true` forces the mock even when keys are set |
+| `ALLOW_MEMORY_STORE` | no | `true` lets a Vercel preview run on the temporary in-memory store (data is lost). Leave unset |
 | `MONGODB_SEED_DEMO` | no | `true` creates the public demo account (`demo@applyai.dev`). Leave unset in production |
 | `AUTH_GOOGLE_ID/SECRET`, `AUTH_LINKEDIN_ID/SECRET` | no | enable social sign-in |
 
@@ -81,8 +82,9 @@ Atlas is always a replica set, which the credit ledger needs (it writes balance 
 Never commit credentials: `.env*.local`, `*.env` and `*credentials*` are git-ignored; put secrets in Vercel's settings.
 
 ### Good to know
-- **Upload size:** Vercel serverless functions accept request bodies of about 4.5 MB. The app allows 5 MB CV and job-description uploads, so files between 4.5 and 5 MB fail on Vercel.
-- **AI time limit:** real model calls can take longer than a function's default time limit; raise `maxDuration` for those routes if you see timeouts.
+- **Upload size:** Vercel serverless functions accept request bodies of about 4.5 MB, so CV and job-description uploads are limited to 4 MB.
+- **AI time limit:** pages and actions are set to a 60 second limit (`maxDuration` in `src/app/(app)/layout.tsx`), downloads to 30 seconds. Raise it there if a real model needs longer (your Vercel plan sets the ceiling).
+- **Forgot `MONGODB_URI`?** On Vercel the app refuses to start without it (instead of silently using temporary memory) and shows the reason in the function logs. `ALLOW_MEMORY_STORE=true` overrides this for throwaway previews.
 - **Backups:** the free Atlas tier has no automated backups. Take a manual export before anything risky.
 
 ## How it's organized

@@ -5,6 +5,7 @@ import { exportCoverLetter, exportPackage, exportResume, fileBase, MIME } from "
 import { getStore } from "@/server/store";
 
 export const runtime = "nodejs";
+export const maxDuration = 30; // building a PDF or Word file
 
 const Query = z.object({ doc: z.enum(["resume", "cover-letter", "package"]), format: z.enum(["pdf", "docx"]).default("pdf") });
 

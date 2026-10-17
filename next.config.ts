@@ -10,8 +10,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // PDF/DOCX renderers and vendor SDKs only ever run on the server.
   serverExternalPackages: ["@react-pdf/renderer", "docx", "unpdf", "mammoth"],
-  // Job descriptions can be uploaded as files (max 5 MB, enforced again in extract-text.ts).
-  experimental: { serverActions: { bodySizeLimit: "6mb" } },
+  // Uploads (CV, job description) are capped at 4 MB in extract-text.ts, under Vercel's ~4.5 MB request limit.
+  experimental: { serverActions: { bodySizeLimit: "4.5mb" } },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

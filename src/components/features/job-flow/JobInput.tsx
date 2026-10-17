@@ -47,7 +47,7 @@ export function JobInput({ defaultText }: { defaultText?: string }) {
         <label className="flex cursor-pointer flex-col items-center gap-ds-2 rounded-md border-2 border-dashed border-[#c9d3e3] bg-sky-50 p-ds-5 text-center hover:border-blue-600">
           <FileUp size={32} className="text-blue-600" aria-hidden="true" />
           <span className="text-label-bold">{fileName ?? "Choose a file"}</span>
-          <span className="text-caption">PDF, Word (.docx) or text · up to 5 MB</span>
+          <span className="text-caption">PDF, Word (.docx) or text · up to 4 MB</span>
           <input
             ref={fileRef}
             type="file"

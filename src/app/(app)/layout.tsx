@@ -3,6 +3,8 @@ import { requireUser } from "@/server/auth/session";
 import { getStore } from "@/server/store";
 
 export const dynamic = "force-dynamic";
+// Real model calls (job analysis, resume and letter writing, CV reading) can take a while; the default limit would cut them off.
+export const maxDuration = 60;
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();

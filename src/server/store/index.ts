@@ -33,7 +33,18 @@ async function openMemoryStore(): Promise<AppStore> {
   return store;
 }
 
+/**
+ * On Vercel the in-memory store is a trap: every serverless instance has its own empty copy, so accounts and documents
+ * vanish and the public demo login is on. Refuse to start without MONGODB_URI there. (ALLOW_MEMORY_STORE=true overrides, for previews.)
+ */
+function assertStoreConfigured() {
+  if (process.env.VERCEL && !usesMongo() && process.env.ALLOW_MEMORY_STORE !== "true") {
+    throw new Error("MONGODB_URI is not set. Add it in Vercel: Project Settings > Environment Variables (see the README, section Deploy).");
+  }
+}
+
 export function getStore(): Promise<AppStore> {
+  assertStoreConfigured();
   if (!g.__applyaiStore) {
     g.__applyaiStore = (usesMongo() ? openMongoStore() : openMemoryStore()).catch((err) => {
       g.__applyaiStore = undefined; // don't cache a failed start: the next request tries again

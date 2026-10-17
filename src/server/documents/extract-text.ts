@@ -4,13 +4,14 @@ import "server-only";
  * Turns an uploaded job description (or resume) into plain text.
  * The type is decided by the file's first bytes, not its name: PDF = "%PDF", DOCX = a ZIP ("PK").
  */
-export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+/** 4 MB: Vercel rejects request bodies over about 4.5 MB (file plus form overhead), so a larger limit would only fail later with a worse error. */
+export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 export class UploadError extends Error {}
 
 export async function extractText(file: File): Promise<string> {
   if (file.size === 0) throw new UploadError("That file is empty.");
-  if (file.size > MAX_UPLOAD_BYTES) throw new UploadError("That file is larger than 5 MB.");
+  if (file.size > MAX_UPLOAD_BYTES) throw new UploadError("That file is larger than 4 MB.");
   const buf = Buffer.from(await file.arrayBuffer());
   const head = buf.subarray(0, 4).toString("latin1");
 

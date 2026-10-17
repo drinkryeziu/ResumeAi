@@ -7,21 +7,21 @@ The app never applies to jobs automatically.
 
 ## Commands
 - `npm run dev` — http://localhost:3000 (demo login: `demo@applyai.dev` / `applyai-demo`)
-- `npm test` — Vitest (63 tests). Run before every commit.
+- `npm test` — Vitest (~100 tests). Run before every commit. The MongoDB tests start a throwaway local MongoDB (`mongodb-memory-server`); the first run downloads its binary.
 - `npx tsc --noEmit` — typecheck. `npm run build` — production build.
 - No API key needed: every AI workflow falls back to a deterministic mock provider. Set `ANTHROPIC_API_KEY` in `.env.local` for real output.
-- Data lives in an in-memory store (`src/server/store/memory.ts`) and resets on restart. Prisma schema exists; `PrismaAppStore` is not built yet.
+- Data: with no `MONGODB_URI` the app uses an in-memory store (`src/server/store/memory.ts`, resets on restart). With `MONGODB_URI` it uses MongoDB (`src/server/store/mongo.ts`, `src/server/credits/mongo-store.ts`). Both implement `AppStore` and must pass `tests/store-contract.ts`. The Prisma/PostgreSQL schema is unused. To deploy, see the README "Deploy" section.
 
 ## Stack
 Next.js 15 App Router, React 19, TypeScript strict, Tailwind v4, Zod v4 (`zod/v4`), Auth.js v5 (credentials + Google/LinkedIn when keys set),
-Prisma schema (PostgreSQL), @react-pdf/renderer + docx + jszip for exports, unpdf + mammoth for reading uploads.
+MongoDB (`mongodb` driver), @react-pdf/renderer + docx + jszip for exports, unpdf + mammoth for reading uploads.
 
 ## Where things are
 - `src/app/` — routes only. Pages compose components; server actions (`actions.ts`) stay thin and call services.
 - `src/components/ui/` — design-system kit (Button, Card, Field, Badge, ScoreRing, ScoreBar…). `features/` — feature components.
 - `src/server/ai/` — Career AI Agent: `workflows/` (one file per capability), `runner.ts` (credits → model → validate → guard → settle),
   `guard/fabrication-guard.ts`, `scoring.ts`, `routing.ts` (model per workflow), `providers/` (anthropic, openai, mock).
-- `src/server/services/job-pipeline.ts` — business logic for every step. `src/server/store/` — `AppStore` interface + memory impl.
+- `src/server/services/job-pipeline.ts` — business logic for every step. `src/server/store/` — `AppStore` interface + memory and MongoDB impls (`getStore()` picks by env).
 - `src/server/documents/` — `ResumeDocument` model, `templates/classic/` (pdf.tsx, docx.ts), `export.tsx`, `extract-text.ts`.
 - `src/server/credits/` — append-only ledger. Prices live in data (`billing/catalog.ts` seeds), never hard-coded in logic.
 - `src/server/domain/` — profile types, Zod schema, form ↔ profile mapping, CV-import merge.
@@ -53,6 +53,6 @@ Prisma schema (PostgreSQL), @react-pdf/renderer + docx + jszip for exports, unpd
 
 ## Roadmap (next)
 1. UI: Documents page (rename/duplicate/delete). Job Match screen and profile-editor section progress are done.
-2. `PrismaAppStore` implementing `AppStore`, so accounts and documents persist; file storage for uploads.
+2. File storage for uploads (only extracted text is used today); decide whether to remove the unused Prisma schema.
 3. Stripe plans + credit packs (webhook → ledger GRANT/PURCHASE), admin pricing page.
 4. Rate limits, prompt-evaluation set with real job descriptions, more resume templates.

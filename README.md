@@ -82,6 +82,7 @@ Atlas is always a replica set, which the credit ledger needs (it writes balance 
 Never commit credentials: `.env*.local`, `*.env` and `*credentials*` are git-ignored; put secrets in Vercel's settings.
 
 ### Good to know
+- **Is the site set up?** Open `/api/health` on the deployed site: it says (yes or no, never the values) whether `AUTH_SECRET` and `MONGODB_URI` are set and whether the database answers, and explains each problem in a sentence. Sign-up and sign-in show the same message instead of a raw "server configuration" error.
 - **Upload size:** Vercel serverless functions accept request bodies of about 4.5 MB, so CV and job-description uploads are limited to 4 MB.
 - **AI time limit:** pages and actions are set to a 60 second limit (`maxDuration` in `src/app/(app)/layout.tsx`), downloads to 30 seconds. Raise it there if a real model needs longer (your Vercel plan sets the ceiling).
 - **Forgot `MONGODB_URI`?** On Vercel the app refuses to start without it (instead of silently using temporary memory) and shows the reason in the function logs. `ALLOW_MEMORY_STORE=true` overrides this for throwaway previews.

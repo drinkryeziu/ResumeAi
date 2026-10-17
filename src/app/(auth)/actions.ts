@@ -9,7 +9,21 @@ import { getStore } from "@/server/store";
 
 export type AuthState = { error?: string } | undefined;
 
+/**
+ * Production without AUTH_SECRET makes Auth.js answer with a raw JSON "server configuration" error. Say what is wrong
+ * on the form instead, before anything is created. (Only the cheap checks here; /api/health does the database ping.)
+ */
+const notSetUp = (): AuthState => {
+  if (!process.env.AUTH_SECRET?.trim())
+    return {
+      error: "This site isn't fully set up yet: AUTH_SECRET is missing. If you run it, add it in your hosting settings and redeploy. Open /api/health to see what else is missing.",
+    };
+  return undefined;
+};
+
 export async function signInWithPassword(_: AuthState, fd: FormData): Promise<AuthState> {
+  const missing = notSetUp();
+  if (missing) return missing;
   try {
     await signIn("credentials", { email: fd.get("email"), password: fd.get("password"), redirectTo: "/dashboard" });
   } catch (e) {
@@ -25,6 +39,8 @@ const SignUp = z.object({
 });
 
 export async function signUpWithPassword(_: AuthState, fd: FormData): Promise<AuthState> {
+  const missing = notSetUp(); // before creating anything: a half-made account is worse than a clear message
+  if (missing) return missing;
   const parsed = SignUp.safeParse(Object.fromEntries(fd));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
   const store = await getStore();

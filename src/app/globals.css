@@ -19,6 +19,10 @@
   --color-success: #13795b;
   --color-warning: #8a5a00;
   --color-danger: #b42318;
+  /* chip-only tints for the status colors above; cards and panels stay white / sky-50 / gray-100 */
+  --color-success-tint: #e7f5ef;
+  --color-warning-tint: #fff4de;
+  --color-danger-tint: #fdecea;
 
   --shadow-header: var(--shadow-header);
   --shadow-search: var(--shadow-search);

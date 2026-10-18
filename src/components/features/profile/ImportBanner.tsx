@@ -14,7 +14,7 @@ export function ImportBanner({ fileName, added, returnTo }: { fileName: string; 
     added.projects && plural(added.projects, "project", "projects"),
   ].filter(Boolean);
   return (
-    <div role="status" className="mb-ds-4 flex flex-wrap items-start justify-between gap-ds-4 rounded-md bg-[#e7f5ef] p-ds-4">
+    <div role="status" className="mb-ds-4 flex flex-wrap items-start justify-between gap-ds-4 rounded-md bg-sky-50 p-ds-4">
       <div className="flex gap-ds-3">
         <CheckCircle2 size={22} className="mt-0.5 shrink-0 text-success" aria-hidden="true" />
         <div className="flex flex-col gap-ds-1">

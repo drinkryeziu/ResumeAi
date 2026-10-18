@@ -77,7 +77,7 @@ export function DocumentWorkspace({
       </div>
 
       {saved && (
-        <p role="status" className="rounded-md bg-[#e7f5ef] p-ds-3 text-body-sm text-success">
+        <p role="status" className="rounded-md bg-sky-50 p-ds-3 text-body-sm text-success">
           Saved as a new version. Earlier versions are kept below.
         </p>
       )}

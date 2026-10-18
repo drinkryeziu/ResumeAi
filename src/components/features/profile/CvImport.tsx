@@ -46,7 +46,7 @@ export function CvImport({ returnTo, requestId, compact }: { returnTo: "onboardi
 
       {/* Both stay mounted; only the active one is named, so only it is posted. */}
       <div hidden={mode !== "file"} className="flex flex-wrap items-center gap-ds-4">
-        <label className="flex min-w-64 flex-1 cursor-pointer items-center gap-ds-3 rounded-md border-2 border-dashed border-[#c9d3e3] bg-white px-ds-4 py-ds-3 hover:border-blue-600">
+        <label className="flex min-w-64 flex-1 cursor-pointer items-center gap-ds-3 rounded-md bg-white px-ds-4 py-ds-3 shadow-card transition-shadow hover:shadow-search focus-within:outline focus-within:outline-2 focus-within:outline-blue-600">
           <FileUp size={24} className="shrink-0 text-blue-600" aria-hidden="true" />
           <span className="flex flex-col">
             <span className="text-label-bold">{fileName ?? (compact ? "Choose a CV file" : "Choose your CV")}</span>

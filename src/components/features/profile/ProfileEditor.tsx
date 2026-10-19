@@ -374,7 +374,7 @@ export function ProfileEditor({
             </Section>
           </StepPane>
 
-          <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-ds-4 rounded-md bg-white p-ds-4 shadow-card">
+          <div className={cn("sticky bottom-0 z-10 flex gap-ds-4 rounded-md bg-white p-ds-4 shadow-card", wizard ? "flex-wrap items-center justify-between" : "flex-col")}>
             <div className="flex max-w-md flex-col gap-ds-2">
               {stepFirst && (
                 <p role={attempted ? "alert" : undefined} className="text-body-sm">
@@ -395,21 +395,21 @@ export function ProfileEditor({
                 </label>
               )}
             </div>
-            <div className="flex w-full flex-wrap items-center gap-ds-4 sm:w-auto sm:justify-end">
+            <div className={cn("flex w-full flex-wrap items-center gap-ds-4", wizard && "sm:w-auto sm:justify-end")}>
               {wizard && step > 0 && (
                 <button type="button" onClick={() => go(step - 1)} className="text-body-sm text-blue-700 underline">
                   Back
                 </button>
               )}
-              <div className="flex flex-1 flex-col gap-ds-2 sm:flex-none sm:items-end">
+              <div className={cn("flex flex-1 flex-col gap-ds-2", wizard ? "sm:flex-none sm:items-end" : "items-stretch")}>
                 {wizard && step < lastStep ? (
                   <Button type="submit" className="w-full sm:w-auto">
                     Continue
                   </Button>
                 ) : (
                   <>
-                    <SaveButton label={wizard ? "Create my master documents" : "Save profile"} disabled={!wizard && !changed} />
-                    {!wizard && !changed && <p className="text-caption">Make a change to save.</p>}
+                    <SaveButton label={wizard ? "Create my master documents" : "Save profile"} disabled={!wizard && !changed} long={!wizard} />
+                    {!wizard && !changed && <p className="text-caption text-center">Make a change to save.</p>}
                   </>
                 )}
                 {state?.error && (
@@ -431,10 +431,10 @@ function StepPane({ show, children }: { show: boolean; children: ReactNode }) {
   return <div hidden={!show}>{children}</div>;
 }
 
-function SaveButton({ label, disabled }: { label: string; disabled?: boolean }) {
+function SaveButton({ label, disabled, long }: { label: string; disabled?: boolean; long?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending || disabled} className="w-full sm:w-auto">
+    <Button type="submit" disabled={pending || disabled} className={long ? "w-full" : "w-full sm:w-auto"}>
       {pending ? "Saving and creating your documents…" : label}
     </Button>
   );

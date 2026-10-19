@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod/v4";
 import { TONES, WorkflowOutputError } from "@/server/ai";
-import { AINotConfiguredError, AIProviderError } from "@/server/ai/providers/types";
+import { describeAIError } from "@/server/ai/errors";
+import { AIProviderError } from "@/server/ai/providers/types";
 import { requireUser } from "@/server/auth/session";
 import { InsufficientCreditsError } from "@/server/credits/types";
 import { extractText, UploadError } from "@/server/documents/extract-text";
@@ -18,8 +19,7 @@ export type ActionState = { error?: string; needCredits?: boolean; ok?: string }
 function toState(err: unknown): ActionState {
   if (err instanceof InsufficientCreditsError) return { error: err.message, needCredits: true };
   if (err instanceof pipeline.PipelineError || err instanceof WorkflowOutputError || err instanceof UploadError) return { error: err.message };
-  if (err instanceof AINotConfiguredError) return { error: "AI writing isn't switched on for this site yet. Nothing was charged. The site owner needs to add the AI key." };
-  if (err instanceof AIProviderError) return { error: "The AI service is busy right now. Your credits were refunded — please try again in a minute." };
+  if (err instanceof AIProviderError) return { error: `${describeAIError(err, "finish that")} Your credits were refunded.` };
   console.error("[jobs/actions]", err);
   return { error: "Something went wrong. Any credits used were refunded." };
 }

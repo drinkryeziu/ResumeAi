@@ -38,6 +38,8 @@ export class AIProviderError extends Error {
     message: string,
     readonly provider: ProviderName,
     readonly retryable: boolean,
+    /** The vendor's HTTP status, when there was one (401 = key rejected, 429 = rate limit, 5xx = their outage). */
+    readonly status?: number,
   ) {
     super(message);
     this.name = "AIProviderError";

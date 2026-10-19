@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { resumeParser, runWorkflow, WorkflowOutputError } from "@/server/ai";
 import { aiAvailable } from "@/server/ai/providers/registry";
-import { AINotConfiguredError, AIProviderError } from "@/server/ai/providers/types";
+import { describeAIError } from "@/server/ai/errors";
+import { AIProviderError } from "@/server/ai/providers/types";
 import { extractText, UploadError } from "@/server/documents/extract-text";
 import { requireUser } from "@/server/auth/session";
 import { overLimit, RULES } from "@/server/security/rate-limit";
@@ -41,12 +42,14 @@ export async function saveProfile(_: ProfileState, fd: FormData): Promise<Profil
 
   await store.setCvImport(user.id, null); // the reviewed import is now part of the profile
   const firstTime = !existing;
-  if (firstTime || fd.get("regenerate") === "on") {
+  // Not "is this the first save" but "do the Master documents exist": if the AI failed last time, saving again tries again.
+  const needsMasters = !(await store.resumeForJob(user.id, null));
+  if (needsMasters || fd.get("regenerate") === "on") {
     try {
       await generateMasterDocuments(store, user.id, String(fd.get("requestId") || crypto.randomUUID()));
     } catch (e) {
       if (e instanceof WorkflowOutputError) return { error: "Your profile was saved, but we couldn't create your Master documents. Try “Regenerate” on the dashboard." };
-      if (e instanceof AINotConfiguredError) return { error: `Your profile was saved. ${NO_AI}` };
+      if (e instanceof AIProviderError) return { error: `Your profile was saved. ${describeAIError(e, "create your Master documents")} Save again to retry.` };
       throw e;
     }
   }
@@ -87,8 +90,7 @@ export async function importCv(_: ProfileState, fd: FormData): Promise<ProfileSt
   } catch (e) {
     if (e instanceof UploadError) return { error: e.message };
     if (e instanceof WorkflowOutputError) return { error: "We couldn't read your CV reliably. Please fill in the form below instead." };
-    if (e instanceof AINotConfiguredError) return { error: "AI isn't switched on for this site yet, so we can't read your CV. You can fill in the form by hand instead." };
-    if (e instanceof AIProviderError) return { error: "The AI service is busy right now. Please try again in a minute." };
+    if (e instanceof AIProviderError) return { error: `${describeAIError(e, "read your CV")} You can also fill in the form by hand.` };
     throw e;
   }
   redirect(`${back}?imported=1`);

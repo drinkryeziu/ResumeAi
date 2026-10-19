@@ -39,7 +39,9 @@ export class AnthropicProvider implements AIProvider {
     } catch (e) {
       if (e instanceof AIProviderError) throw e;
       const status = (e as { status?: number }).status;
-      throw new AIProviderError(`Anthropic request failed${status ? ` (${status})` : ""}`, "anthropic", status === 429 || (status ?? 500) >= 500);
+      // The vendor's own explanation ("credit balance is too low", "model not found"...) goes to the server log only; it never contains the key.
+      console.error(`[ai] Anthropic request failed: model=${req.model} status=${status ?? "none"} ${(e as Error).message?.slice(0, 300)}`);
+      throw new AIProviderError(`Anthropic request failed${status ? ` (${status})` : ""}`, "anthropic", status === 429 || (status ?? 500) >= 500, status);
     }
   }
 }

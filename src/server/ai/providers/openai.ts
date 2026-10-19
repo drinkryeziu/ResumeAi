@@ -35,7 +35,8 @@ export class OpenAIProvider implements AIProvider {
       if (e instanceof AIProviderError) throw e;
       if (e instanceof SyntaxError) throw new AIProviderError("Model returned invalid JSON", "openai", true);
       const status = (e as { status?: number }).status;
-      throw new AIProviderError(`OpenAI request failed${status ? ` (${status})` : ""}`, "openai", status === 429 || (status ?? 500) >= 500);
+      console.error(`[ai] OpenAI request failed: model=${req.model} status=${status ?? "none"} ${(e as Error).message?.slice(0, 300)}`);
+      throw new AIProviderError(`OpenAI request failed${status ? ` (${status})` : ""}`, "openai", status === 429 || (status ?? 500) >= 500, status);
     }
   }
 }

@@ -24,7 +24,7 @@ export default async function JobApplicationPage({ params, searchParams }: { par
   const store = await getStore();
   const p = await jobProgress(store, user.id, jobId);
   if (!p.job) notFound();
-  if (!p.completed.includes("create")) redirect(p.match ? `/jobs/${jobId}/match` : "/jobs/new");
+  if (!p.completed.includes("create")) redirect(p.match ? `/jobs/${jobId}/match` : "/jobs");
 
   const tab: DocTab = sp.doc === "cover-letter" ? "cover-letter" : "resume";
   const currentResume = p.resume?.versions.find((v) => v.id === p.resume!.currentVersionId);

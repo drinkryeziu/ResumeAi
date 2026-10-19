@@ -29,14 +29,14 @@ function nextStep(jobs: Summary[]): { title: string; detail: string; href: strin
     return {
       title: "Tailor your resume to your first job",
       detail: "Paste or upload a job description to see how well you match.",
-      href: "/jobs/new",
+      href: "/jobs",
       cta: "Tailor resume to a job",
     };
   }
   return {
     title: "Applying somewhere else?",
     detail: "Add another job description and get a resume and cover letter tailored to it.",
-    href: "/jobs/new",
+    href: "/jobs",
     cta: "Tailor resume to a job",
   };
 }

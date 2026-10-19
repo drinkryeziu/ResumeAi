@@ -44,6 +44,33 @@ describe("Anthropic provider", () => {
     expect(create.mock.calls[0]![0]).not.toHaveProperty("temperature"); // learned: not sent the next time
   });
 
+  it("switches to automatic tool choice, with an instruction, when a model refuses a forced tool call", async () => {
+    create.mockReset();
+    create.mockRejectedValueOnce(refusal(400, 'tool_choice: type "tool" and "any" are not supported for this model.')).mockResolvedValueOnce(ok);
+    const res = await new AnthropicProvider("sk-test").generateStructured(request("model-without-forced-tools"));
+    expect(res.raw).toEqual({ answer: "hi" });
+    expect(create.mock.calls[0]![0].tool_choice).toEqual({ type: "tool", name: "test_tool" });
+    expect(create.mock.calls[1]![0].tool_choice).toEqual({ type: "auto" });
+    expect(create.mock.calls[1]![0].system).toContain('calling the tool "test_tool"');
+
+    create.mockReset();
+    create.mockResolvedValueOnce(ok);
+    await new AnthropicProvider("sk-test").generateStructured(request("model-without-forced-tools"));
+    expect(create.mock.calls[0]![0].tool_choice).toEqual({ type: "auto" }); // remembered
+  });
+
+  it("asks once more if an automatic-mode answer has no tool call, then gives up", async () => {
+    const prose = { content: [{ type: "text", text: "Here you go" }], usage: { input_tokens: 1, output_tokens: 1 } };
+    create.mockReset();
+    create.mockRejectedValueOnce(refusal(400, 'tool_choice: type "tool" is not supported for this model.')).mockResolvedValueOnce(prose).mockResolvedValueOnce(ok);
+    await expect(new AnthropicProvider("sk-test").generateStructured(request("model-that-sometimes-talks"))).resolves.toMatchObject({ raw: { answer: "hi" } });
+
+    create.mockReset();
+    create.mockResolvedValueOnce(prose).mockResolvedValueOnce(prose);
+    await expect(new AnthropicProvider("sk-test").generateStructured(request("model-that-sometimes-talks"))).rejects.toBeInstanceOf(AIProviderError);
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
   it("still sends temperature to models that accept it", async () => {
     create.mockReset();
     create.mockResolvedValueOnce(ok);

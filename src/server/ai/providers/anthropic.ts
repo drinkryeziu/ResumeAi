@@ -21,8 +21,12 @@ export class AnthropicProvider implements AIProvider {
   readonly name = "anthropic" as const;
   private client: Anthropic;
 
-  constructor(apiKey: string) {
-    this.client = new Anthropic({ apiKey, maxRetries: 2 });
+  /**
+   * `workspaceId` is for API keys that are not tied to one workspace: Anthropic then asks for the anthropic-workspace-id
+   * header (ANTHROPIC_WORKSPACE_ID). Not needed for a key created inside a workspace.
+   */
+  constructor(apiKey: string, workspaceId?: string) {
+    this.client = new Anthropic({ apiKey, maxRetries: 2, ...(workspaceId ? { defaultHeaders: { "anthropic-workspace-id": workspaceId } } : {}) });
   }
 
   async generateStructured<T>(req: StructuredRequest<T>): Promise<StructuredResponse> {

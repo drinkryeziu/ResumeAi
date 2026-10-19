@@ -71,6 +71,7 @@ Atlas is always a replica set, which the credit ledger needs (it writes balance 
 | `AUTH_SECRET` | yes | production refuses to start without it: `openssl rand -base64 32` |
 | `MONGODB_DB` | no | overrides the database name in the URI |
 | `ANTHROPIC_API_KEY` | **yes, in production** | the AI that reads CVs and writes resumes and letters (each workflow's model is in `src/server/ai/routing.ts`). Locally, without a key the built-in sample writer is used. **In production a missing key switches AI actions off** (people see "AI writing isn't switched on for this site yet" and nothing is charged); `/api/health` says so |
+| `ANTHROPIC_WORKSPACE_ID` | no | only if Anthropic answers "This API key is not scoped to a workspace": the workspace ID (starts with `wrkspc_`), sent with every request. Not needed for a key created inside a workspace |
 | `AI_ALLOW_MOCK` | no | `true` lets a production *preview* use the sample writer. Never set it on the real site |
 | `AI_FORCE_MOCK` | no | `true` forces the sample writer even when keys are set (tests) |
 | `CONTACT_EMAIL` | recommended | the address shown on the Privacy policy and Terms pages |

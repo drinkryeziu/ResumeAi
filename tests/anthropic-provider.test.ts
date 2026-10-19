@@ -2,9 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 import { z } from "zod/v4";
 
 const create = vi.hoisted(() => vi.fn());
+const clientOptions = vi.hoisted(() => ({ last: undefined as unknown }));
 vi.mock("@anthropic-ai/sdk", () => ({
   default: class {
     messages = { create };
+    constructor(opts: unknown) {
+      clientOptions.last = opts;
+    }
   },
 }));
 
@@ -17,6 +21,13 @@ const refusal = (status: number, message: string) =>
 const request = (model: string) => ({ model, system: "s", user: "u", schema: z.object({ answer: z.string() }), schemaName: "test_tool", maxTokens: 100, temperature: 0.3 });
 
 describe("Anthropic provider", () => {
+  it("sends the workspace id header only when one is configured", () => {
+    new AnthropicProvider("sk-test", "wrkspc_123");
+    expect(clientOptions.last).toMatchObject({ defaultHeaders: { "anthropic-workspace-id": "wrkspc_123" } });
+    new AnthropicProvider("sk-test");
+    expect(clientOptions.last).not.toHaveProperty("defaultHeaders");
+  });
+
   it("sends temperature, and on a model that refuses it retries without it and remembers", async () => {
     create.mockReset();
     create.mockRejectedValueOnce(refusal(400, "`temperature` is deprecated for this model.")).mockResolvedValueOnce(ok);

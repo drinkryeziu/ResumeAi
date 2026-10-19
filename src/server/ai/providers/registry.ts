@@ -25,7 +25,8 @@ export function resolveProvider(route: ModelRoute, mockOutput: () => unknown): {
   if (process.env.AI_FORCE_MOCK === "true") return { provider: new MockProvider(mockOutput), model: "mock" };
   switch (route.provider) {
     case "anthropic":
-      if (process.env.ANTHROPIC_API_KEY) return { provider: new AnthropicProvider(process.env.ANTHROPIC_API_KEY), model: route.model };
+      if (process.env.ANTHROPIC_API_KEY)
+        return { provider: new AnthropicProvider(process.env.ANTHROPIC_API_KEY, process.env.ANTHROPIC_WORKSPACE_ID?.trim() || undefined), model: route.model };
       break;
     case "openai":
       if (process.env.OPENAI_API_KEY) return { provider: new OpenAIProvider(process.env.OPENAI_API_KEY), model: route.model };

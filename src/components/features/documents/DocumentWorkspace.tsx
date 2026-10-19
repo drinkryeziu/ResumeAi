@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Download, FileText, Mail, Package, PenLine } from "lucide-react";
+import { FileText, Mail, Package } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
@@ -125,7 +125,7 @@ export function DocumentWorkspace({
                   <CopyTextButton text={tab === "resume" ? resumePlainText(resumeV!.content) : coverLetterPlainText(letterV!.content)} />
                 </div>
                 {!editing && (
-                  <ButtonLink href={here(tab, true)} variant="secondary" compact className="ml-auto" icon={<PenLine size={16} aria-hidden="true" />}>
+                  <ButtonLink href={here(tab, true)} variant="link" className="ml-auto">
                     {tab === "resume" ? "Edit resume" : "Edit cover letter"}
                   </ButtonLink>
                 )}

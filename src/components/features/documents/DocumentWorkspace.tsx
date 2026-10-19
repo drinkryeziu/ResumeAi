@@ -51,8 +51,8 @@ export function DocumentWorkspace({
 
   return (
     <div className="flex flex-col gap-ds-4">
-      <div className="flex flex-wrap items-center justify-between gap-ds-4">
-        <div role="tablist" aria-label="Documents" className="flex gap-ds-2">
+      <div className="flex flex-wrap items-end justify-between gap-x-ds-4 gap-y-ds-2 border-b-2 border-gray-100">
+        <div role="tablist" aria-label="Documents" className="flex gap-ds-5">
           {(
             [
               ["resume", "Resume", <FileText key="r" size={16} aria-hidden="true" />, resumeV],
@@ -65,8 +65,8 @@ export function DocumentWorkspace({
               aria-selected={tab === t}
               href={here(t)}
               className={cn(
-                "inline-flex items-center gap-2 rounded-pill px-ds-4 py-2 text-body-sm no-underline",
-                tab === t ? "bg-blue-600 font-bold text-white" : "bg-gray-100 text-navy-900",
+                "-mb-0.5 inline-flex items-center gap-2 border-b-[3px] px-ds-1 pt-ds-2 pb-ds-2 text-body-sm no-underline",
+                tab === t ? "border-blue-600 font-bold text-blue-600" : "border-transparent text-navy-900 hover:text-blue-700",
               )}
             >
               {icon}
@@ -76,7 +76,10 @@ export function DocumentWorkspace({
           ))}
         </div>
         {resumeV && (
-          <a href={download("package")} className="inline-flex items-center gap-2 rounded-pill bg-blue-600 px-7 py-ds-3 text-button text-white no-underline hover:bg-blue-700">
+          <a
+            href={download("package")}
+            className="mb-ds-2 inline-flex items-center gap-2 rounded-pill bg-blue-600 px-7 py-ds-3 text-button text-white no-underline hover:bg-blue-700"
+          >
             <Package size={14} aria-hidden="true" />
             Download both
           </a>

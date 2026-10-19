@@ -22,7 +22,7 @@ const variants: Record<Variant, string> = {
   link: "text-body-sm text-blue-700 underline px-0 py-0",
 };
 
-type CommonProps = { variant?: Variant; cost?: number; icon?: ReactNode; compact?: boolean; className?: string; children: ReactNode };
+type CommonProps = { variant?: Variant; cost?: number; icon?: ReactNode; compact?: boolean; className?: string; "aria-label"?: string; children: ReactNode };
 
 /** Horizontal padding for the filled/outlined pills; `compact` is for rows of three or more buttons. */
 const pad = (variant: Variant, compact?: boolean) => (variant === "link" ? "" : compact ? "px-5" : "px-7");
@@ -63,9 +63,10 @@ export function ButtonLink({
   className,
   children,
   href,
+  "aria-label": ariaLabel,
 }: CommonProps & { href: string }) {
   return (
-    <Link href={href} className={cn(base, variants[variant], pad(variant, compact), "no-underline", variant === "link" && "underline", className)}>
+    <Link href={href} aria-label={ariaLabel} className={cn(base, variants[variant], pad(variant, compact), "no-underline", variant === "link" && "underline", className)}>
       <Content icon={icon} cost={cost}>
         {children}
       </Content>

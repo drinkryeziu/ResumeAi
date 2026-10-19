@@ -1,3 +1,4 @@
+import { PenLine } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -17,6 +18,15 @@ const SKILL_GROUPS = [
   ["DOMAIN", "Industry knowledge"],
   ["SOFT", "Soft skills"],
 ] as const;
+
+/** Opens the editor at one section. The visible label stays "Edit"; the aria-label says which section. */
+function EditLink({ section, label }: { section: string; label: string }) {
+  return (
+    <ButtonLink href={`/profile/edit#${section}`} variant="secondary" compact icon={<PenLine size={16} aria-hidden="true" />} aria-label={label}>
+      Edit
+    </ButtonLink>
+  );
+}
 
 /** Read view of the Master Profile; editing happens at /profile/edit. */
 export default async function ProfilePage() {
@@ -45,7 +55,10 @@ export default async function ProfilePage() {
             </h2>
             <p className="text-card-title text-blue-600">{p.headline}</p>
             <p className="text-body-sm mt-ds-2">{[p.email, p.phone, locationOf(p)].filter(Boolean).join(" · ")}</p>
-            {p.summary && <p className="text-body mt-ds-4">{p.summary}</p>}
+          </Card>
+          <Card aria-labelledby="summary-h">
+            <CardHeader title={<span id="summary-h">Professional summary</span>} action={<EditLink section="summary" label="Edit professional summary" />} />
+            {p.summary ? <p className="text-body">{p.summary}</p> : <p className="text-body-sm">No summary yet. A short one makes a stronger resume.</p>}
           </Card>
           <Card>
             <CardHeader title="Work experience" />
@@ -71,7 +84,7 @@ export default async function ProfilePage() {
             </ol>
           </Card>
           <Card>
-            <CardHeader title="Skills" />
+            <CardHeader title="Skills" action={<EditLink section="skills" label="Edit skills" />} />
             <div className="flex flex-col gap-ds-3">
               {SKILL_GROUPS.map(([cat, title]) => {
                 const items = p.skills.filter((s) => s.category === cat);

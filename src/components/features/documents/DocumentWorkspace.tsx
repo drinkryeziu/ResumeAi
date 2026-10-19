@@ -4,10 +4,12 @@ import { Download, Eye, FileText, Mail, Package, PenLine } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonAnchor } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import type { CoverLetterRecord, ResumeRecord } from "@/server/store/types";
 import { restoreVersion } from "@/app/(app)/jobs/actions";
+import { coverLetterPlainText, resumePlainText } from "@/server/documents/plain-text";
+import { CopyTextButton } from "./CopyTextButton";
 import { CoverLetterEditor, ResumeEditor } from "./DocumentEditors";
 import { CoverLetterPreview, ResumePreview } from "./ResumePreview";
 
@@ -85,24 +87,31 @@ export function DocumentWorkspace({
       <div className="grid gap-ds-4 lg:grid-cols-[1fr_320px]">
         <div className="flex flex-col gap-ds-3">
           {active && (
-            <div className="flex flex-wrap items-center gap-x-ds-5 gap-y-ds-2 text-body-sm" aria-label="Document actions">
-              <Link href={here(tab)} aria-current={!editing ? "page" : undefined} className={cn("inline-flex items-center gap-1", !editing ? "font-bold text-navy-900 no-underline" : "text-blue-700 underline")}>
-                <Eye size={16} aria-hidden="true" /> Preview
-              </Link>
-              <Link href={here(tab, true)} aria-current={editing ? "page" : undefined} className={cn("inline-flex items-center gap-1", editing ? "font-bold text-navy-900 no-underline" : "text-blue-700 underline")}>
-                <PenLine size={16} aria-hidden="true" /> Edit
-              </Link>
-              <span className="inline-flex items-center gap-1">
-                <Download size={16} aria-hidden="true" className="text-blue-600" /> Download:
-                <a href={download(tab, "pdf")} className="text-blue-700 underline">
-                  PDF
-                </a>
-                ·
-                <a href={download(tab, "docx")} className="text-blue-700 underline">
-                  Word (.docx)
-                </a>
-              </span>
-            </div>
+            <>
+              <Card aria-labelledby="download-apply-h" className="flex flex-col gap-ds-3">
+                <h2 id="download-apply-h" className="text-card-title">
+                  Download and apply
+                </h2>
+                <div className="flex flex-wrap items-center gap-ds-3">
+                  <ButtonAnchor href={download(tab, "pdf")} variant="secondary" compact icon={<Download size={16} aria-hidden="true" />}>
+                    Download PDF
+                  </ButtonAnchor>
+                  <ButtonAnchor href={download(tab, "docx")} variant="secondary" compact icon={<Download size={16} aria-hidden="true" />}>
+                    Download Word
+                  </ButtonAnchor>
+                  <CopyTextButton text={tab === "resume" ? resumePlainText(resumeV!.content) : coverLetterPlainText(letterV!.content)} />
+                </div>
+                <p className="text-caption">Paste the text into an application form, or attach the file. You apply yourself; we never submit for you.</p>
+              </Card>
+              <div className="flex flex-wrap items-center gap-x-ds-5 gap-y-ds-2 text-body-sm" aria-label="Document actions">
+                <Link href={here(tab)} aria-current={!editing ? "page" : undefined} className={cn("inline-flex items-center gap-1", !editing ? "font-bold text-navy-900 no-underline" : "text-blue-700 underline")}>
+                  <Eye size={16} aria-hidden="true" /> Preview
+                </Link>
+                <Link href={here(tab, true)} aria-current={editing ? "page" : undefined} className={cn("inline-flex items-center gap-1", editing ? "font-bold text-navy-900 no-underline" : "text-blue-700 underline")}>
+                  <PenLine size={16} aria-hidden="true" /> Edit
+                </Link>
+              </div>
+            </>
           )}
 
           {tab === "resume" &&

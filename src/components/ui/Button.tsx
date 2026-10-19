@@ -16,13 +16,16 @@ const base =
 
 const variants: Record<Variant, string> = {
   primary:
-    "text-button px-7 py-ds-3 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400",
+    "text-button py-ds-3 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400",
   secondary:
-    "text-button px-7 py-ds-3 bg-white text-blue-600 shadow-[inset_0_0_0_2px_var(--blue-600)] hover:text-blue-700 hover:shadow-[inset_0_0_0_2px_var(--blue-700)] disabled:shadow-none disabled:bg-gray-100 disabled:text-gray-400",
+    "text-button py-ds-3 bg-white text-blue-600 shadow-[inset_0_0_0_2px_var(--blue-600)] hover:text-blue-700 hover:shadow-[inset_0_0_0_2px_var(--blue-700)] disabled:shadow-none disabled:bg-gray-100 disabled:text-gray-400",
   link: "text-body-sm text-blue-700 underline px-0 py-0",
 };
 
-type CommonProps = { variant?: Variant; cost?: number; icon?: ReactNode; className?: string; children: ReactNode };
+type CommonProps = { variant?: Variant; cost?: number; icon?: ReactNode; compact?: boolean; className?: string; children: ReactNode };
+
+/** Horizontal padding for the filled/outlined pills; `compact` is for rows of three or more buttons. */
+const pad = (variant: Variant, compact?: boolean) => (variant === "link" ? "" : compact ? "px-5" : "px-7");
 
 function Content({ icon, children, cost }: Pick<CommonProps, "icon" | "children" | "cost">) {
   return (
@@ -38,12 +41,13 @@ export function Button({
   variant = "primary",
   cost,
   icon,
+  compact,
   className,
   children,
   ...rest
 }: CommonProps & Omit<ComponentProps<"button">, "children">) {
   return (
-    <button className={cn(base, variants[variant], className)} {...rest}>
+    <button className={cn(base, variants[variant], pad(variant, compact), className)} {...rest}>
       <Content icon={icon} cost={cost}>
         {children}
       </Content>
@@ -55,16 +59,33 @@ export function ButtonLink({
   variant = "primary",
   cost,
   icon,
+  compact,
   className,
   children,
   href,
 }: CommonProps & { href: string }) {
   return (
-    <Link href={href} className={cn(base, variants[variant], "no-underline", variant === "link" && "underline", className)}>
+    <Link href={href} className={cn(base, variants[variant], pad(variant, compact), "no-underline", variant === "link" && "underline", className)}>
       <Content icon={icon} cost={cost}>
         {children}
       </Content>
     </Link>
+  );
+}
+
+/** A plain <a> that looks like a button — for file downloads, which must not go through client-side routing. */
+export function ButtonAnchor({
+  variant = "primary",
+  icon,
+  compact,
+  className,
+  children,
+  href,
+}: Omit<CommonProps, "cost"> & { href: string }) {
+  return (
+    <a href={href} className={cn(base, variants[variant], pad(variant, compact), "no-underline", className)}>
+      <Content icon={icon}>{children}</Content>
+    </a>
   );
 }
 

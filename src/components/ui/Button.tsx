@@ -82,9 +82,10 @@ export function ButtonAnchor({
   className,
   children,
   href,
+  "aria-label": ariaLabel,
 }: Omit<CommonProps, "cost"> & { href: string }) {
   return (
-    <a href={href} className={cn(base, variants[variant], pad(variant, compact), "no-underline", className)}>
+    <a href={href} aria-label={ariaLabel} className={cn(base, variants[variant], pad(variant, compact), "no-underline", className)}>
       <Content icon={icon}>{children}</Content>
     </a>
   );

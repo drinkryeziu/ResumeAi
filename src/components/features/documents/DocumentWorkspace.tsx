@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { Button, ButtonAnchor, ButtonLink } from "@/components/ui/Button";
+import { PdfIcon, WordIcon } from "@/components/ui/FileIcons";
 import { Card, CardHeader } from "@/components/ui/Card";
 import type { CoverLetterRecord, ResumeRecord } from "@/server/store/types";
 import { restoreVersion } from "@/app/(app)/jobs/actions";
@@ -114,11 +115,12 @@ export function DocumentWorkspace({
             <div className="flex flex-col gap-ds-2">
               <div className="flex flex-wrap items-center justify-between gap-ds-3" aria-label="Download and edit">
                 <div className="flex flex-wrap items-center gap-ds-3">
-                  <ButtonAnchor href={download(tab, "pdf")} variant="secondary" compact icon={<Download size={16} aria-hidden="true" />}>
-                    Download PDF
+                  <span className="text-label-bold">Download</span>
+                  <ButtonAnchor href={download(tab, "pdf")} compact aria-label="Download PDF" icon={<PdfIcon />}>
+                    PDF
                   </ButtonAnchor>
-                  <ButtonAnchor href={download(tab, "docx")} variant="secondary" compact icon={<Download size={16} aria-hidden="true" />}>
-                    Download Word
+                  <ButtonAnchor href={download(tab, "docx")} compact aria-label="Download Word" icon={<WordIcon />}>
+                    Word
                   </ButtonAnchor>
                   <CopyTextButton text={tab === "resume" ? resumePlainText(resumeV!.content) : coverLetterPlainText(letterV!.content)} />
                 </div>

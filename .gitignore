@@ -12,3 +12,8 @@ coverage/
 *.env
 *credentials*
 .claude/
+
+# Personal documents dropped into the project folder (resumes, CVs) must never be committed
+/*.docx
+/*.doc
+/*.pdf

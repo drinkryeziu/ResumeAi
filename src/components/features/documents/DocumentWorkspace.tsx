@@ -31,7 +31,6 @@ export function DocumentWorkspace({
   letter,
   resumeSide,
   letterSide,
-  saved,
   fresh,
 }: {
   target: string;
@@ -42,7 +41,6 @@ export function DocumentWorkspace({
   letter: CoverLetterRecord | null;
   resumeSide?: ReactNode;
   letterSide?: ReactNode;
-  saved?: boolean;
   /** Just created: keep `?new=1` on the document links so the step progress on the page stays while switching tabs. */
   fresh?: boolean;
 }) {
@@ -88,12 +86,6 @@ export function DocumentWorkspace({
           </a>
         )}
       </div>
-
-      {saved && (
-        <p role="status" className="rounded-md bg-sky-50 p-ds-3 text-body-sm text-success">
-          Saved as a new version. Earlier versions are kept below.
-        </p>
-      )}
 
       <div className="grid gap-ds-4 lg:grid-cols-[1fr_320px]">
         <div className="flex flex-col gap-ds-3">

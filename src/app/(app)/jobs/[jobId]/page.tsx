@@ -23,7 +23,7 @@ export default async function JobApplicationPage({
   searchParams,
 }: {
   params: Promise<{ jobId: string }>;
-  searchParams: Promise<{ doc?: string; mode?: string; saved?: string; new?: string }>;
+  searchParams: Promise<{ doc?: string; mode?: string; new?: string }>;
 }) {
   const [{ jobId }, sp] = await Promise.all([params, searchParams]);
   const { user } = await requireProfile();
@@ -162,7 +162,6 @@ export default async function JobApplicationPage({
         letter={p.letter}
         resumeSide={resumeSide}
         letterSide={letterSide}
-        saved={sp.saved === "1"}
         fresh={fresh}
       />
       <SoftPanel className="mt-ds-5 flex flex-wrap items-center justify-between gap-ds-4">

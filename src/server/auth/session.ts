@@ -18,6 +18,17 @@ export async function requireUser(): Promise<{ id: string; firstName: string; em
   return { id, email: user.email, firstName: profile?.firstName || user.name.split(" ")[0] || "there" };
 }
 
+/**
+ * For public pages (landing, sign-in, sign-up): the signed-in person's id, but only if that account still exists.
+ * A login cookie can outlive its account (deleted on another device, or the server's data was reset); trusting it
+ * would bounce between "/dashboard" and "/sign-in" forever.
+ */
+export async function signedInUserId(): Promise<string | null> {
+  const id = (await auth())?.user?.id;
+  if (!id) return null;
+  return (await (await getStore()).getUser(id)) ? id : null;
+}
+
 /** First-time users must create their professional profile before anything else. */
 export async function requireProfile() {
   const user = await requireUser();

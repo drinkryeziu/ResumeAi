@@ -5,7 +5,7 @@ import { PublicHeader } from "@/components/layout/PublicHeader";
 import { ResumeShowcase } from "@/components/features/marketing/ResumeShowcase";
 import { ButtonLink } from "@/components/ui/Button";
 import { FeatureItem } from "@/components/ui/FeatureItem";
-import { auth } from "@/server/auth/config";
+import { signedInUserId } from "@/server/auth/session";
 import { DEFAULT_PLANS } from "@/server/billing/catalog";
 
 export const metadata = { title: "ResumeAi — Tailor your resume to every job" };
@@ -19,7 +19,7 @@ const STEPS = [
 ];
 
 export default async function LandingPage({ searchParams }: { searchParams: Promise<{ "account-deleted"?: string }> }) {
-  if ((await auth())?.user?.id) redirect("/dashboard");
+  if (await signedInUserId()) redirect("/dashboard");
   const money = (c: number) => (c === 0 ? "Free" : `$${(c / 100).toFixed(2)}`);
 
   return (

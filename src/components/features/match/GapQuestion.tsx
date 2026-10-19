@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Check, CircleHelp } from "lucide-react";
 import { answerQuestion } from "@/app/(app)/jobs/actions";
+import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Field";
 import { FormMessage } from "@/components/features/job-flow/ActionForm";
@@ -30,6 +31,7 @@ export function GapQuestion({
   const [detail, setDetail] = useState("");
   const [state, action, pending] = useActionState(answerQuestion, undefined);
   const detailRef = useRef<HTMLTextAreaElement>(null);
+  const toast = useToast();
   const saidYes = answered === "yes" || (Boolean(state?.ok) && choice === "yes");
   const saidNo = answered === "no" || (Boolean(state?.ok) && choice !== "yes");
   const done = saidYes || saidNo;
@@ -39,6 +41,12 @@ export function GapQuestion({
   useEffect(() => {
     if (choice === "yes") detailRef.current?.focus();
   }, [choice]);
+
+  // The inline "You said yes / no" stays; this adds the short confirmation.
+  useEffect(() => {
+    if (state?.ok) toast(state.ok);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.ok]);
 
   if (choice === "skip" && !done) {
     return (

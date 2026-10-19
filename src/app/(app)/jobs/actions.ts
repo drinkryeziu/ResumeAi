@@ -9,6 +9,7 @@ import { AIProviderError } from "@/server/ai/providers/types";
 import { requireUser } from "@/server/auth/session";
 import { InsufficientCreditsError } from "@/server/credits/types";
 import { extractText, UploadError } from "@/server/documents/extract-text";
+import { notice } from "@/lib/notices";
 import { overLimit, RULES } from "@/server/security/rate-limit";
 import * as pipeline from "@/server/services/job-pipeline";
 import { getStore } from "@/server/store";
@@ -63,7 +64,7 @@ export async function analyzeNewJob(_: ActionState, fd: FormData): Promise<Actio
   } catch (e) {
     return toState(e);
   }
-  redirect(`/jobs/${jobId}/match`);
+  redirect(`/jobs/${jobId}/match?notice=${notice("job-analyzed")}`);
 }
 
 async function step(fd: FormData, run: (jobId: string, rid: string) => Promise<unknown>, next: (jobId: string) => string): Promise<ActionState> {
@@ -87,7 +88,7 @@ export async function createApplication(_: ActionState, fd: FormData) {
   return step(
     fd,
     (jobId, rid) => pipeline.createApplication(store, id, jobId, rid, ToneField.parse(fd.get("tone"))),
-    (j) => `/jobs/${j}?new=1`,
+    (j) => `/jobs/${j}?new=1&notice=${notice("application-created")}`,
   );
 }
 
@@ -97,7 +98,7 @@ export async function recheckMatch(_: ActionState, fd: FormData) {
   return step(
     fd,
     (jobId, rid) => pipeline.checkMatch(store, id, jobId, rid),
-    (j) => `/jobs/${j}/match`,
+    (j) => `/jobs/${j}/match?notice=${notice("match-updated")}`,
   );
 }
 
@@ -108,7 +109,7 @@ export async function improveResume(_: ActionState, fd: FormData) {
   return step(
     fd,
     (jobId, rid) => pipeline.optimizeResume(store, id, jobId, rid, notes.length ? notes : undefined),
-    (j) => `/jobs/${j}?doc=resume`,
+    (j) => `/jobs/${j}?doc=resume&notice=${notice("resume-improved")}`,
   );
 }
 
@@ -118,7 +119,7 @@ export async function runAtsCheck(_: ActionState, fd: FormData) {
   return step(
     fd,
     (jobId, rid) => pipeline.runAtsCheck(store, id, jobId, rid),
-    (j) => `/jobs/${j}?doc=resume#ats`,
+    (j) => `/jobs/${j}?doc=resume&notice=${notice("ats-checked")}#ats`,
   );
 }
 
@@ -132,7 +133,7 @@ export async function rewriteCoverLetter(_: ActionState, fd: FormData) {
   return step(
     fd,
     (jobId, rid) => pipeline.writeCoverLetter(store, id, jobId, rid, parsed.data.tone, parsed.data.mode),
-    (j) => `/jobs/${j}?doc=cover-letter`,
+    (j) => `/jobs/${j}?doc=cover-letter&notice=${notice("letter-rewritten")}`,
   );
 }
 
@@ -191,7 +192,7 @@ export async function saveResumeEdits(_: ActionState, fd: FormData): Promise<Act
     return toState(e);
   }
   revalidatePath(pathOf(jobId));
-  redirect(`${pathOf(jobId)}?doc=resume&saved=1`);
+  redirect(`${pathOf(jobId)}?doc=resume&notice=${notice("version-saved")}`);
 }
 
 const LetterEdit = z.object({
@@ -219,7 +220,7 @@ export async function saveCoverLetterEdits(_: ActionState, fd: FormData): Promis
     return toState(e);
   }
   revalidatePath(pathOf(jobId));
-  redirect(`${pathOf(jobId)}?doc=cover-letter&saved=1`);
+  redirect(`${pathOf(jobId)}?doc=cover-letter&notice=${notice("version-saved")}`);
 }
 
 export async function restoreVersion(fd: FormData) {
@@ -227,6 +228,7 @@ export async function restoreVersion(fd: FormData) {
   const jobId = targetOf(fd);
   await (await getStore()).restoreResumeVersion(id, String(fd.get("resumeId")), String(fd.get("versionId")));
   revalidatePath(pathOf(jobId));
+  redirect(`${pathOf(jobId)}?doc=resume&notice=${notice("version-restored")}`);
 }
 
 /** The dashboard's "X" on an application, after the user confirms. Already deleted (or not theirs) just refreshes the list. */
@@ -240,6 +242,7 @@ export async function deleteApplication(fd: FormData) {
   }
   revalidatePath("/dashboard");
   revalidatePath("/jobs");
+  redirect(`/dashboard?notice=${notice("application-deleted")}`);
 }
 
 export async function regenerateMasterDocuments(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -251,5 +254,5 @@ export async function regenerateMasterDocuments(_: ActionState, fd: FormData): P
     return toState(e);
   }
   revalidatePath("/master");
-  redirect("/master?regenerated=1");
+  redirect(`/master?notice=${notice("masters-updated")}`);
 }

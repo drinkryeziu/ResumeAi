@@ -11,7 +11,7 @@ import { ProfileInputSchema } from "@/server/domain/profile-schema";
 import { generateMasterDocuments } from "@/server/services/job-pipeline";
 import { getStore } from "@/server/store";
 
-export type ProfileState = { error?: string } | undefined;
+export type ProfileState = { error?: string; saved?: boolean; updatedDocuments?: boolean } | undefined;
 
 /**
  * Saves the Master Profile. On first save — or when the user asks — it then (re)generates the
@@ -44,7 +44,9 @@ export async function saveProfile(_: ProfileState, fd: FormData): Promise<Profil
     }
   }
   revalidatePath("/", "layout");
-  redirect(firstTime ? "/onboarding/done" : "/profile?saved=1");
+  if (firstTime) redirect("/onboarding/done");
+  // The editor confirms with a dialog and then sends the user to the dashboard itself.
+  return { saved: true, updatedDocuments: fd.get("regenerate") === "on" };
 }
 
 const RETURN_TO = { onboarding: "/onboarding", edit: "/profile/edit" } as const;
@@ -65,7 +67,11 @@ export async function importCv(_: ProfileState, fd: FormData): Promise<ProfileSt
   const store = await getStore();
   try {
     const text = await extractText(file);
-    const { output } = await runWorkflow(resumeParser, { text }, { userId: user.id, requestId: String(fd.get("requestId") || crypto.randomUUID()), credits: store.credits, runs: store.aiRuns });
+    const { output } = await runWorkflow(
+      resumeParser,
+      { text },
+      { userId: user.id, requestId: String(fd.get("requestId") || crypto.randomUUID()), credits: store.credits, runs: store.aiRuns },
+    );
     if (!output.experiences.length && !output.education.length && !output.skills.length) {
       return { error: "We couldn't find jobs, education or skills in that file. Check it's your CV, or fill in the form below." };
     }

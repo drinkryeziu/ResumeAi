@@ -4,10 +4,11 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod/v4";
 import { TONES, WorkflowOutputError } from "@/server/ai";
-import { AIProviderError } from "@/server/ai/providers/types";
+import { AINotConfiguredError, AIProviderError } from "@/server/ai/providers/types";
 import { requireUser } from "@/server/auth/session";
 import { InsufficientCreditsError } from "@/server/credits/types";
 import { extractText, UploadError } from "@/server/documents/extract-text";
+import { overLimit, RULES } from "@/server/security/rate-limit";
 import * as pipeline from "@/server/services/job-pipeline";
 import { getStore } from "@/server/store";
 
@@ -17,10 +18,15 @@ export type ActionState = { error?: string; needCredits?: boolean; ok?: string }
 function toState(err: unknown): ActionState {
   if (err instanceof InsufficientCreditsError) return { error: err.message, needCredits: true };
   if (err instanceof pipeline.PipelineError || err instanceof WorkflowOutputError || err instanceof UploadError) return { error: err.message };
+  if (err instanceof AINotConfiguredError) return { error: "AI writing isn't switched on for this site yet. Nothing was charged. The site owner needs to add the AI key." };
   if (err instanceof AIProviderError) return { error: "The AI service is busy right now. Your credits were refunded — please try again in a minute." };
   console.error("[jobs/actions]", err);
   return { error: "Something went wrong. Any credits used were refunded." };
 }
+
+/** AI actions cost real money; credits limit them, this stops a runaway loop. */
+const TOO_FAST: ActionState = { error: "You're going fast. Please wait a few minutes before the next AI action." };
+const tooFast = async (userId: string) => overLimit(await getStore(), RULES.aiUser, userId);
 
 const requestId = (fd: FormData) => String(fd.get("requestId") || crypto.randomUUID());
 /** "master" addresses the Master Resume / Cover Letter (jobId null). */
@@ -41,6 +47,7 @@ const JobFields = z.object({
 /** Step 1 → 2: save the job (pasted or uploaded), then Analyze Job = analysis + match. */
 export async function analyzeNewJob(_: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireUser();
+  if (await tooFast(user.id)) return TOO_FAST;
   const parsed = JobFields.safeParse({ ...Object.fromEntries(fd), file: undefined });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
   const store = await getStore();
@@ -61,6 +68,7 @@ export async function analyzeNewJob(_: ActionState, fd: FormData): Promise<Actio
 
 async function step(fd: FormData, run: (jobId: string, rid: string) => Promise<unknown>, next: (jobId: string) => string): Promise<ActionState> {
   const jobId = z.string().min(1).parse(fd.get("jobId"));
+  if (await tooFast((await requireUser()).id)) return TOO_FAST;
   try {
     await run(jobId, requestId(fd));
   } catch (e) {
@@ -76,26 +84,42 @@ const ToneField = z.enum(TONES).catch("PROFESSIONAL");
 export async function createApplication(_: ActionState, fd: FormData) {
   const { id } = await requireUser();
   const store = await getStore();
-  return step(fd, (jobId, rid) => pipeline.createApplication(store, id, jobId, rid, ToneField.parse(fd.get("tone"))), (j) => `/jobs/${j}?new=1`);
+  return step(
+    fd,
+    (jobId, rid) => pipeline.createApplication(store, id, jobId, rid, ToneField.parse(fd.get("tone"))),
+    (j) => `/jobs/${j}?new=1`,
+  );
 }
 
 export async function recheckMatch(_: ActionState, fd: FormData) {
   const { id } = await requireUser();
   const store = await getStore();
-  return step(fd, (jobId, rid) => pipeline.checkMatch(store, id, jobId, rid), (j) => `/jobs/${j}/match`);
+  return step(
+    fd,
+    (jobId, rid) => pipeline.checkMatch(store, id, jobId, rid),
+    (j) => `/jobs/${j}/match`,
+  );
 }
 
 export async function improveResume(_: ActionState, fd: FormData) {
   const { id } = await requireUser();
   const store = await getStore();
   const notes = fd.getAll("improve").map(String).filter(Boolean);
-  return step(fd, (jobId, rid) => pipeline.optimizeResume(store, id, jobId, rid, notes.length ? notes : undefined), (j) => `/jobs/${j}?doc=resume`);
+  return step(
+    fd,
+    (jobId, rid) => pipeline.optimizeResume(store, id, jobId, rid, notes.length ? notes : undefined),
+    (j) => `/jobs/${j}?doc=resume`,
+  );
 }
 
 export async function runAtsCheck(_: ActionState, fd: FormData) {
   const { id } = await requireUser();
   const store = await getStore();
-  return step(fd, (jobId, rid) => pipeline.runAtsCheck(store, id, jobId, rid), (j) => `/jobs/${j}?doc=resume#ats`);
+  return step(
+    fd,
+    (jobId, rid) => pipeline.runAtsCheck(store, id, jobId, rid),
+    (j) => `/jobs/${j}?doc=resume#ats`,
+  );
 }
 
 const LetterInput = z.object({ tone: z.enum(TONES), mode: z.enum(["generate", "shorten", "expand", "retone"]) });
@@ -105,7 +129,11 @@ export async function rewriteCoverLetter(_: ActionState, fd: FormData) {
   const store = await getStore();
   const parsed = LetterInput.safeParse({ tone: fd.get("tone"), mode: fd.get("mode") });
   if (!parsed.success) return { error: "Choose a tone." };
-  return step(fd, (jobId, rid) => pipeline.writeCoverLetter(store, id, jobId, rid, parsed.data.tone, parsed.data.mode), (j) => `/jobs/${j}?doc=cover-letter`);
+  return step(
+    fd,
+    (jobId, rid) => pipeline.writeCoverLetter(store, id, jobId, rid, parsed.data.tone, parsed.data.mode),
+    (j) => `/jobs/${j}?doc=cover-letter`,
+  );
 }
 
 const Answer = z.object({ topic: z.string().min(1), question: z.string().min(1), answer: z.enum(["yes", "no"]), detail: z.string().max(600).optional() });
@@ -126,12 +154,28 @@ export async function answerQuestion(_: ActionState, fd: FormData): Promise<Acti
 
 // ───────────── Editing (jobs and Master documents) ─────────────
 
-const lines = z.string().max(20_000).transform((s) => s.split("\n").map((x) => x.trim()).filter(Boolean));
+const lines = z
+  .string()
+  .max(20_000)
+  .transform((s) =>
+    s
+      .split("\n")
+      .map((x) => x.trim())
+      .filter(Boolean),
+  );
 
 const ResumeEdit = z.object({
   headline: z.string().trim().min(1).max(160),
   summary: z.string().trim().max(3000),
-  skills: z.string().max(3000).transform((s) => s.split(",").map((x) => x.trim()).filter(Boolean)),
+  skills: z
+    .string()
+    .max(3000)
+    .transform((s) =>
+      s
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean),
+    ),
 });
 
 export async function saveResumeEdits(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -152,7 +196,15 @@ export async function saveResumeEdits(_: ActionState, fd: FormData): Promise<Act
 
 const LetterEdit = z.object({
   greeting: z.string().trim().min(1).max(200),
-  body: z.string().max(10_000).transform((s) => s.split(/\n\s*\n/).map((p) => p.replace(/\s*\n\s*/g, " ").trim()).filter(Boolean)),
+  body: z
+    .string()
+    .max(10_000)
+    .transform((s) =>
+      s
+        .split(/\n\s*\n/)
+        .map((p) => p.replace(/\s*\n\s*/g, " ").trim())
+        .filter(Boolean),
+    ),
   closing: z.string().trim().min(1).max(100),
 });
 
@@ -192,6 +244,7 @@ export async function deleteApplication(fd: FormData) {
 
 export async function regenerateMasterDocuments(_: ActionState, fd: FormData): Promise<ActionState> {
   const { id } = await requireUser();
+  if (await tooFast(id)) return TOO_FAST;
   try {
     await pipeline.generateMasterDocuments(await getStore(), id, requestId(fd));
   } catch (e) {

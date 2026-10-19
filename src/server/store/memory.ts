@@ -14,6 +14,7 @@ export class MemoryAppStore implements AppStore {
   credits = new CreditService(this.creditStore);
 
   private users: UserRecord[] = [];
+  private hits = new Map<string, { count: number; expiresAt: number }>();
   private resets = new Map<string, { userId: string; createdAt: Date; expiresAt: Date; usedAt: Date | null }>();
   private cvImports = new Map<string, CvImport>();
   private profiles = new Map<string, ProfileSnapshot>();
@@ -56,6 +57,22 @@ export class MemoryAppStore implements AppStore {
     return this.users.find((x) => x.id === userId) ?? null;
   }
 
+  async deleteAccount(userId: string) {
+    const jobIds = new Set(this.jobs.filter((j) => j.userId === userId).map((j) => j.id));
+    this.jobs = this.jobs.filter((j) => j.userId !== userId);
+    this.analyses = this.analyses.filter((a) => !jobIds.has(a.jobId));
+    this.matches = this.matches.filter((m) => !jobIds.has(m.jobId));
+    this.atsReports = this.atsReports.filter((r) => !jobIds.has(r.jobId));
+    this.resumes = this.resumes.filter((r) => r.userId !== userId);
+    this.letters = this.letters.filter((l) => l.userId !== userId);
+    this.runs = this.runs.filter((r) => r.userId !== userId);
+    this.profiles.delete(userId);
+    this.cvImports.delete(userId);
+    for (const [k, v] of this.resets) if (v.userId === userId) this.resets.delete(k);
+    this.users = this.users.filter((u) => u.id !== userId);
+    await this.creditStore.deleteForUser(userId);
+  }
+
   async createPasswordReset(userId: string, tokenHash: string, createdAt: Date, expiresAt: Date) {
     for (const [k, v] of this.resets) if (v.userId === userId) this.resets.delete(k);
     this.resets.set(tokenHash, { userId, createdAt, expiresAt, usedAt: null });
@@ -72,6 +89,15 @@ export class MemoryAppStore implements AppStore {
     if (!r || r.usedAt || r.expiresAt <= now) return null;
     r.usedAt = now; // synchronous: two requests can't both pass the check above
     return { userId: r.userId };
+  }
+  async hitRateLimit(key: string, windowMs: number, now: Date) {
+    const bucket = Math.floor(+now / windowMs);
+    const id = `${key}:${bucket}`;
+    const h = this.hits.get(id) ?? { count: 0, expiresAt: (bucket + 1) * windowMs };
+    h.count += 1;
+    this.hits.set(id, h);
+    if (this.hits.size > 5000) for (const [k, v] of this.hits) if (v.expiresAt < +now) this.hits.delete(k);
+    return h.count;
   }
   async setPasswordHash(userId: string, passwordHash: string) {
     const u = this.users.find((x) => x.id === userId);

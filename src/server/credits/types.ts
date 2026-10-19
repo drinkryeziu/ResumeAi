@@ -38,6 +38,8 @@ export interface CreditStore {
   findByIdempotencyKey(key: string): Promise<LedgerEntry | null>;
   link(entryId: string, link: { aiRunId?: string; documentId?: string }): Promise<void>;
   history(userId: string, limit: number): Promise<LedgerEntry[]>;
+  /** Account deletion: removes this user's balance and every ledger entry. (The ledger is append-only for everything else.) */
+  deleteForUser(userId: string): Promise<void>;
 }
 
 export class InsufficientCreditsError extends Error {

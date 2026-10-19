@@ -1,8 +1,9 @@
-import NextAuth, { type NextAuthConfig } from "next-auth";
+import NextAuth, { CredentialsSignin, type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import LinkedIn from "next-auth/providers/linkedin";
 import { z } from "zod/v4";
+import { ipFrom, overLimit, RULES } from "@/server/security/rate-limit";
 import { getStore } from "@/server/store";
 import { verifyPassword } from "./password";
 import { onboardUser } from "./accounts";
@@ -13,6 +14,11 @@ import { onboardUser } from "./accounts";
  * - Google / LinkedIn: enabled automatically when their client id + secret are set.
  * Sessions are signed, httpOnly JWT cookies, so no session table is needed.
  */
+
+/** Too many password tries from this address or against this account. The sign-in form shows a "wait a few minutes" message. */
+export class RateLimitedSignIn extends CredentialsSignin {
+  code = "rate_limited";
+}
 
 const Login = z.object({ email: z.email(), password: z.string().min(1) });
 
@@ -33,10 +39,13 @@ const config: NextAuthConfig = {
   providers: [
     Credentials({
       credentials: { email: {}, password: {} },
-      async authorize(raw) {
+      async authorize(raw, request) {
         const parsed = Login.safeParse(raw);
         if (!parsed.success) return null;
         const store = await getStore();
+        // Counted here, not in the form's action, so the Auth.js endpoint itself can't be hammered either.
+        const [byIp, byEmail] = await Promise.all([overLimit(store, RULES.signInIp, ipFrom(request.headers)), overLimit(store, RULES.signInEmail, parsed.data.email)]);
+        if (byIp || byEmail) throw new RateLimitedSignIn();
         const user = await store.findUserByEmail(parsed.data.email);
         if (!user || !(await verifyPassword(parsed.data.password, user.passwordHash))) return null;
         return { id: user.id, email: user.email, name: user.name };

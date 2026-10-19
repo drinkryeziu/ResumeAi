@@ -8,6 +8,7 @@ import { signIn, signOut } from "@/server/auth/config";
 import { hashPassword } from "@/server/auth/password";
 import { completePasswordReset, requestPasswordReset } from "@/server/auth/password-reset";
 import { siteUrl } from "@/server/auth/site-url";
+import { ipOverLimit, RULES, TOO_MANY } from "@/server/security/rate-limit";
 import { sendEmail } from "@/server/email/send";
 import { getStore } from "@/server/store";
 
@@ -31,7 +32,7 @@ export async function signInWithPassword(_: AuthState, fd: FormData): Promise<Au
   try {
     await signIn("credentials", { email: fd.get("email"), password: fd.get("password"), redirectTo: "/dashboard" });
   } catch (e) {
-    if (e instanceof AuthError) return { error: "That email and password don't match an account." };
+    if (e instanceof AuthError) return { error: (e as { code?: string }).code === "rate_limited" ? TOO_MANY : "That email and password don't match an account." };
     throw e; // Next.js redirect
   }
 }
@@ -48,6 +49,7 @@ const SignUp = z
 export async function signUpWithPassword(_: AuthState, fd: FormData): Promise<AuthState> {
   const missing = notSetUp(); // before creating anything: a half-made account is worse than a clear message
   if (missing) return missing;
+  if (await ipOverLimit(RULES.signUpIp)) return { error: TOO_MANY };
   const parsed = SignUp.safeParse(Object.fromEntries(fd));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
   const store = await getStore();
@@ -65,6 +67,7 @@ export async function signUpWithPassword(_: AuthState, fd: FormData): Promise<Au
 export async function requestPasswordResetAction(_: AuthState, fd: FormData): Promise<AuthState> {
   const parsed = z.object({ email: z.email("Enter a valid email address.") }).safeParse({ email: String(fd.get("email") ?? "").trim() });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+  if (await ipOverLimit(RULES.resetRequestIp)) return { error: TOO_MANY };
   await requestPasswordReset(await getStore(), parsed.data.email, await siteUrl(), sendEmail);
   return { sent: parsed.data.email };
 }
@@ -80,6 +83,7 @@ const NewPassword = z
 export async function resetPasswordAction(_: AuthState, fd: FormData): Promise<AuthState> {
   const parsed = NewPassword.safeParse(Object.fromEntries(fd));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+  if (await ipOverLimit(RULES.resetCompleteIp)) return { error: TOO_MANY };
   const ok = await completePasswordReset(await getStore(), parsed.data.token, parsed.data.password);
   if (!ok) return { error: "This link has expired or was already used. Ask for a new one." };
   redirect("/sign-in?reset=1");

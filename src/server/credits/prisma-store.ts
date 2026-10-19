@@ -17,6 +17,10 @@ export class PrismaCreditStore implements CreditStore {
     return this.db.creditAction.findMany({ where: { active: true }, orderBy: { credits: "desc" } });
   }
 
+  async deleteForUser(userId: string) {
+    await this.db.$transaction([this.db.creditLedger.deleteMany({ where: { userId } }), this.db.creditBalance.deleteMany({ where: { userId } })]);
+  }
+
   async getBalance(userId: string) {
     const row = await this.db.creditBalance.findUnique({ where: { userId } });
     return row?.balance ?? 0;

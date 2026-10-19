@@ -70,8 +70,10 @@ Atlas is always a replica set, which the credit ledger needs (it writes balance 
 | `MONGODB_URI` | yes | the connection string from step 1 |
 | `AUTH_SECRET` | yes | production refuses to start without it: `openssl rand -base64 32` |
 | `MONGODB_DB` | no | overrides the database name in the URI |
-| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | no | without a key the deterministic mock writer is used |
-| `AI_FORCE_MOCK` | no | `true` forces the mock even when keys are set |
+| `ANTHROPIC_API_KEY` | **yes, in production** | the AI that reads CVs and writes resumes and letters (each workflow's model is in `src/server/ai/routing.ts`). Locally, without a key the built-in sample writer is used. **In production a missing key switches AI actions off** (people see "AI writing isn't switched on for this site yet" and nothing is charged); `/api/health` says so |
+| `AI_ALLOW_MOCK` | no | `true` lets a production *preview* use the sample writer. Never set it on the real site |
+| `AI_FORCE_MOCK` | no | `true` forces the sample writer even when keys are set (tests) |
+| `CONTACT_EMAIL` | recommended | the address shown on the Privacy policy and Terms pages |
 | `ALLOW_MEMORY_STORE` | no | `true` lets a Vercel preview run on the temporary in-memory store (data is lost). Leave unset |
 | `AUTH_GOOGLE_ID/SECRET`, `AUTH_LINKEDIN_ID/SECRET` | no | enable social sign-in |
 | `RESEND_API_KEY`, `EMAIL_FROM` | for "Forgot password?" | send reset emails through [Resend](https://resend.com). `EMAIL_FROM` must be on a domain you verified there (e.g. `ResumeAi <hello@example.com>`); Resend's test sender only reaches your own address. Without a key people cannot reset a forgotten password; `/api/health` shows `"email": false` |

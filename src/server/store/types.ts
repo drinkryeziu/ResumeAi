@@ -105,12 +105,21 @@ export interface AppStore {
    * Password reset links. Only a hash of the token is stored. A user has at most one live link: creating a new one replaces the old.
    */
   createPasswordReset(userId: string, tokenHash: string, createdAt: Date, expiresAt: Date): Promise<void>;
+  /**
+   * Account deletion: removes the user and everything of theirs (profile, CV import, jobs and their reports, resumes and
+   * cover letters with all versions, credit history, AI run log, reset links). Nothing is kept. Idempotent.
+   */
+  deleteAccount(userId: string): Promise<void>;
+
   /** When the user's latest reset link was made (used to throttle requests), or null. */
   lastPasswordResetAt(userId: string): Promise<Date | null>;
   /** The user a link belongs to, if it is still valid (not used, not expired). Does not use it up. */
   findPasswordReset(tokenHash: string, now: Date): Promise<{ userId: string } | null>;
   /** Uses the link up, once: returns its user, or null if it is unknown, expired or already used. */
   consumePasswordReset(tokenHash: string, now: Date): Promise<{ userId: string } | null>;
+  /** Counts one hit for `key` in the current time window and returns how many hits the window has now. Windows expire by themselves. */
+  hitRateLimit(key: string, windowMs: number, now: Date): Promise<number>;
+
   /** Replaces the user's password hash. Returns false if the user doesn't exist. */
   setPasswordHash(userId: string, passwordHash: string): Promise<boolean>;
 

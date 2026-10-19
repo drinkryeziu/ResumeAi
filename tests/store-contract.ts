@@ -350,5 +350,62 @@ export function storeContract(label: string, open: () => Promise<{ store: AppSto
       expect((await store.getUser(u.id))!.passwordHash).toBe("new");
       expect(await store.setPasswordHash("usr_missing", "x")).toBe(false);
     });
+
+    it("counts rate-limit hits per key and time window", async () => {
+      const t = new Date("2026-05-01T10:00:00Z");
+      expect(await store.hitRateLimit("k", 60_000, t)).toBe(1);
+      expect(await store.hitRateLimit("k", 60_000, new Date(+t + 1000))).toBe(2);
+      expect(await store.hitRateLimit("other", 60_000, t)).toBe(1); // another key has its own count
+      expect(await store.hitRateLimit("k", 60_000, new Date(+t + 61_000))).toBe(1); // a new window starts again
+      const counts = await Promise.all(Array.from({ length: 8 }, () => store.hitRateLimit("burst", 60_000, t)));
+      expect([...counts].sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]); // every simultaneous hit is counted once
+    });
+
+    it("deletes an account with everything in it, and nothing of anyone else's", async () => {
+      const a = await user("gone@example.com");
+      const b = await user("stays@example.com");
+      const make = async (u: { id: string }, tag: string) => {
+        await pipeline.generateMasterDocuments(store, u.id, `seed-${tag}`);
+        const job = await pipeline.createJob(store, u.id, fixtures.TEST_JOB);
+        await pipeline.analyzeJob(store, u.id, job.id, `an-${tag}`);
+        await pipeline.createApplication(store, u.id, job.id, `app-${tag}`);
+        await store.setCvImport(u.id, { fileName: "cv.pdf", draft: {} as never, createdAt: new Date() });
+        await store.createPasswordReset(u.id, `hash-${tag}`, new Date(), new Date(Date.now() + 3_600_000));
+        return job;
+      };
+      const jobA = await make(a, "a");
+      const jobB = await make(b, "b");
+      const balanceB = await store.credits.balance(b.id);
+
+      await store.deleteAccount(a.id);
+
+      expect(await store.getUser(a.id)).toBeNull();
+      expect(await store.findUserByEmail("gone@example.com")).toBeNull();
+      expect(await store.findProfile(a.id)).toBeNull();
+      expect(await store.getCvImport(a.id)).toBeNull();
+      expect(await store.listJobs(a.id)).toEqual([]);
+      expect(await store.latestAnalysis(a.id, jobA.id)).toBeNull();
+      expect(await store.latestMatch(a.id, jobA.id)).toBeNull();
+      expect(await store.listResumes(a.id)).toEqual([]);
+      expect(await store.listCoverLetters(a.id)).toEqual([]);
+      expect(await store.credits.balance(a.id)).toBe(0);
+      expect(await store.credits.history(a.id, 100)).toEqual([]);
+      expect(await store.aiRuns.listForUser(a.id)).toEqual([]);
+      expect(await store.findPasswordReset("hash-a", new Date())).toBeNull();
+
+      // The other person is untouched.
+      expect(await store.getUser(b.id)).not.toBeNull();
+      expect(await store.findProfile(b.id)).not.toBeNull();
+      expect(await store.getJob(b.id, jobB.id)).not.toBeNull();
+      expect(await store.latestMatch(b.id, jobB.id)).not.toBeNull();
+      expect((await store.listResumes(b.id)).length).toBeGreaterThan(0);
+      expect(await store.credits.balance(b.id)).toBe(balanceB);
+      expect((await store.aiRuns.listForUser(b.id)).length).toBeGreaterThan(0);
+      expect(await store.findPasswordReset("hash-b", new Date())).not.toBeNull();
+
+      await expect(store.deleteAccount(a.id)).resolves.toBeUndefined(); // doing it twice is harmless
+      // The email can be used again for a brand-new account.
+      await expect(store.createUser({ email: "gone@example.com", name: "New", passwordHash: null })).resolves.toBeTruthy();
+    });
   });
 }

@@ -43,3 +43,11 @@ export class AIProviderError extends Error {
     this.name = "AIProviderError";
   }
 }
+
+/** The AI key is missing on a production site. Never retry; say so plainly instead of serving sample text as if it were real. */
+export class AINotConfiguredError extends AIProviderError {
+  constructor() {
+    super("AI writing is not set up on this site.", "anthropic", false);
+    this.name = "AINotConfiguredError";
+  }
+}

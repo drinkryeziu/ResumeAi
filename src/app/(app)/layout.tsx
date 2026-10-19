@@ -1,3 +1,4 @@
+import { LegalLinks } from "@/components/features/legal/LegalLinks";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { requireUser } from "@/server/auth/session";
 import { getStore } from "@/server/store";
@@ -15,6 +16,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <>
       <SiteHeader creditBalance={balance} name={name} email={user.email} setup={!profile} />
       <main className="mx-auto w-full max-w-[1120px] px-ds-4 py-ds-5 md:px-ds-5">{children}</main>
+      <footer className="mx-auto w-full max-w-[1120px] px-ds-4 pb-ds-5 text-caption md:px-ds-5">
+        <LegalLinks />
+      </footer>
     </>
   );
 }

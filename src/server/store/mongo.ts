@@ -33,6 +33,7 @@ export class MongoAppStore implements AppStore {
 
   private users: Collection<Doc>;
   private resets: Collection<Doc>;
+  private hits: Collection<Doc>;
   private profiles: Collection<Doc>;
   private cvImports: Collection<Doc>;
   private jobs: Collection<Doc>;
@@ -51,6 +52,7 @@ export class MongoAppStore implements AppStore {
     this.credits = new CreditService(this.creditStore);
     this.users = db.collection("users");
     this.resets = db.collection("password_resets");
+    this.hits = db.collection("rate_limits");
     this.profiles = db.collection("profiles");
     this.cvImports = db.collection("cv_imports");
     this.jobs = db.collection("jobs");
@@ -67,6 +69,7 @@ export class MongoAppStore implements AppStore {
     await Promise.all([
       this.users.createIndex({ email: 1 }, { unique: true }),
       this.resets.createIndex({ userId: 1 }),
+      this.hits.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }), // each counter disappears when its window is over
       this.resets.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 86_400 }), // used and expired links disappear a day after they stop working
       this.jobs.createIndex({ userId: 1, updatedAt: -1 }),
       this.analyses.createIndex({ userId: 1, jobId: 1, createdAt: -1 }),
@@ -115,6 +118,13 @@ export class MongoAppStore implements AppStore {
     return row<UserRecord>(await this.users.findOne({ _id: userId as never }));
   }
 
+  async deleteAccount(userId: string) {
+    await Promise.all([this.analyses, this.matches, this.atsReports, this.resumes, this.letters, this.jobs, this.runs, this.resets].map((c) => c.deleteMany({ userId })));
+    await Promise.all([this.profiles.deleteOne({ _id: userId as never }), this.cvImports.deleteOne({ _id: userId as never })]);
+    await this.creditStore.deleteForUser(userId);
+    await this.users.deleteOne({ _id: userId as never }); // last: if anything above failed, the account still exists and the user can try again
+  }
+
   async createPasswordReset(userId: string, tokenHash: string, createdAt: Date, expiresAt: Date) {
     await this.resets.deleteMany({ userId });
     await this.resets.insertOne({ _id: tokenHash as never, userId, createdAt, expiresAt, usedAt: null });
@@ -131,6 +141,19 @@ export class MongoAppStore implements AppStore {
     // One atomic update: only the first request finds it unused.
     const d = await this.resets.findOneAndUpdate({ _id: tokenHash as never, usedAt: null, expiresAt: { $gt: now } }, { $set: { usedAt: now } });
     return d ? { userId: d.userId as string } : null;
+  }
+  async hitRateLimit(key: string, windowMs: number, now: Date) {
+    const bucket = Math.floor(+now / windowMs);
+    const filter = { _id: `${key}:${bucket}` as never };
+    const update = { $inc: { count: 1 }, $setOnInsert: { expiresAt: new Date((bucket + 1) * windowMs) } };
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const d = await this.hits.findOneAndUpdate(filter, update, { upsert: true, returnDocument: "after" });
+        return (d?.count as number | undefined) ?? 1;
+      } catch (e) {
+        if (!isDuplicate(e) || attempt > 1) throw e; // two first hits at once: the other one created it, so just count again
+      }
+    }
   }
   async setPasswordHash(userId: string, passwordHash: string) {
     const r = await this.users.updateOne({ _id: userId as never }, { $set: { passwordHash } });

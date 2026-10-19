@@ -5,6 +5,7 @@ import { useActionState, useState, type FormEvent } from "react";
 import { useFormStatus } from "react-dom";
 import { requestPasswordResetAction, resetPasswordAction, signInWithPassword, signUpWithPassword, type AuthState } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/Button";
+import { LegalLinks } from "@/components/features/legal/LegalLinks";
 import { errorProps, Field, Input } from "@/components/ui/Field";
 
 function Submit({ label, pending: pendingLabel }: { label: string; pending: string }) {
@@ -110,6 +111,9 @@ export function SignUpForm() {
       <PasswordFields label="Password" pair={pair} confirmId="confirm-password" />
       <ErrorLine state={state} />
       <Submit label="Create account" pending="Creating your account…" />
+      <p className="text-caption text-center">
+        By creating an account you agree to the <LegalLinks />.
+      </p>
       <p className="text-body-sm text-center">
         Already have an account?{" "}
         <Link href="/sign-in" className="text-blue-700 underline">

@@ -62,6 +62,11 @@ export class MemoryCreditStore implements CreditStore {
     if (e) Object.assign(e, { aiRunId: link.aiRunId ?? e.aiRunId, documentId: link.documentId ?? e.documentId });
   }
 
+  async deleteForUser(userId: string) {
+    this.entries = this.entries.filter((e) => e.userId !== userId);
+    this.balances.delete(userId);
+  }
+
   async history(userId: string, limit: number) {
     return this.entries.filter((e) => e.userId === userId).slice(-limit).reverse();
   }

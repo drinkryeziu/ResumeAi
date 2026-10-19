@@ -136,6 +136,11 @@ export class MongoCreditStore implements CreditStore {
     if (Object.keys(set).length) await this.ledger.updateOne({ _id: entryId }, { $set: set });
   }
 
+  async deleteForUser(userId: string) {
+    await this.ledger.deleteMany({ userId });
+    await this.balances.deleteOne({ _id: userId });
+  }
+
   async history(userId: string, limit: number) {
     return (await this.ledger.find({ userId }).sort({ ts: -1 }).limit(limit).toArray()).map(toEntry);
   }

@@ -46,6 +46,12 @@ MongoDB (`mongodb` driver), @react-pdf/renderer + docx + jszip for exports, unpd
 - Sentence case everywhere except button labels. No emoji. Line icons from `lucide-react`.
 - Quality floor: responsive to 375px, visible focus, labels on every input, AA contrast.
 
+## Accounts, abuse and privacy
+- Sign-in, sign-up, password reset and AI actions are rate limited (`src/server/security/rate-limit.ts`, counters in the store, hashed keys). Don't add an AI-calling action without `overLimit`.
+- Production never serves the sample writer: no `ANTHROPIC_API_KEY` means AI actions refuse with `AINotConfiguredError` (credits refunded). `AI_ALLOW_MOCK=true` is only for previews.
+- Settings has "Download my data" (`/api/account/export`) and "Delete my account". A new collection or table that holds user data must be added to `exportAccountData` and to both stores' `deleteAccount` (the contract test checks deletion).
+- `/privacy` and `/terms` describe what the app really does; update them when data handling or providers change.
+
 ## Working conventions
 - Small, reviewable commits. Typecheck + tests + build before committing.
 - For UI work, run the app and look at the page (desktop and 375px) before calling it done.

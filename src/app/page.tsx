@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { Download, FileCheck2, MessageCircleQuestion, ShieldCheck } from "lucide-react";
+import { LegalLinks } from "@/components/features/legal/LegalLinks";
 import { PublicHeader } from "@/components/layout/PublicHeader";
 import { ResumeShowcase } from "@/components/features/marketing/ResumeShowcase";
 import { ButtonLink } from "@/components/ui/Button";
@@ -17,13 +18,18 @@ const STEPS = [
   { title: "Download and apply", body: "A resume and cover letter tailored to that job, as PDF or Word." },
 ];
 
-export default async function LandingPage() {
+export default async function LandingPage({ searchParams }: { searchParams: Promise<{ "account-deleted"?: string }> }) {
   if ((await auth())?.user?.id) redirect("/dashboard");
   const money = (c: number) => (c === 0 ? "Free" : `$${(c / 100).toFixed(2)}`);
 
   return (
     <>
       <PublicHeader />
+      {(await searchParams)["account-deleted"] === "1" && (
+        <p role="status" className="bg-sky-50 px-ds-4 py-ds-3 text-center text-body-sm">
+          Your account and all your data were deleted.
+        </p>
+      )}
       <main>
         <section className="overflow-hidden bg-navy-900 px-ds-4 pt-ds-6 pb-[104px] md:px-ds-5">
           <div className="mx-auto grid max-w-[1120px] items-center gap-ds-6 lg:grid-cols-[1fr_440px]">
@@ -64,7 +70,9 @@ export default async function LandingPage() {
         <section className="bg-sky-50 px-ds-4 py-ds-6 md:px-ds-5">
           <div className="mx-auto max-w-[1120px]">
             <h2 className="text-heading-section mb-ds-2">Nothing on your resume that isn&apos;t true</h2>
-            <p className="text-body mb-ds-5 max-w-[60ch]">ResumeAi rewords and reorders what you&apos;ve done to fit each job. It never adds experience, skills, schools or results you didn&apos;t give it.</p>
+            <p className="text-body mb-ds-5 max-w-[60ch]">
+              ResumeAi rewords and reorders what you&apos;ve done to fit each job. It never adds experience, skills, schools or results you didn&apos;t give it.
+            </p>
             <div className="grid gap-ds-5 sm:grid-cols-2 lg:grid-cols-4">
               <FeatureItem icon={<ShieldCheck size={36} strokeWidth={1.6} />} title="Your profile is the source">
                 Every line in a tailored resume traces back to something in your profile.
@@ -87,7 +95,10 @@ export default async function LandingPage() {
           <p className="text-body mb-ds-5">AI actions use credits. A full tailored application uses about 35.</p>
           <ul className="grid gap-ds-4 sm:grid-cols-2 lg:grid-cols-4">
             {DEFAULT_PLANS.map((p) => (
-              <li key={p.key} className={`flex flex-col gap-ds-2 rounded-md p-ds-4 ${p.key === "PRO" ? "bg-white shadow-[inset_0_0_0_2px_var(--blue-600)]" : "bg-white shadow-card"}`}>
+              <li
+                key={p.key}
+                className={`flex flex-col gap-ds-2 rounded-md p-ds-4 ${p.key === "PRO" ? "bg-white shadow-[inset_0_0_0_2px_var(--blue-600)]" : "bg-white shadow-card"}`}
+              >
                 <span className="flex items-center justify-between">
                   <span className="text-card-title">{p.name}</span>
                   {p.key === "PRO" && <span className="rounded-pill bg-blue-600 px-ds-2 py-0.5 text-micro font-bold text-white">Most popular</span>}
@@ -107,7 +118,10 @@ export default async function LandingPage() {
           <ButtonLink href="/sign-up">Create your resume</ButtonLink>
         </section>
       </main>
-      <footer className="border-t border-gray-100 px-ds-4 py-ds-5 text-center text-caption">© {new Date().getFullYear()} ResumeAi</footer>
+      <footer className="flex flex-col items-center gap-ds-1 border-t border-gray-100 px-ds-4 py-ds-5 text-center text-caption">
+        <LegalLinks />
+        <span>© {new Date().getFullYear()} ResumeAi</span>
+      </footer>
     </>
   );
 }

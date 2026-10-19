@@ -30,15 +30,15 @@ export function NewJobCard({ cost, sample }: { cost: number; sample: typeof DEMO
         <ActionForm action={analyzeNewJob} hidden={{ requestId: crypto.randomUUID() }} label="Tailor your resume to a job" pendingLabel="Analyzing the job…" cost={cost} fullWidth>
           <div className="mb-ds-4 flex flex-col gap-ds-4">
             <JobInput defaultText={sample?.description} />
-            <Field label="Link to the job posting" htmlFor="url">
-              <Input id="url" name="url" type="url" placeholder="https://" defaultValue={sample?.url} />
-            </Field>
             <div className="grid gap-ds-4 md:grid-cols-2">
               <Field label="Job title" htmlFor="title">
                 <Input id="title" name="title" placeholder="Senior UX Designer" defaultValue={sample?.title} />
               </Field>
               <Field label="Company name" htmlFor="company">
                 <Input id="company" name="company" placeholder="Company" defaultValue={sample?.company} />
+              </Field>
+              <Field label="Link to the job posting" htmlFor="url">
+                <Input id="url" name="url" type="url" placeholder="https://" defaultValue={sample?.url} />
               </Field>
               <Field label="Location" htmlFor="location">
                 <Input id="location" name="location" placeholder="City, remote or hybrid" defaultValue={sample?.location} />

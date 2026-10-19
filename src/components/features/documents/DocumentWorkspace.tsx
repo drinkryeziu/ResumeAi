@@ -4,13 +4,14 @@ import { FileText, Mail, Package } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
-import { Button, ButtonAnchor, ButtonLink } from "@/components/ui/Button";
-import { PdfIcon, WordIcon } from "@/components/ui/FileIcons";
+import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import type { CoverLetterRecord, ResumeRecord } from "@/server/store/types";
 import { restoreVersion } from "@/app/(app)/jobs/actions";
 import { coverLetterPlainText, resumePlainText } from "@/server/documents/plain-text";
 import { CopyTextButton } from "./CopyTextButton";
+import { DownloadDialog } from "./DownloadDialog";
+import { EditWindow } from "./EditWindow";
 import { CoverLetterEditor, ResumeEditor } from "./DocumentEditors";
 import { CoverLetterPreview, ResumePreview } from "./ResumePreview";
 
@@ -90,45 +91,28 @@ export function DocumentWorkspace({
 
       <div className="grid gap-ds-4 lg:grid-cols-[1fr_320px]">
         <div className="flex flex-col gap-ds-3">
-          {tab === "resume" &&
-            (resumeV ? (
-              editing ? (
-                <ResumeEditor doc={resumeV.content} target={target} cancelHref={here("resume")} />
-              ) : (
-                <ResumePreview doc={resumeV.content} />
-              )
-            ) : (
-              <Empty>No resume yet.</Empty>
-            ))}
-          {tab === "cover-letter" &&
-            (letterV ? (
-              editing ? (
-                <CoverLetterEditor doc={letterV.content} target={target} cancelHref={here("cover-letter")} />
-              ) : (
-                <CoverLetterPreview doc={letterV.content} />
-              )
-            ) : (
-              <Empty>No cover letter yet.</Empty>
-            ))}
+          {tab === "resume" && (resumeV ? <ResumePreview doc={resumeV.content} /> : <Empty>No resume yet.</Empty>)}
+          {tab === "cover-letter" && (letterV ? <CoverLetterPreview doc={letterV.content} /> : <Empty>No cover letter yet.</Empty>)}
 
           {active && (
             <div className="flex flex-col gap-ds-2">
               <div className="flex flex-wrap items-center justify-between gap-ds-3" aria-label="Download and edit">
-                <div className="flex flex-wrap items-center gap-ds-3">
-                  <span className="text-label-bold">Download</span>
-                  <ButtonAnchor href={download(tab, "pdf")} compact aria-label="Download PDF" icon={<PdfIcon />}>
-                    PDF
-                  </ButtonAnchor>
-                  <ButtonAnchor href={download(tab, "docx")} compact aria-label="Download Word" icon={<WordIcon />}>
-                    Word
-                  </ButtonAnchor>
-                  <CopyTextButton text={tab === "resume" ? resumePlainText(resumeV!.content) : coverLetterPlainText(letterV!.content)} />
+                <DownloadDialog docLabel={tab === "resume" ? "resume" : "cover letter"} pdfHref={download(tab, "pdf")} docxHref={download(tab, "docx")} />
+                <div className="flex flex-wrap items-center gap-x-ds-5 gap-y-ds-2">
+                  <CopyTextButton variant="link" text={tab === "resume" ? resumePlainText(resumeV!.content) : coverLetterPlainText(letterV!.content)} />
+                  <EditWindow
+                    label={tab === "resume" ? "Edit resume" : "Edit cover letter"}
+                    title={tab === "resume" ? "Edit your resume" : "Edit your cover letter"}
+                    openInitially={editing}
+                    closeHref={here(tab)}
+                  >
+                    {tab === "resume" ? (
+                      <ResumeEditor doc={resumeV!.content} target={target} cancelHref={here("resume")} />
+                    ) : (
+                      <CoverLetterEditor doc={letterV!.content} target={target} cancelHref={here("cover-letter")} />
+                    )}
+                  </EditWindow>
                 </div>
-                {!editing && (
-                  <ButtonLink href={here(tab, true)} variant="link" className="ml-auto">
-                    {tab === "resume" ? "Edit resume" : "Edit cover letter"}
-                  </ButtonLink>
-                )}
               </div>
               <p className="text-caption">Paste the text into an application form, or attach the file. You apply yourself; we never submit for you.</p>
             </div>

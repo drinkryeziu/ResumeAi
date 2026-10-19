@@ -5,7 +5,7 @@ import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 /** Copies the document as plain text so it can be pasted into an application form. */
-export function CopyTextButton({ text, className }: { text: string; className?: string }) {
+export function CopyTextButton({ text, className, variant = "secondary" }: { text: string; className?: string; variant?: "secondary" | "link" }) {
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
 
   async function copy() {
@@ -29,7 +29,14 @@ export function CopyTextButton({ text, className }: { text: string; className?: 
 
   return (
     <>
-      <Button type="button" variant="secondary" compact className={className} onClick={copy} icon={state === "copied" ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}>
+      <Button
+        type="button"
+        variant={variant}
+        compact={variant === "secondary"}
+        className={className}
+        onClick={copy}
+        icon={variant === "link" ? undefined : state === "copied" ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+      >
         {state === "copied" ? "Copied" : "Copy as text"}
       </Button>
       <span role="status" className="sr-only">

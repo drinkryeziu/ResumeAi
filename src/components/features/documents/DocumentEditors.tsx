@@ -10,16 +10,16 @@ import { Field, Input, Textarea } from "@/components/ui/Field";
 import { formatMonthYear } from "@/lib/format";
 import type { CoverLetterDocument, ResumeDocument } from "@/server/documents/model";
 
-function SaveBar({ state, cancelHref }: { state: ActionState; cancelHref: string }) {
+function SaveBar({ state }: { state: ActionState }) {
   const { pending } = useFormStatus();
   return (
-    <div className="sticky bottom-0 flex flex-wrap items-center gap-ds-4 border-t border-gray-100 bg-white pt-ds-4">
+    <div className="sticky bottom-0 flex flex-wrap items-center gap-ds-4 bg-white pt-ds-4">
       <Button type="submit" disabled={pending}>
         {pending ? "Saving…" : "Save as new version"}
       </Button>
-      <Link href={cancelHref} className="text-body-sm text-blue-700 underline">
+      <button type="button" onClick={(e) => e.currentTarget.closest("dialog")?.close()} className="text-body-sm text-blue-700 underline">
         Cancel
-      </Link>
+      </button>
       {state?.error && (
         <p role="alert" className="text-body-sm text-danger">
           {state.error}
@@ -37,7 +37,7 @@ export function ResumeEditor({ doc, target, cancelHref }: { doc: ResumeDocument;
   const [state, action] = useActionState(saveResumeEdits, undefined);
   const uid = useId();
   return (
-    <form action={action} className="flex flex-col gap-ds-4 rounded-md bg-white p-ds-5 shadow-card">
+    <form action={action} className="flex flex-col gap-ds-4">
       <input type="hidden" name="jobId" value={target} />
       <p className="flex gap-ds-2 rounded-md bg-sky-50 p-ds-3 text-body-sm">
         <Info size={18} className="shrink-0 text-blue-600" aria-hidden="true" />
@@ -83,7 +83,7 @@ export function ResumeEditor({ doc, target, cancelHref }: { doc: ResumeDocument;
           </Field>
         </div>
       ))}
-      <SaveBar state={state} cancelHref={cancelHref} />
+      <SaveBar state={state} />
     </form>
   );
 }
@@ -92,7 +92,7 @@ export function CoverLetterEditor({ doc, target, cancelHref }: { doc: CoverLette
   const [state, action] = useActionState(saveCoverLetterEdits, undefined);
   const uid = useId();
   return (
-    <form action={action} className="flex flex-col gap-ds-4 rounded-md bg-white p-ds-5 shadow-card">
+    <form action={action} className="flex flex-col gap-ds-4">
       <input type="hidden" name="jobId" value={target} />
       <Field label="Greeting" htmlFor={`${uid}-g`} required>
         <Input id={`${uid}-g`} name="greeting" defaultValue={doc.greeting} required />
@@ -103,7 +103,7 @@ export function CoverLetterEditor({ doc, target, cancelHref }: { doc: CoverLette
       <Field label="Closing" htmlFor={`${uid}-c`} required>
         <Input id={`${uid}-c`} name="closing" defaultValue={doc.closing} required />
       </Field>
-      <SaveBar state={state} cancelHref={cancelHref} />
+      <SaveBar state={state} />
     </form>
   );
 }

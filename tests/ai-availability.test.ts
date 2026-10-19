@@ -57,6 +57,16 @@ describe("the sample writer is not used on a production site", () => {
     expect(await store.credits.balance(u)).toBe(before);
   });
 
+  it("says which version is live, from the commit Vercel built", async () => {
+    const { setupStatus } = await import("@/server/store/setup-check");
+    clean();
+    process.env.AUTH_SECRET = "x".repeat(32);
+    vi.stubEnv("VERCEL_GIT_COMMIT_SHA", "c6ebc5c1234567890abcdef");
+    expect((await setupStatus()).version).toBe("c6ebc5c");
+    vi.stubEnv("VERCEL_GIT_COMMIT_SHA", "");
+    expect((await setupStatus()).version).toBeNull();
+  });
+
   it("is reported by the health check in words", async () => {
     const { setupStatus } = await import("@/server/store/setup-check");
     clean();

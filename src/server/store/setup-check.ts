@@ -16,6 +16,8 @@ export interface SetupStatus {
   /** "ok" | "failed" when MongoDB is configured, "in-memory" when it is not. */
   database: "ok" | "failed" | "in-memory";
   onVercel: boolean;
+  /** First 7 characters of the commit this deployment was built from (set by Vercel), so you can tell which version is live. */
+  version: string | null;
   ready: boolean;
   /** One sentence per problem, written for the person setting the site up. */
   problems: string[];
@@ -50,5 +52,6 @@ export async function setupStatus(opts: { pingTimeoutMs?: number } = {}): Promis
       "MONGODB_URI is set but the database could not be reached. Check the user and password in the connection string, and that MongoDB Atlas Network Access allows 0.0.0.0/0.",
     );
   const ready = authSecret && database !== "failed" && (mongodbUri || !onVercel) && aiAvailable();
-  return { authSecret, mongodbUri, email, ai, database, onVercel, ready, problems };
+  const version = process.env.VERCEL_GIT_COMMIT_SHA?.trim().slice(0, 7) || null;
+  return { authSecret, mongodbUri, email, ai, database, onVercel, version, ready, problems };
 }

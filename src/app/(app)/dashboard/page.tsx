@@ -75,14 +75,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </header>
 
       {/* Next step: one clear action, computed from the user's progress. */}
-      <section aria-labelledby="next-step" className="flex flex-wrap items-center justify-between gap-ds-4 rounded-md bg-sky-50 p-ds-5">
+      <section aria-labelledby="next-step" className="flex flex-wrap items-stretch justify-between gap-ds-4 rounded-md bg-sky-50 p-ds-5">
         <div className="flex max-w-xl flex-col gap-ds-1">
           <h2 id="next-step" className="text-card-title">
             {next.title}
           </h2>
           <p className="text-body-sm">{next.detail}</p>
         </div>
-        <ButtonLink href={next.href} icon={next.cta === "Continue" ? undefined : <Briefcase size={14} aria-hidden="true" />}>
+        <ButtonLink href={next.href} className="min-h-16 w-full self-stretch sm:w-auto sm:min-w-72" icon={next.cta === "Continue" ? undefined : <Briefcase size={18} aria-hidden="true" />}>
           {next.cta}
         </ButtonLink>
       </section>

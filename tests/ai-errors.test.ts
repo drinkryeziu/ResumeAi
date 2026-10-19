@@ -19,6 +19,13 @@ describe("what people are told when the AI service fails", () => {
     }
   });
 
+  it("names the out-of-credit case, which Anthropic reports as a 400", () => {
+    const msg = describeAIError(new AIProviderError("x", "anthropic", false, 400, "no_credit"), "create your Master documents");
+    expect(msg).toMatch(/out of credit/);
+    expect(msg).toMatch(/Billing/);
+    expect(msg).not.toMatch(/error 400/);
+  });
+
   it("says the AI is not switched on when the key is missing", () => {
     expect(describeAIError(new AINotConfiguredError(), "read your CV")).toMatch(/isn't switched on/);
   });

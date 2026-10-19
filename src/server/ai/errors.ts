@@ -7,6 +7,7 @@ import { AINotConfiguredError, AIProviderError } from "./providers/types";
  */
 export function describeAIError(e: AIProviderError, action = "do this"): string {
   if (e instanceof AINotConfiguredError) return `AI writing isn't switched on for this site yet, so we can't ${action}. The site owner needs to add the AI key.`;
+  if (e.reason === "no_credit") return `The site's AI account is out of credit, so we couldn't ${action}. The site owner needs to add credit in the Anthropic console (Billing).`;
   const s = e.status;
   if (s !== undefined && s >= 400 && s < 500 && s !== 429 && s !== 408) {
     return `The AI service refused the request (error ${s}), so we couldn't ${action}. If this keeps happening, the site owner should check the AI key, its billing and the model name.`;

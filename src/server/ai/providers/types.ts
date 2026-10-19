@@ -40,6 +40,8 @@ export class AIProviderError extends Error {
     readonly retryable: boolean,
     /** The vendor's HTTP status, when there was one (401 = key rejected, 429 = rate limit, 5xx = their outage). */
     readonly status?: number,
+    /** A cause we can name for the site owner. Anthropic reports "out of credit" as a plain 400. */
+    readonly reason?: "no_credit",
   ) {
     super(message);
     this.name = "AIProviderError";

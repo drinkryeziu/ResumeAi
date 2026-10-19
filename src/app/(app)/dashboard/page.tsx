@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { ArrowRight, Briefcase, ClipboardPaste, FileCheck2, FileText, Mail, Target } from "lucide-react";
+import { ArrowRight, ClipboardPaste, FileCheck2, FileText, Mail, Target } from "lucide-react";
 import { DeleteApplicationButton } from "@/components/features/job-flow/DeleteApplicationButton";
 import { Badge } from "@/components/ui/Badge";
+import { NewJobCard } from "@/components/features/job-flow/NewJobCard";
 import { ButtonLink } from "@/components/ui/Button";
+import { DEMO_JOB } from "@/server/demo/fixtures";
 import { ScoreBar } from "@/components/ui/ScoreBar";
 import { formatDate, formatNumber } from "@/lib/format";
 import { profileStrength } from "@/server/ai";
@@ -14,34 +16,18 @@ export const metadata = { title: "Dashboard" };
 
 type Summary = Awaited<ReturnType<typeof jobSummaries>>[number];
 
-/** The one thing to do next, decided from where the user actually is. */
-function nextStep(jobs: Summary[]): { title: string; detail: string; href: string; cta: string } {
+/** An application that has a match but no resume and cover letter yet: the one thing worth finishing first. */
+function unfinishedStep(jobs: Summary[]): { title: string; detail: string; href: string } | null {
   const unfinished = jobs.find((j) => j.matchScore !== null && !(j.hasResume && j.hasLetter));
-  if (unfinished) {
-    return {
-      title: `Finish your application for ${unfinished.job.title}`,
-      detail: `${unfinished.job.company} — you match ${unfinished.matchScore}%. Create your tailored resume and cover letter.`,
-      href: `/jobs/${unfinished.job.id}/match`,
-      cta: "Continue",
-    };
-  }
-  if (jobs.length === 0) {
-    return {
-      title: "Tailor your resume to your first job",
-      detail: "Paste or upload a job description to see how well you match.",
-      href: "/jobs",
-      cta: "Tailor resume to a job",
-    };
-  }
+  if (!unfinished) return null;
   return {
-    title: "Applying somewhere else?",
-    detail: "Add another job description and get a resume and cover letter tailored to it.",
-    href: "/jobs",
-    cta: "Tailor resume to a job",
+    title: `Finish your application for ${unfinished.job.title}`,
+    detail: `${unfinished.job.company} — you match ${unfinished.matchScore}%. Create your tailored resume and cover letter.`,
+    href: `/jobs/${unfinished.job.id}/match`,
   };
 }
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ welcome?: string; sample?: string }> }) {
   const { user, profile } = await requireProfile();
   const store = await getStore();
   const [balance, jobs, masterResume, masterLetter, prices] = await Promise.all([
@@ -54,8 +40,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const strength = profileStrength(profile);
   const price = (k: string) => prices.find((p) => p.key === k)?.credits ?? 0;
   const applicationCost = price("ANALYZE_JOB") + price("JOB_MATCH") + price("OPTIMIZE_RESUME") + price("GENERATE_COVER_LETTER");
-  const welcome = (await searchParams).welcome === "1";
-  const next = nextStep(jobs);
+  const sp = await searchParams;
+  const welcome = sp.welcome === "1";
+  const sample = sp.sample === "1" ? DEMO_JOB : null;
+  const finish = unfinishedStep(jobs);
+  const tailorCost = price("ANALYZE_JOB") + price("JOB_MATCH");
   const applicationsLeft = applicationCost ? Math.floor(balance / applicationCost) : 0;
 
   const masters = [
@@ -74,18 +63,21 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </p>
       </header>
 
-      {/* Next step: one clear action, computed from the user's progress. */}
-      <section aria-labelledby="next-step" className="flex flex-col gap-ds-4 rounded-md bg-sky-50 p-ds-5">
-        <div className="flex max-w-xl flex-col gap-ds-1">
-          <h2 id="next-step" className="text-card-title">
-            {next.title}
-          </h2>
-          <p className="text-body-sm">{next.detail}</p>
-        </div>
-        <ButtonLink href={next.href} className="w-full" icon={next.cta === "Continue" ? undefined : <Briefcase size={14} aria-hidden="true" />}>
-          {next.cta}
-        </ButtonLink>
-      </section>
+      {finish && (
+        <section aria-labelledby="next-step" className="flex flex-col gap-ds-4 rounded-md bg-sky-50 p-ds-5">
+          <div className="flex max-w-xl flex-col gap-ds-1">
+            <h2 id="next-step" className="text-card-title">
+              {finish.title}
+            </h2>
+            <p className="text-body-sm">{finish.detail}</p>
+          </div>
+          <ButtonLink href={finish.href} variant="secondary" className="w-full">
+            Continue
+          </ButtonLink>
+        </section>
+      )}
+
+      <NewJobCard cost={tailorCost} sample={sample} />
 
       <div className="grid items-start gap-ds-5 md:grid-cols-2">
         <section aria-labelledby="applications">
@@ -93,11 +85,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <h2 id="applications" className="text-card-title">
               Your applications
             </h2>
-            {jobs.length > 0 && (
-              <Link href="/jobs" className="text-body-sm text-blue-700 underline">
-                All jobs
-              </Link>
-            )}
           </div>
 
           {jobs.length === 0 ? (

@@ -34,7 +34,7 @@ export default async function MasterPage({ searchParams }: { searchParams: Promi
       <PageHeader
         title="Your Master Resume & Cover Letter"
         description="Built from your profile and the starting point for every application. Tailoring to a job never changes them."
-        actions={<ButtonLink href="/jobs" variant="secondary">Tailor to a job</ButtonLink>}
+        actions={<ButtonLink href="/dashboard#tailor" variant="secondary">Tailor to a job</ButtonLink>}
       />
       <DocumentWorkspace target="master" basePath="/master" tab={tab} editing={sp.mode === "edit"} resume={resume} letter={letter} resumeSide={regenerate} letterSide={regenerate} saved={sp.saved === "1"} />
     </>

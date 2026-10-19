@@ -56,7 +56,7 @@ export default async function OnboardingDonePage({ searchParams }: { searchParam
         <aside className="flex flex-col gap-ds-4">
           <Card className="flex flex-col gap-ds-3">
             <CardHeader title="Next" subtitle={`You have ${formatNumber(balance)} credits. Tailoring a resume and cover letter to a job uses about 35.`} />
-            <ButtonLink href="/jobs" className="w-full">
+            <ButtonLink href="/dashboard#tailor" className="w-full">
               Tailor to your first job
             </ButtonLink>
             <div className="flex flex-wrap items-center gap-x-ds-4 gap-y-ds-2 text-body-sm">

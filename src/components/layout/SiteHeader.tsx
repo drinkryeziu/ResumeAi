@@ -8,10 +8,9 @@ import { signOutAction } from "@/app/(auth)/actions";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
 
-/** The four places people go. Credits and settings live in the account menu; "Sign out" is a plain text link in the bar. */
+/** The three places people go (jobs are added and listed on the Dashboard). Credits and settings live in the account menu; "Sign out" is a plain text link in the bar. */
 export const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", match: ["/dashboard"] },
-  { href: "/jobs", label: "Jobs", match: ["/jobs"] },
+  { href: "/dashboard", label: "Dashboard", match: ["/dashboard", "/jobs"] },
   { href: "/documents", label: "Documents", match: ["/documents", "/resumes", "/master"] },
   { href: "/profile", label: "Profile", match: ["/profile", "/onboarding"] },
 ] as const;

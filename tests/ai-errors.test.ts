@@ -19,6 +19,13 @@ describe("what people are told when the AI service fails", () => {
     }
   });
 
+  it("shows the service's own sentence to the site owner for a refusal", () => {
+    const e = new AIProviderError("x", "anthropic", false, 400, undefined, "temperature is deprecated for this model");
+    const msg = describeAIError(e, "create your Master documents");
+    expect(msg).toContain("The service says: “temperature is deprecated for this model”");
+    expect(msg).toContain("error 400");
+  });
+
   it("names the out-of-credit case, which Anthropic reports as a 400", () => {
     const msg = describeAIError(new AIProviderError("x", "anthropic", false, 400, "no_credit"), "create your Master documents");
     expect(msg).toMatch(/out of credit/);

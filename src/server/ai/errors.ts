@@ -10,7 +10,8 @@ export function describeAIError(e: AIProviderError, action = "do this"): string 
   if (e.reason === "no_credit") return `The site's AI account is out of credit, so we couldn't ${action}. The site owner needs to add credit in the Anthropic console (Billing).`;
   const s = e.status;
   if (s !== undefined && s >= 400 && s < 500 && s !== 429 && s !== 408) {
-    return `The AI service refused the request (error ${s}), so we couldn't ${action}. If this keeps happening, the site owner should check the AI key, its billing and the model name.`;
+    const why = e.detail ? ` The service says: “${e.detail}”.` : "";
+    return `The AI service refused the request (error ${s}), so we couldn't ${action}.${why} If this keeps happening, the site owner should check the AI key, its billing and the model name.`;
   }
   return `The AI service is busy right now, so we couldn't ${action}. Please try again in a minute.`;
 }

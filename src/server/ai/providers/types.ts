@@ -42,6 +42,8 @@ export class AIProviderError extends Error {
     readonly status?: number,
     /** A cause we can name for the site owner. Anthropic reports "out of credit" as a plain 400. */
     readonly reason?: "no_credit",
+    /** The vendor's own one-sentence explanation of a refusal (no keys: they are masked). Shown to the site owner so they know what to fix. */
+    readonly detail?: string,
   ) {
     super(message);
     this.name = "AIProviderError";

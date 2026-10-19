@@ -32,6 +32,7 @@ export function DocumentWorkspace({
   resumeSide,
   letterSide,
   saved,
+  fresh,
 }: {
   target: string;
   basePath: string;
@@ -42,12 +43,14 @@ export function DocumentWorkspace({
   resumeSide?: ReactNode;
   letterSide?: ReactNode;
   saved?: boolean;
+  /** Just created: keep `?new=1` on the document links so the step progress on the page stays while switching tabs. */
+  fresh?: boolean;
 }) {
   const download = (doc: string, format?: string) => `/api/jobs/${target}/download?doc=${doc}${format ? `&format=${format}` : ""}`;
   const resumeV = resume?.versions.find((v) => v.id === resume.currentVersionId) ?? null;
   const letterV = letter?.versions.find((v) => v.id === letter.currentVersionId) ?? null;
   const active = tab === "resume" ? resumeV : letterV;
-  const here = (t: DocTab, edit = false) => `${basePath}?doc=${t}${edit ? "&mode=edit" : ""}`;
+  const here = (t: DocTab, edit = false) => `${basePath}?doc=${t}${edit ? "&mode=edit" : ""}${fresh ? "&new=1" : ""}`;
 
   return (
     <div className="flex flex-col gap-ds-4">

@@ -96,7 +96,7 @@ export default async function MatchPage({ params }: { params: Promise<{ jobId: s
 
   return (
     <>
-      <StepProgress current={created ? "review" : "match"} jobId={jobId} completed={p.completed} />
+      {!created && <StepProgress current="match" jobId={jobId} completed={p.completed} />}
       <PageHeader
         eyebrow={`${p.job.company}${p.job.location ? ` · ${p.job.location}` : ""}`}
         title={p.job.title}

@@ -76,7 +76,7 @@ const ToneField = z.enum(TONES).catch("PROFESSIONAL");
 export async function createApplication(_: ActionState, fd: FormData) {
   const { id } = await requireUser();
   const store = await getStore();
-  return step(fd, (jobId, rid) => pipeline.createApplication(store, id, jobId, rid, ToneField.parse(fd.get("tone"))), (j) => `/jobs/${j}`);
+  return step(fd, (jobId, rid) => pipeline.createApplication(store, id, jobId, rid, ToneField.parse(fd.get("tone"))), (j) => `/jobs/${j}?new=1`);
 }
 
 export async function recheckMatch(_: ActionState, fd: FormData) {

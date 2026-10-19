@@ -18,7 +18,13 @@ export const metadata = { title: "Your application" };
 const TONE_LABEL = { PROFESSIONAL: "Professional", CONVERSATIONAL: "Conversational", EXECUTIVE: "Executive", CONCISE: "Concise", ENTHUSIASTIC: "Enthusiastic" } as const;
 
 /** Step 4 — Review & download. Before the application exists, this sends the user to the match. */
-export default async function JobApplicationPage({ params, searchParams }: { params: Promise<{ jobId: string }>; searchParams: Promise<{ doc?: string; mode?: string; saved?: string }> }) {
+export default async function JobApplicationPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ jobId: string }>;
+  searchParams: Promise<{ doc?: string; mode?: string; saved?: string; new?: string }>;
+}) {
   const [{ jobId }, sp] = await Promise.all([params, searchParams]);
   const { user } = await requireProfile();
   const store = await getStore();
@@ -26,11 +32,14 @@ export default async function JobApplicationPage({ params, searchParams }: { par
   if (!p.job) notFound();
   if (!p.completed.includes("create")) redirect(p.match ? `/jobs/${jobId}/match` : "/dashboard#tailor");
 
+  const fresh = sp.new === "1";
   const tab: DocTab = sp.doc === "cover-letter" ? "cover-letter" : "resume";
   const currentResume = p.resume?.versions.find((v) => v.id === p.resume!.currentVersionId);
   const ats = p.ats && p.ats.resumeVersionId === currentResume?.id ? p.ats : null; // a check only applies to the version it ran on
   const currentLetter = p.letter?.versions.find((v) => v.id === p.letter!.currentVersionId);
-  const [atsCost, optCost, editCost, genCost] = await Promise.all(["ATS_CHECK", "OPTIMIZE_RESUME", "EDIT_COVER_LETTER", "GENERATE_COVER_LETTER"].map((k) => store.credits.priceOf(k)));
+  const [atsCost, optCost, editCost, genCost] = await Promise.all(
+    ["ATS_CHECK", "OPTIMIZE_RESUME", "EDIT_COVER_LETTER", "GENERATE_COVER_LETTER"].map((k) => store.credits.priceOf(k)),
+  );
   const rid = () => crypto.randomUUID();
   const fixes = new Set(ats?.result.scores.findings.filter((f) => !f.ok).map((f) => f.fix) ?? []);
   const suggestions = (ats?.result.advice.suggestions ?? []).filter((s) => !fixes.has(s)); // don't repeat the issues list
@@ -66,8 +75,14 @@ export default async function JobApplicationPage({ params, searchParams }: { par
             </ul>
           )}
           <ActionForm action={improveResume} hidden={{ jobId, requestId: rid() }} label="Improve resume" pendingLabel="Improving…" cost={optCost} variant="secondary">
-            {ats.result.scores.findings.filter((f) => !f.ok).map((f) => <input key={f.id} type="hidden" name="improve" value={f.fix} />)}
-            {ats.result.advice.suggestions.map((s) => <input key={s} type="hidden" name="improve" value={s} />)}
+            {ats.result.scores.findings
+              .filter((f) => !f.ok)
+              .map((f) => (
+                <input key={f.id} type="hidden" name="improve" value={f.fix} />
+              ))}
+            {ats.result.advice.suggestions.map((s) => (
+              <input key={s} type="hidden" name="improve" value={s} />
+            ))}
           </ActionForm>
           <p className="text-caption">Employers&apos; systems differ; this is an estimate, not a guarantee.</p>
         </div>
@@ -80,7 +95,14 @@ export default async function JobApplicationPage({ params, searchParams }: { par
   const letterSide = currentLetter && (
     <Card>
       <CardHeader title="Rewrite with AI" subtitle="Each rewrite is saved as a new version." />
-      <ActionForm action={rewriteCoverLetter} hidden={{ jobId, mode: "retone", requestId: rid() }} label="Change tone" pendingLabel="Rewriting…" cost={editCost} variant="secondary">
+      <ActionForm
+        action={rewriteCoverLetter}
+        hidden={{ jobId, mode: "retone", requestId: rid() }}
+        label="Change tone"
+        pendingLabel="Rewriting…"
+        cost={editCost}
+        variant="secondary"
+      >
         <fieldset className="mb-ds-3 flex flex-wrap gap-ds-2">
           <legend className="sr-only">Tone</legend>
           {TONES.map((t) => (
@@ -94,9 +116,27 @@ export default async function JobApplicationPage({ params, searchParams }: { par
         </fieldset>
       </ActionForm>
       <div className="mt-ds-4 flex flex-wrap gap-ds-3">
-        <ActionForm action={rewriteCoverLetter} hidden={{ jobId, mode: "shorten", tone: currentLetter.tone, requestId: rid() }} label="Shorten" pendingLabel="Shortening…" variant="secondary" />
-        <ActionForm action={rewriteCoverLetter} hidden={{ jobId, mode: "expand", tone: currentLetter.tone, requestId: rid() }} label="Expand" pendingLabel="Expanding…" variant="secondary" />
-        <ActionForm action={rewriteCoverLetter} hidden={{ jobId, mode: "generate", tone: currentLetter.tone, requestId: rid() }} label="Regenerate" pendingLabel="Writing…" variant="secondary" />
+        <ActionForm
+          action={rewriteCoverLetter}
+          hidden={{ jobId, mode: "shorten", tone: currentLetter.tone, requestId: rid() }}
+          label="Shorten"
+          pendingLabel="Shortening…"
+          variant="secondary"
+        />
+        <ActionForm
+          action={rewriteCoverLetter}
+          hidden={{ jobId, mode: "expand", tone: currentLetter.tone, requestId: rid() }}
+          label="Expand"
+          pendingLabel="Expanding…"
+          variant="secondary"
+        />
+        <ActionForm
+          action={rewriteCoverLetter}
+          hidden={{ jobId, mode: "generate", tone: currentLetter.tone, requestId: rid() }}
+          label="Regenerate"
+          pendingLabel="Writing…"
+          variant="secondary"
+        />
       </div>
       <p className="text-caption mt-ds-3">
         Shorten, expand and tone: {editCost} credits · Regenerate: {genCost} credits
@@ -106,7 +146,8 @@ export default async function JobApplicationPage({ params, searchParams }: { par
 
   return (
     <>
-      <StepProgress current="review" jobId={jobId} completed={p.completed} />
+      {/* The four steps are shown while the application is being made for the first time, not when an earlier one is reopened. */}
+      {fresh && <StepProgress current="review" jobId={jobId} completed={p.completed} />}
       <PageHeader
         eyebrow={`Job match ${p.match?.overallScore ?? "—"}%${ats ? ` · ATS ${ats.overallScore}%` : ""}`}
         title={`${p.job.title} — ${p.job.company}`}
@@ -122,10 +163,12 @@ export default async function JobApplicationPage({ params, searchParams }: { par
         resumeSide={resumeSide}
         letterSide={letterSide}
         saved={sp.saved === "1"}
+        fresh={fresh}
       />
       <SoftPanel className="mt-ds-5 flex flex-wrap items-center justify-between gap-ds-4">
         <p className="text-body-sm max-w-xl">
-          <strong>Next: apply yourself.</strong> Upload these files on the company&apos;s careers site, LinkedIn, Indeed, Workday or Glassdoor. ResumeAi never submits applications for you.
+          <strong>Next: apply yourself.</strong> Upload these files on the company&apos;s careers site, LinkedIn, Indeed, Workday or Glassdoor. ResumeAi never submits applications
+          for you.
         </p>
         {p.job.url && (
           <a href={p.job.url} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 text-body-sm text-blue-700 underline">

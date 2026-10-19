@@ -6,7 +6,7 @@ Score) → Create Application (tailored resume + cover letter) → review/edit �
 The app never applies to jobs automatically.
 
 ## Commands
-- `npm run dev` — http://localhost:3000 (demo login: `demo@resumeai.dev` / `resumeai-demo`)
+- `npm run dev` — http://localhost:3000. There is no built-in account: create one on the sign-up page (the in-memory store is empty after every restart).
 - `npm test` — Vitest (~100 tests). Run before every commit. The MongoDB tests start a throwaway local MongoDB (`mongodb-memory-server`); the first run downloads its binary.
 - `npx tsc --noEmit` — typecheck. `npm run build` — production build.
 - No API key needed: every AI workflow falls back to a deterministic mock provider. Set `ANTHROPIC_API_KEY` in `.env.local` for real output.

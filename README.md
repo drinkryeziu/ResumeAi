@@ -9,7 +9,7 @@ The app follows the product flow end to end:
 Dashboard → Tailor resume to a job (upload or paste) → Analyze Job → Job Match Score → Create Application →
 Review & edit → Download PDF / Word / both → user applies manually.**
 
-With no configuration it runs on an in-memory demo store, so no database or API keys are needed to try it. Set `MONGODB_URI` and it stores everything in MongoDB instead (see [Deploy](#deploy-vercel--mongodb-atlas)).
+With no configuration it runs on an in-memory store, so no database or API keys are needed to try it. Set `MONGODB_URI` and it stores everything in MongoDB instead (see [Deploy](#deploy-vercel--mongodb-atlas)).
 
 ## Quick start
 
@@ -19,8 +19,7 @@ npm run dev            # http://localhost:3000
 npm test               # ~100 tests: credits, fabrication guard, full flow, accounts, profile, uploads, both data stores
 ```
 
-Create an account, or sign in with the demo account shown on the sign-in page
-(`demo@resumeai.dev` / `resumeai-demo`). On "Tailor resume to a job", **Try a sample job** fills in a posting.
+Create an account on the sign-up page. The in-memory store is empty after every restart, so you set up your profile again each time.
 
 ### Sign-in
 Email + password works out of the box (scrypt-hashed). Google and LinkedIn buttons appear automatically when
@@ -33,7 +32,7 @@ Add `ANTHROPIC_API_KEY` (and/or `OPENAI_API_KEY`) to `.env.local`. Each workflow
 ### Data storage
 | Setting | Store | Data |
 | --- | --- | --- |
-| nothing set | in-memory demo store, with the demo account | resets when the server restarts |
+| nothing set | in-memory store | resets when the server restarts |
 | `MONGODB_URI` | MongoDB (Atlas) | persists |
 
 Both implement the same `AppStore` interface (`src/server/store/types.ts`), and one shared test suite
@@ -74,7 +73,6 @@ Atlas is always a replica set, which the credit ledger needs (it writes balance 
 | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | no | without a key the deterministic mock writer is used |
 | `AI_FORCE_MOCK` | no | `true` forces the mock even when keys are set |
 | `ALLOW_MEMORY_STORE` | no | `true` lets a Vercel preview run on the temporary in-memory store (data is lost). Leave unset |
-| `MONGODB_SEED_DEMO` | no | `true` creates the public demo account (`demo@resumeai.dev`). Leave unset in production |
 | `AUTH_GOOGLE_ID/SECRET`, `AUTH_LINKEDIN_ID/SECRET` | no | enable social sign-in |
 
 3. **Deploy.** Every push to `main` redeploys.
@@ -100,7 +98,7 @@ src/server/
   services/         job-pipeline — the business logic for each step
   store/            AppStore interface + in-memory and MongoDB implementations; db/ holds the MongoDB connection
   queries/          page read-models
-  auth/ billing/ demo/
+  auth/ billing/
 prisma/             schema + seed
 tests/
 ```

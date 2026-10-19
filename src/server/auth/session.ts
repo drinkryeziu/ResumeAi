@@ -13,7 +13,7 @@ export async function requireUser(): Promise<{ id: string; firstName: string; em
   if (!id) redirect("/sign-in");
   const store = await getStore();
   const user = await store.getUser(id);
-  if (!user) redirect("/sign-in"); // e.g. demo store restarted
+  if (!user) redirect("/sign-in"); // e.g. the in-memory store restarted
   const profile = await store.findProfile(id);
   return { id, email: user.email, firstName: profile?.firstName || user.name.split(" ")[0] || "there" };
 }

@@ -4,7 +4,6 @@ import { DeleteApplicationButton } from "@/components/features/job-flow/DeleteAp
 import { Badge } from "@/components/ui/Badge";
 import { NewJobCard } from "@/components/features/job-flow/NewJobCard";
 import { ButtonLink } from "@/components/ui/Button";
-import { DEMO_JOB } from "@/server/demo/fixtures";
 import { ScoreBar } from "@/components/ui/ScoreBar";
 import { formatDate, formatNumber } from "@/lib/format";
 import { profileStrength } from "@/server/ai";
@@ -27,7 +26,7 @@ function unfinishedStep(jobs: Summary[]): { title: string; detail: string; href:
   };
 }
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ welcome?: string; sample?: string }> }) {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const { user, profile } = await requireProfile();
   const store = await getStore();
   const [balance, jobs, masterResume, masterLetter, prices] = await Promise.all([
@@ -42,7 +41,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const applicationCost = price("ANALYZE_JOB") + price("JOB_MATCH") + price("OPTIMIZE_RESUME") + price("GENERATE_COVER_LETTER");
   const sp = await searchParams;
   const welcome = sp.welcome === "1";
-  const sample = sp.sample === "1" ? DEMO_JOB : null;
   const finish = unfinishedStep(jobs);
   const tailorCost = price("ANALYZE_JOB") + price("JOB_MATCH");
   const applicationsLeft = applicationCost ? Math.floor(balance / applicationCost) : 0;
@@ -77,7 +75,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </section>
       )}
 
-      <NewJobCard cost={tailorCost} sample={sample} />
+      <NewJobCard cost={tailorCost} />
 
       <div className="grid items-start gap-ds-5 md:grid-cols-2">
         <section aria-labelledby="applications">

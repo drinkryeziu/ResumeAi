@@ -3,7 +3,6 @@ import type { AIRunRecord } from "@/server/ai/runner";
 import { MongoCreditStore } from "@/server/credits/mongo-store";
 import { CreditService } from "@/server/credits/service";
 import { hashPassword } from "@/server/auth/password";
-import { DEMO_EMAIL, DEMO_PASSWORD, DEMO_PROFILE, DEMO_USER_ID } from "@/server/demo/fixtures";
 import type { ProfileSnapshot } from "@/server/domain/profile";
 import type { AnalysisRecord, AppStore, AtsRecord, CoverLetterRecord, CvImport, JobRecord, MatchRecord, ResumeRecord, UserRecord } from "./types";
 
@@ -78,20 +77,6 @@ export class MongoAppStore implements AppStore {
       this.runs.createIndex({ userId: 1, createdAt: -1 }),
       this.creditStore.ensureIndexes(),
     ]);
-  }
-
-  /**
-   * Creates the demo account (demo@resumeai.dev) if it isn't there yet. Only called when MONGODB_SEED_DEMO=true.
-   * Safe to run on every cold start: each step checks first, and the credit grant is idempotent.
-   */
-  async seedDemo() {
-    await this.users.updateOne(
-      { _id: DEMO_USER_ID as never },
-      { $setOnInsert: { email: DEMO_EMAIL, name: "Alex Rivera", passwordHash: await hashPassword(DEMO_PASSWORD), createdAt: new Date() } },
-      { upsert: true },
-    );
-    await this.profiles.updateOne({ _id: DEMO_USER_ID as never }, { $setOnInsert: structuredClone(DEMO_PROFILE) }, { upsert: true });
-    await this.credits.grant(DEMO_USER_ID, 1840, "GRANT", "demo-signup-grant", "Demo starting balance");
   }
 
   aiRuns = {

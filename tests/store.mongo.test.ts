@@ -52,25 +52,6 @@ if (!uri) {
       },
     };
   });
-  describe("MongoDB demo account (MONGODB_SEED_DEMO=true)", () => {
-    it("is created once, can sign in, and a second start changes nothing", async () => {
-      const { DEMO_EMAIL, DEMO_PASSWORD, DEMO_USER_ID } = await import("@/server/demo/fixtures");
-      const { verifyPassword } = await import("@/server/auth/password");
-      const db = client.db(`resumeai_test_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`);
-      const store = new MongoAppStore(client, db);
-      await store.ensureIndexes();
-      await store.seedDemo();
-      const before = await store.getUser(DEMO_USER_ID);
-      await store.seedDemo(); // a second cold start
-      const demo = await store.findUserByEmail(DEMO_EMAIL);
-      expect(demo?.id).toBe(DEMO_USER_ID);
-      expect(demo?.createdAt).toEqual(before?.createdAt);
-      expect(await verifyPassword(DEMO_PASSWORD, demo!.passwordHash!)).toBe(true);
-      expect((await store.getProfile(DEMO_USER_ID)).firstName).toBe("Alex");
-      expect(await store.credits.balance(DEMO_USER_ID)).toBe(1840); // granted once, not twice
-      await db.dropDatabase();
-    });
-  });
   // vitest runs this after the file's tests finish
   afterAll(async () => {
     await client.close();

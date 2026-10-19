@@ -1,11 +1,10 @@
 import type { ProfileSnapshot } from "@/server/domain/profile";
+import type { AppStore } from "@/server/store/types";
 
-/** Fictional demo data so every screen works with no database and no API keys. */
+/** Fictional test data (a complete profile and a job posting). Used by the tests only. */
 
-export const DEMO_USER_ID = "demo-user";
-
-export const DEMO_PROFILE: ProfileSnapshot = {
-  id: "prof_demo",
+export const TEST_PROFILE: ProfileSnapshot = {
+  id: "prof_test",
   firstName: "Alex",
   lastName: "Rivera",
   headline: "Senior Product Designer",
@@ -16,7 +15,7 @@ export const DEMO_PROFILE: ProfileSnapshot = {
   country: "USA",
   summary:
     "Product designer with 8 years of experience shaping web and mobile products in financial services and B2B SaaS. I lead projects from user research through prototyping and visual design, and I build design systems that help engineering teams ship consistent interfaces faster. I work closely with product managers and engineers and enjoy mentoring designers.",
-  links: { linkedin: "https://www.linkedin.com/in/alex-rivera-demo", portfolio: "https://alexrivera.example.com" },
+  links: { linkedin: "https://www.linkedin.com/in/alex-rivera", portfolio: "https://alexrivera.example.com" },
   experiences: [
     {
       id: "exp_harbor",
@@ -104,7 +103,7 @@ export const DEMO_PROFILE: ProfileSnapshot = {
   approvedFacts: [],
 };
 
-export const DEMO_JOB = {
+export const TEST_JOB = {
   title: "Senior UX Designer",
   company: "Northwind Financial",
   location: "Charlotte, NC (Hybrid)",
@@ -133,6 +132,10 @@ Nice to have:
 - Experience with A/B testing and analytics tools like Amplitude`,
 };
 
-/** Demo sign-in, shown on the sign-in page. Not a real account. */
-export const DEMO_EMAIL = "demo@resumeai.dev";
-export const DEMO_PASSWORD = "resumeai-demo";
+/** A user with the full test profile and a starting balance, made through the public store interface. Returns the user id. */
+export async function seedTestUser(store: AppStore): Promise<string> {
+  const u = await store.createUser({ email: "alex.rivera@example.com", name: "Alex Rivera", passwordHash: null });
+  await store.saveProfile(u.id, { ...structuredClone(TEST_PROFILE), id: `prof_${u.id}`, approvedFacts: [] });
+  await store.credits.grant(u.id, 1840, "GRANT", "test-grant", "Test starting balance");
+  return u.id;
+}

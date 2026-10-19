@@ -10,18 +10,18 @@ export function storeContract(label: string, open: () => Promise<{ store: AppSto
   describe(`AppStore contract: ${label}`, () => {
     let store: AppStore;
     let close: () => Promise<void>;
-    let fixtures: typeof import("@/server/demo/fixtures");
+    let fixtures: typeof import("./fixtures");
     let pipeline: typeof import("@/server/services/job-pipeline");
     let accounts: typeof import("@/server/auth/accounts");
 
     const user = async (email: string, name = "Test User") => {
       const u = await accounts.onboardUser(store, { email, name, passwordHash: "hash" });
-      await store.saveProfile(u.id, { ...structuredClone(fixtures.DEMO_PROFILE), id: `prof_${u.id}`, approvedFacts: [] });
+      await store.saveProfile(u.id, { ...structuredClone(fixtures.TEST_PROFILE), id: `prof_${u.id}`, approvedFacts: [] });
       return u;
     };
 
     beforeEach(async () => {
-      fixtures = await import("@/server/demo/fixtures");
+      fixtures = await import("./fixtures");
       pipeline = await import("@/server/services/job-pipeline");
       accounts = await import("@/server/auth/accounts");
       ({ store, close } = await open());
@@ -46,7 +46,7 @@ export function storeContract(label: string, open: () => Promise<{ store: AppSto
       await expect(store.getProfile(u.id)).rejects.toThrow(/not found/i);
       await expect(store.addApprovedFact(u.id, { topic: "x", question: "q", answer: "a", status: "APPROVED", jobId: "j" })).rejects.toThrow(/not found/i);
 
-      const base = { ...structuredClone(fixtures.DEMO_PROFILE), id: "prof_1", approvedFacts: [] };
+      const base = { ...structuredClone(fixtures.TEST_PROFILE), id: "prof_1", approvedFacts: [] };
       await store.saveProfile(u.id, base);
       expect(await store.getProfile(u.id)).toEqual(base);
 
@@ -132,7 +132,7 @@ export function storeContract(label: string, open: () => Promise<{ store: AppSto
 
     it("appends immutable resume versions, restores by copying forward, and keeps master and job documents apart", async () => {
       const u = await user("r@example.com");
-      const doc = (summary: string) => ({ ...structuredClone(fixtures.DEMO_PROFILE), summary }) as never;
+      const doc = (summary: string) => ({ ...structuredClone(fixtures.TEST_PROFILE), summary }) as never;
       const v1 = await store.addResumeVersion(u.id, null, { label: "ORIGINAL", content: doc("one") as never, changeNotes: ["first"], name: "Master" });
       expect(v1.versions).toHaveLength(1);
       expect(v1).toMatchObject({ jobId: null, name: "Master", currentVersionId: v1.versions[0]!.id });
@@ -158,7 +158,7 @@ export function storeContract(label: string, open: () => Promise<{ store: AppSto
 
     it("gives every concurrent edit its own version number and never makes a second document", async () => {
       const u = await user("race@example.com");
-      const doc = structuredClone(fixtures.DEMO_PROFILE) as never;
+      const doc = structuredClone(fixtures.TEST_PROFILE) as never;
       const results = await Promise.all(
         Array.from({ length: 10 }, (_, i) => store.addResumeVersion(u.id, null, { label: "USER_EDITED", content: doc, changeNotes: [`edit ${i}`], name: "Master" })),
       );
@@ -302,7 +302,7 @@ export function storeContract(label: string, open: () => Promise<{ store: AppSto
       expect(await store.coverLetterForJob(u.id, null)).not.toBeNull();
       expect(await store.credits.balance(u.id)).toBe(60); // master documents are free
 
-      const job = await pipeline.createJob(store, u.id, fixtures.DEMO_JOB);
+      const job = await pipeline.createJob(store, u.id, fixtures.TEST_JOB);
       await pipeline.analyzeJob(store, u.id, job.id, "analyze-1");
       expect((await store.latestMatch(u.id, job.id))!.overallScore).toBeGreaterThan(40);
       await pipeline.createApplication(store, u.id, job.id, "create-1");

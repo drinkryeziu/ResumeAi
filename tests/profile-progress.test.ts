@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { DEMO_PROFILE } from "@/server/demo/fixtures";
+import { TEST_PROFILE } from "./fixtures";
 import { toProfileInput } from "@/server/domain/profile-mapping";
 import { ProfileInputSchema, type ProfileInput } from "@/server/domain/profile-schema";
 import { issuesForStep, profileProgress, SECTIONS, SETUP_STEPS } from "@/components/features/profile/profile-progress";
 
-const complete = (): ProfileInput => structuredClone(toProfileInput(DEMO_PROFILE, "alex.rivera@example.com", ""));
+const complete = (): ProfileInput => structuredClone(toProfileInput(TEST_PROFILE, "alex.rivera@example.com", ""));
 
 describe("profile editor progress", () => {
   it("reports a complete profile as ready to save", () => {

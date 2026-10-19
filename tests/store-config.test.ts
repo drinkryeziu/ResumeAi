@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-const KEYS = ["MONGODB_URI", "MONGODB_SEED_DEMO", "VERCEL", "ALLOW_MEMORY_STORE"] as const;
+const KEYS = ["MONGODB_URI", "VERCEL", "ALLOW_MEMORY_STORE"] as const;
 const saved = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));
 afterEach(() => {
   for (const k of KEYS) {
@@ -13,7 +13,7 @@ afterEach(() => {
 });
 const reset = () => KEYS.forEach((k) => delete process.env[k]);
 
-describe("which store and whether the demo account exists", () => {
+describe("which store the app runs on", () => {
   it("uses MongoDB only when MONGODB_URI is set (blank counts as unset)", async () => {
     const { usesMongo } = await import("@/server/store/config");
     reset();
@@ -22,18 +22,6 @@ describe("which store and whether the demo account exists", () => {
     expect(usesMongo()).toBe(false);
     process.env.MONGODB_URI = "mongodb+srv://u:p@h/resumeai";
     expect(usesMongo()).toBe(true);
-  });
-
-  it("has the public demo account on the in-memory store, and on MongoDB only when asked", async () => {
-    const { demoAccountEnabled } = await import("@/server/store/config");
-    reset();
-    expect(demoAccountEnabled()).toBe(true);
-    process.env.MONGODB_URI = "mongodb://x/resumeai";
-    expect(demoAccountEnabled()).toBe(false);
-    process.env.MONGODB_SEED_DEMO = "true";
-    expect(demoAccountEnabled()).toBe(true);
-    process.env.MONGODB_SEED_DEMO = "yes"; // only the exact word "true" turns it on
-    expect(demoAccountEnabled()).toBe(false);
   });
 });
 
@@ -48,7 +36,7 @@ describe("a deployment without a database", () => {
   it("still runs locally, and on Vercel when explicitly allowed", async () => {
     const { getStore } = await import("@/server/store");
     reset();
-    await expect(getStore()).resolves.toBeTruthy(); // local demo store
+    await expect(getStore()).resolves.toBeTruthy(); // local in-memory store
     delete (globalThis as { __resumeaiStore?: unknown }).__resumeaiStore;
     process.env.VERCEL = "1";
     process.env.ALLOW_MEMORY_STORE = "true";

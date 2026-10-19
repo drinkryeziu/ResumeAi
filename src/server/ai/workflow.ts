@@ -13,7 +13,7 @@ export interface WorkflowDefinition<I, O> {
   actionKey: CreditActionKey;
   schema: z.ZodType<O>;
   prompt(input: I): { system: string; user: string };
-  /** Deterministic output used when no provider key is configured (dev, tests, demos). */
+  /** Deterministic output used when no provider key is configured (local development and tests). */
   mock(input: I): O;
   /** Grounding checks. Return violations; [] = accept. */
   check?(input: I, output: O): string[];

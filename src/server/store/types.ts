@@ -91,7 +91,7 @@ export interface CoverLetterRecord {
 
 /**
  * Persistence contract for the app. Every method is scoped by userId — there is no way to load
- * another user's record. MemoryAppStore implements it for demo mode; PrismaAppStore comes in phase 2.
+ * another user's record. MemoryAppStore implements it for the no-database mode; PrismaAppStore comes in phase 2.
  */
 export interface AppStore {
   credits: CreditService;

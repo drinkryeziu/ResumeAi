@@ -6,7 +6,7 @@ process.env.AI_FORCE_MOCK = "true";
 const { extractText } = await import("@/server/documents/extract-text");
 const { exportResume } = await import("@/server/documents/export");
 const { resumeFromProfile } = await import("@/server/documents/model");
-const { DEMO_PROFILE } = await import("@/server/demo/fixtures");
+const { TEST_PROFILE } = await import("./fixtures");
 const { resumeParser, runWorkflow } = await import("@/server/ai");
 const { mergeDraftIntoInput, toProfileInput, toProfileSnapshot } = await import("@/server/domain/profile-mapping");
 const { ProfileInputSchema } = await import("@/server/domain/profile-schema");
@@ -20,7 +20,7 @@ async function parse(file: File) {
 }
 
 describe("Upload CV → pre-filled profile", () => {
-  const cv = resumeFromProfile(DEMO_PROFILE);
+  const cv = resumeFromProfile(TEST_PROFILE);
 
   for (const format of ["pdf", "docx"] as const) {
     it(`reads a ${format.toUpperCase()} CV, passes the guard, and the form validates`, async () => {
@@ -49,12 +49,12 @@ describe("Upload CV → pre-filled profile", () => {
 
   it("never overwrites what the user already wrote, and doesn't duplicate jobs", async () => {
     const draft = await parse(new File([new Uint8Array(await exportResume(cv, "pdf"))], "cv.pdf"));
-    const base = toProfileInput({ ...DEMO_PROFILE, headline: "Design Lead", summary: "My own summary." }, "", "");
+    const base = toProfileInput({ ...TEST_PROFILE, headline: "Design Lead", summary: "My own summary." }, "", "");
     const { input, added } = mergeDraftIntoInput(base, draft);
     expect(input.headline).toBe("Design Lead");
     expect(input.summary).toBe("My own summary.");
     expect(added.experiences).toBe(0);
-    expect(input.experiences).toHaveLength(DEMO_PROFILE.experiences.length);
+    expect(input.experiences).toHaveLength(TEST_PROFILE.experiences.length);
   });
 
   it("the guard rejects anything not written in the CV", async () => {

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { DEMO_PROFILE } from "@/server/demo/fixtures";
+import { TEST_PROFILE } from "./fixtures";
 import { resumeFromProfile, type CoverLetterDocument } from "@/server/documents/model";
 import { coverLetterPlainText, resumePlainText } from "@/server/documents/plain-text";
 
 describe("copy as text", () => {
   it("writes a resume that contains only what the document holds, in reading order", () => {
-    const doc = resumeFromProfile(DEMO_PROFILE);
+    const doc = resumeFromProfile(TEST_PROFILE);
     const text = resumePlainText(doc);
     expect(text.startsWith(doc.header.name)).toBe(true);
     for (const e of doc.experience) {

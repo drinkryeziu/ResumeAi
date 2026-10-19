@@ -5,14 +5,17 @@ process.env.AI_FORCE_MOCK = "true";
 
 const { MemoryAppStore } = await import("@/server/store/memory");
 const pipeline = await import("@/server/services/job-pipeline");
-const { DEMO_JOB, DEMO_PROFILE, DEMO_USER_ID: U } = await import("@/server/demo/fixtures");
+const { TEST_JOB, TEST_PROFILE, seedTestUser } = await import("./fixtures");
+
+// The id of the user made by seedTestUser for the test that is running.
+let U = "";
 const { exportPackage, exportResume, exportCoverLetter } = await import("@/server/documents/export");
 
 describe("application flow (mock provider)", () => {
   let store: InstanceType<typeof MemoryAppStore>;
   beforeEach(async () => {
     store = new MemoryAppStore();
-    await store.seedDemo();
+    U = await seedTestUser(store);
     await pipeline.generateMasterDocuments(store, U, "seed");
   });
 
@@ -30,7 +33,7 @@ describe("application flow (mock provider)", () => {
   it("Analyze Job → Create Application → download, leaving profile and Master documents unchanged", async () => {
     const profileBefore = await store.getProfile(U);
     const masterBefore = structuredClone(await store.resumeForJob(U, null));
-    const job = await pipeline.createJob(store, U, DEMO_JOB);
+    const job = await pipeline.createJob(store, U, TEST_JOB);
 
     // Analyze Job = analysis + match in one action
     await pipeline.analyzeJob(store, U, job.id, "r1");
@@ -62,7 +65,7 @@ describe("application flow (mock provider)", () => {
   });
 
   it("saves user edits as a new version and keeps facts from the profile", async () => {
-    const job = await pipeline.createJob(store, U, DEMO_JOB);
+    const job = await pipeline.createJob(store, U, TEST_JOB);
     await pipeline.analyzeJob(store, U, job.id, "a");
     await pipeline.createApplication(store, U, job.id, "b");
     const before = (await store.resumeForJob(U, job.id))!;
@@ -87,7 +90,7 @@ describe("application flow (mock provider)", () => {
   });
 
   it("uses a Yes answer in the application with correct citations", async () => {
-    const job = await pipeline.createJob(store, U, DEMO_JOB);
+    const job = await pipeline.createJob(store, U, TEST_JOB);
     await pipeline.analyzeJob(store, U, job.id, "a");
     const detail = "Ran WCAG 2.1 AA accessibility audits on the Harbor mobile app with our QA team.";
     await pipeline.answerGapQuestion(store, U, job.id, { topic: "Experience with accessibility and WCAG 2.1 AA standards", question: "?", answer: "yes", detail });
@@ -99,19 +102,19 @@ describe("application flow (mock provider)", () => {
   it("refunds credits when the guard rejects an output", async () => {
     const ai = await import("@/server/ai");
     const wf = { ...ai.jobAnalyzer, check: () => ["always wrong"] };
-    const job = await pipeline.createJob(store, U, DEMO_JOB);
+    const job = await pipeline.createJob(store, U, TEST_JOB);
     await expect(ai.runWorkflow(wf, job, { userId: U, requestId: "g", credits: store.credits, runs: store.aiRuns })).rejects.toBeInstanceOf(ai.WorkflowOutputError);
     expect(await store.credits.balance(U)).toBe(1840);
   });
 
   it("refuses to create an application before analysis, and charges nothing", async () => {
-    const job = await pipeline.createJob(store, U, DEMO_JOB);
+    const job = await pipeline.createJob(store, U, TEST_JOB);
     await expect(pipeline.createApplication(store, U, job.id, "x")).rejects.toThrow(/Analyze the job first/);
     expect(await store.credits.balance(U)).toBe(1840);
   });
 
   it("cannot read another user's job or documents", async () => {
-    const job = await pipeline.createJob(store, U, DEMO_JOB);
+    const job = await pipeline.createJob(store, U, TEST_JOB);
     expect(await store.getJob("someone-else", job.id)).toBeNull();
     expect(await store.resumeForJob("someone-else", null)).toBeNull();
   });
@@ -134,11 +137,11 @@ describe("accounts and profiles", () => {
   it("profile form round-trips through validation and mapping", async () => {
     const { toProfileInput, toProfileSnapshot } = await import("@/server/domain/profile-mapping");
     const { ProfileInputSchema } = await import("@/server/domain/profile-schema");
-    const input = toProfileInput(DEMO_PROFILE, "", "");
+    const input = toProfileInput(TEST_PROFILE, "", "");
     const parsed = ProfileInputSchema.parse(input);
-    const snap = toProfileSnapshot(DEMO_PROFILE.id, parsed, []);
-    expect(snap.experiences).toEqual(DEMO_PROFILE.experiences);
-    expect(snap.skills.map((s) => s.name).sort()).toEqual(DEMO_PROFILE.skills.map((s) => s.name).sort());
+    const snap = toProfileSnapshot(TEST_PROFILE.id, parsed, []);
+    expect(snap.experiences).toEqual(TEST_PROFILE.experiences);
+    expect(snap.skills.map((s) => s.name).sort()).toEqual(TEST_PROFILE.skills.map((s) => s.name).sort());
     expect(snap.extras[0]).toMatchObject({ kind: "LANGUAGE", title: "Spanish" });
     // a job without an end date must be marked current
     const bad = { ...input, experiences: [{ ...input.experiences[1]!, endDate: "", isCurrent: false }] };
@@ -149,10 +152,10 @@ describe("accounts and profiles", () => {
 describe("delete application", () => {
   it("removes one application and everything made for it, and nothing else", async () => {
     const store = new MemoryAppStore();
-    await store.seedDemo();
+    U = await seedTestUser(store);
     await pipeline.generateMasterDocuments(store, U, "seed");
-    const keep = await pipeline.createJob(store, U, { ...DEMO_JOB, title: "Keep me" });
-    const drop = await pipeline.createJob(store, U, DEMO_JOB);
+    const keep = await pipeline.createJob(store, U, { ...TEST_JOB, title: "Keep me" });
+    const drop = await pipeline.createJob(store, U, TEST_JOB);
     for (const j of [keep, drop]) {
       await pipeline.analyzeJob(store, U, j.id, `a-${j.id}`);
       await pipeline.createApplication(store, U, j.id, `c-${j.id}`);
@@ -181,9 +184,9 @@ describe("delete application", () => {
 
   it("is owner-scoped and refuses unknown jobs", async () => {
     const store = new MemoryAppStore();
-    await store.seedDemo();
+    U = await seedTestUser(store);
     const other = await store.createUser({ email: "other@example.com", name: "Other", passwordHash: null });
-    const job = await pipeline.createJob(store, U, DEMO_JOB);
+    const job = await pipeline.createJob(store, U, TEST_JOB);
     await expect(pipeline.deleteApplication(store, other.id, job.id)).rejects.toThrow(/couldn't find/i);
     expect(await store.getJob(U, job.id)).not.toBeNull();
     await expect(pipeline.deleteApplication(store, U, "job_nope")).rejects.toThrow(/couldn't find/i);
@@ -195,12 +198,12 @@ describe("job description upload", () => {
   it("reads text from PDF and Word files and rejects other types", async () => {
     const { extractText, UploadError } = await import("@/server/documents/extract-text");
     const { resumeFromProfile } = await import("@/server/documents/model");
-    const doc = resumeFromProfile(DEMO_PROFILE);
+    const doc = resumeFromProfile(TEST_PROFILE);
     const pdf = new File([new Uint8Array(await exportResume(doc, "pdf"))], "job.pdf", { type: "application/pdf" });
     expect(await extractText(pdf)).toMatch(/Harbor Credit Union/);
     const docx = new File([new Uint8Array(await exportResume(doc, "docx"))], "job.docx");
     expect(await extractText(docx)).toMatch(/Lumen Analytics/);
-    const txt = new File([DEMO_JOB.description], "job.txt", { type: "text/plain" });
+    const txt = new File([TEST_JOB.description], "job.txt", { type: "text/plain" });
     expect(await extractText(txt)).toMatch(/Senior UX Designer/);
     await expect(extractText(new File([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3])], "photo.jpg"))).rejects.toBeInstanceOf(UploadError);
   });

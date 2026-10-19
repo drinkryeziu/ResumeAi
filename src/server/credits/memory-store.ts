@@ -2,7 +2,7 @@ import { DEFAULT_CREDIT_ACTIONS } from "@/server/billing/catalog";
 import { InsufficientCreditsError, type CreditActionPrice, type CreditStore, type LedgerEntry, type NewLedgerEntry } from "./types";
 
 /**
- * In-memory CreditStore for tests and the no-database demo mode.
+ * In-memory CreditStore for tests and the no-database mode.
  * Node runs this synchronously between awaits, so append() is atomic within one process.
  */
 export class MemoryCreditStore implements CreditStore {

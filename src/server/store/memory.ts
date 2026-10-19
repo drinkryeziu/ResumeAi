@@ -2,16 +2,14 @@ import { randomUUID } from "node:crypto";
 import type { AIRunRecord } from "@/server/ai/runner";
 import { MemoryCreditStore } from "@/server/credits/memory-store";
 import { CreditService } from "@/server/credits/service";
-import { DEMO_PROFILE, DEMO_USER_ID } from "@/server/demo/fixtures";
 import type { ProfileSnapshot } from "@/server/domain/profile";
 import { hashPassword } from "@/server/auth/password";
-import { DEMO_EMAIL, DEMO_PASSWORD } from "@/server/demo/fixtures";
 import type { AnalysisRecord, AppStore, AtsRecord, CoverLetterRecord, CvImport, JobRecord, MatchRecord, ResumeRecord, UserRecord } from "./types";
 
 const id = (prefix: string) => `${prefix}_${randomUUID().slice(0, 8)}`;
 const latest = <T extends { createdAt: Date }>(rows: T[]) => rows.sort((a, b) => +b.createdAt - +a.createdAt)[0] ?? null;
 
-/** In-memory AppStore for demo mode (no DATABASE_URL). Data resets when the server restarts. */
+/** In-memory AppStore, used when no MONGODB_URI is set. Data resets when the server restarts. */
 export class MemoryAppStore implements AppStore {
   private creditStore = new MemoryCreditStore();
   credits = new CreditService(this.creditStore);
@@ -35,12 +33,6 @@ export class MemoryAppStore implements AppStore {
     },
     listForUser: async (userId: string) => this.runs.filter((r) => r.userId === userId),
   };
-
-  async seedDemo() {
-    this.users.push({ id: DEMO_USER_ID, email: DEMO_EMAIL, name: "Alex Rivera", passwordHash: await hashPassword(DEMO_PASSWORD), createdAt: new Date() });
-    this.profiles.set(DEMO_USER_ID, structuredClone(DEMO_PROFILE));
-    await this.credits.grant(DEMO_USER_ID, 1840, "GRANT", "demo-signup-grant", "Demo starting balance");
-  }
 
   async getCvImport(userId: string) {
     return this.cvImports.get(userId) ?? null;

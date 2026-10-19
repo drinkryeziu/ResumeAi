@@ -24,15 +24,15 @@ function ErrorLine({ state }: { state: AuthState }) {
   ) : null;
 }
 
-export function SignInForm({ demo }: { demo?: { email: string; password: string } }) {
+export function SignInForm() {
   const [state, action] = useActionState(signInWithPassword, undefined);
   return (
     <form action={action} className="flex flex-col gap-ds-4">
       <Field label="Email" htmlFor="email" required>
-        <Input id="email" name="email" type="email" autoComplete="email" required defaultValue={demo?.email} />
+        <Input id="email" name="email" type="email" autoComplete="email" required />
       </Field>
       <Field label="Password" htmlFor="password" required>
-        <Input id="password" name="password" type="password" autoComplete="current-password" required defaultValue={demo?.password} />
+        <Input id="password" name="password" type="password" autoComplete="current-password" required />
       </Field>
       <ErrorLine state={state} />
       <Submit label="Sign in" pending="Signing in…" />

@@ -133,7 +133,7 @@ export function ProfileEditor({ initial, firstTime, requestId, intro }: { initia
 
         {!wizard && (
           <nav aria-label="Profile sections" className="hidden lg:block">
-            <div className="sticky top-[84px] flex flex-col gap-ds-3">
+            <div className="flex flex-col gap-ds-3">
               <Progress done={progress.completeCount} total={SECTIONS.length} />
               <ol className="flex flex-col gap-1">
                 {SECTIONS.map(([id, label]) => (

@@ -87,7 +87,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </ButtonLink>
       </section>
 
-      <div className="grid gap-ds-5 md:grid-cols-2">
+      <div className="grid items-start gap-ds-5 md:grid-cols-2">
         <section aria-labelledby="profile-h" className="flex flex-col rounded-md bg-white p-ds-4 shadow-card">
           <div className="mb-ds-3 flex items-baseline justify-between">
             <h2 id="profile-h" className="text-card-title">
@@ -105,9 +105,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               ))}
             </ul>
           )}
-          <ButtonLink href="/profile/edit" variant="secondary" className="mt-ds-4 w-full">
-            Update profile
-          </ButtonLink>
         </section>
 
         <section aria-labelledby="master-h" className="rounded-md bg-white p-ds-4 shadow-card">

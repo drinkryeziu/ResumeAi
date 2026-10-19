@@ -31,6 +31,8 @@ export interface ProfileIssue {
   /** Dotted path of the field, e.g. "experiences.0.company". Matches the editor's `data-field` attributes. */
   field: string;
   message: string;
+  /** Names the item for a person, e.g. "Project Coordinator — end month". Used in the save bar. */
+  label: string;
 }
 
 export interface ProfileProgress {
@@ -80,6 +82,50 @@ function hasContent(id: SectionId, p: ProfileInput): boolean {
   }
 }
 
+const WHAT: Record<string, string> = {
+  firstName: "first name",
+  lastName: "last name",
+  headline: "professional title",
+  email: "email address",
+  phone: "phone number",
+  company: "company",
+  title: "job title",
+  startDate: "start month",
+  endDate: "end month (or tick “I currently work here”)",
+  school: "school",
+  name: "name",
+  description: "description",
+};
+const LINK_NAMES: Record<string, string> = { linkedin: "LinkedIn", portfolio: "Portfolio", github: "GitHub", behance: "Behance", dribbble: "Dribbble", website: "Website" };
+const ENTRY: Record<string, string> = { experiences: "Job", education: "Education", certifications: "Certification", projects: "Project" };
+
+/** A person-friendly name for the item a field belongs to: "Project Coordinator — end month", "Education 2 — school", "Email address". */
+export function describeField(p: ProfileInput, field: string): string {
+  const [top, index, last] = field.split(".");
+  const what = WHAT[last ?? top ?? ""] ?? last ?? top ?? "field";
+  if (top === "experiences" && index === undefined) return "At least one job";
+  if (top && index !== undefined && top in ENTRY) {
+    const n = Number(index);
+    const entry = (p[top as keyof ProfileInput] as unknown as Array<Record<string, unknown>>)[n];
+    const named = [entry?.title, entry?.company, entry?.school, entry?.name].find((v) => typeof v === "string" && v.trim()) as string | undefined;
+    return `${named?.trim() || `${ENTRY[top]} ${n + 1}`} — ${what}`;
+  }
+  if (top === "links") return `${LINK_NAMES[index ?? ""] ?? "Web"} link`;
+  return what.charAt(0).toUpperCase() + what.slice(1);
+}
+
+/**
+ * Has the person already started this entry (a job, school, certification or project)? Then its missing required fields are
+ * worth marking right away; for a form that is still completely blank the marks wait until they try to continue.
+ */
+export function isStartedField(p: ProfileInput, field: string): boolean {
+  const [top, index] = field.split(".");
+  if (!top || index === undefined || !(top in ENTRY)) return false;
+  const entry = (p[top as keyof ProfileInput] as unknown as Array<Record<string, unknown>>)[Number(index)];
+  if (!entry) return false;
+  return Object.entries(entry).some(([k, v]) => k !== "id" && (typeof v === "string" ? v.trim() !== "" : Array.isArray(v) ? v.length > 0 : v === true));
+}
+
 /**
  * What's missing before Save will work. The rules come straight from the server schema, so the
  * editor can never disagree with what the server accepts.
@@ -93,11 +139,16 @@ export function profileProgress(p: ProfileInput): ProfileProgress {
       // The "current job or end month" rule is attached to the whole job; show it on the end-month field.
       const field = path.length === 2 && path[0] === "experiences" ? `${path.join(".")}.endDate` : path.join(".");
       const message = path[0] === "links" ? "Enter a full web address, like https://example.com." : i.message;
-      issues.push({ section: sectionOf(path[0] ?? ""), field, message });
+      issues.push({ section: sectionOf(path[0] ?? ""), field, message, label: describeField(p, field) });
     }
   }
   if (p.experiences.length === 0) {
-    issues.push({ section: "experience", field: "experiences", message: "Add at least one job (or internship, volunteer role or project work) so we can build your resume." });
+    issues.push({
+      section: "experience",
+      field: "experiences",
+      message: "Add at least one job (or internship, volunteer role or project work) so we can build your resume.",
+      label: "At least one job",
+    });
   }
 
   const errors = new Map<string, string>();

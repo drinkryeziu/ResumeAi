@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { TEST_PROFILE } from "./fixtures";
 import { toProfileInput } from "@/server/domain/profile-mapping";
 import { ProfileInputSchema, type ProfileInput } from "@/server/domain/profile-schema";
-import { issuesForStep, profileProgress, SECTIONS, SETUP_STEPS } from "@/components/features/profile/profile-progress";
+import { describeField, isStartedField, issuesForStep, profileProgress, SECTIONS, SETUP_STEPS } from "@/components/features/profile/profile-progress";
 
 const complete = (): ProfileInput => structuredClone(toProfileInput(TEST_PROFILE, "alex.rivera@example.com", ""));
 
@@ -101,5 +101,65 @@ describe("first-time setup steps", () => {
     expect(issuesForStep(p, 0).length).toBeGreaterThan(0);
     expect(issuesForStep(p, 1).length).toBeGreaterThan(0);
     expect(issuesForStep(p, 2)).toEqual([]);
+  });
+});
+
+describe("naming what is missing", () => {
+  it("says which job, school or field, in words", () => {
+    const input = complete();
+    input.experiences[0]!.title = "Project Coordinator";
+    input.experiences[0]!.isCurrent = false;
+    input.experiences[0]!.endDate = "";
+    input.firstName = "";
+    const p = profileProgress(input);
+    const labels = p.issues.map((i) => i.label);
+    expect(labels).toContain("Project Coordinator — end month (or tick “I currently work here”)");
+    expect(labels).toContain("First name");
+  });
+
+  it("falls back to 'Job 2' when the job has no name yet, and names education by school", () => {
+    const input = complete();
+    input.experiences.push({
+      id: "exp_b",
+      company: "",
+      title: "",
+      location: "",
+      startDate: "",
+      endDate: "",
+      isCurrent: false,
+      responsibilities: [],
+      achievements: ["Did a thing"],
+      tools: [],
+    });
+    const labels = profileProgress(input).issues.map((i) => i.label);
+    expect(labels).toContain(`Job ${input.experiences.length} — company`);
+    expect(describeField(input, "education.0.school")).toMatch(/— school$/);
+    expect(describeField(input, "experiences")).toBe("At least one job");
+    expect(describeField(input, "links.linkedin")).toBe("LinkedIn link");
+  });
+
+  it("treats an entry as started once anything is filled in, and a blank one as not started", () => {
+    const input = complete();
+    input.experiences.push({
+      id: "exp_blank",
+      company: "",
+      title: "",
+      location: "",
+      startDate: "",
+      endDate: "",
+      isCurrent: false,
+      responsibilities: [],
+      achievements: [],
+      tools: [],
+    });
+    const blank = input.experiences.length - 1;
+    expect(isStartedField(input, `experiences.${blank}.company`)).toBe(false);
+    input.experiences[blank]!.achievements = ["Led a launch"];
+    expect(isStartedField(input, `experiences.${blank}.company`)).toBe(true);
+    input.experiences[blank]!.achievements = [];
+    input.experiences[blank]!.isCurrent = true;
+    expect(isStartedField(input, `experiences.${blank}.company`)).toBe(true);
+    expect(isStartedField(input, "firstName")).toBe(false); // top-level fields wait for the first try
+    expect(isStartedField(input, "experiences.99.company")).toBe(false);
   });
 });

@@ -12,7 +12,7 @@ import { MonthField } from "@/components/ui/MonthField";
 import { cn } from "@/lib/cn";
 import type { ProfileInput } from "@/server/domain/profile-schema";
 import { SavedDialog } from "./SavedDialog";
-import { issuesForStep, profileProgress, SECTIONS, SETUP_STEPS, type ProfileIssue, type SectionId, type SectionStatus } from "./profile-progress";
+import { isStartedField, issuesForStep, profileProgress, SECTIONS, SETUP_STEPS, type ProfileIssue, type SectionId, type SectionStatus } from "./profile-progress";
 import { ReviewStep } from "./ReviewStep";
 import { SetupSteps } from "./SetupSteps";
 
@@ -52,8 +52,8 @@ const fromCsv = (s: string) =>
     .map((x) => x.trim())
     .filter(Boolean);
 
-/** Inline errors appear once the user has tried to save; before that the nav and save bar show what's missing. */
-const ErrorsContext = createContext<{ errors: Map<string, string>; show: boolean; wizard: boolean }>({ errors: new Map(), show: false, wizard: false });
+/** `errors` holds the fields to mark red: all of them once the person has tried to continue, and before that the missing fields of entries they have already started. */
+const ErrorsContext = createContext<{ errors: Map<string, string>; wizard: boolean }>({ errors: new Map(), wizard: false });
 
 /** Scroll to a field (or its section) and focus it. */
 function jumpTo(field: string, section: SectionId) {
@@ -86,6 +86,11 @@ export function ProfileEditor({
   const changed = useMemo(() => JSON.stringify(p) !== savedJson.current, [p]);
   const first = progress.issues[0];
   const sec = (id: SectionId) => progress.sections[id];
+  // Red marks: everything once the person has tried to continue; before that only the gaps in entries they have already started.
+  const markedErrors = useMemo(() => {
+    if (attempted) return progress.errors;
+    return new Map([...progress.errors].filter(([field]) => isStartedField(p, field)));
+  }, [attempted, progress.errors, p]);
 
   // First-time setup runs as steps; later edits use the single-page editor.
   const wizard = firstTime;
@@ -128,7 +133,7 @@ export function ProfileEditor({
   const remove = (k: "experiences" | "education" | "certifications" | "projects", i: number) => setP((x) => ({ ...x, [k]: (x[k] as unknown[]).filter((_, j) => j !== i) }));
 
   return (
-    <ErrorsContext.Provider value={{ errors: progress.errors, show: attempted, wizard }}>
+    <ErrorsContext.Provider value={{ errors: markedErrors, wizard }}>
       {wizard && (
         <div className="mb-ds-4 flex flex-col gap-ds-4">
           <SetupSteps current={step} />
@@ -377,14 +382,29 @@ export function ProfileEditor({
           <div className={cn("sticky bottom-0 z-10 flex gap-ds-4 rounded-md bg-white p-ds-4 shadow-card", wizard ? "flex-wrap items-center justify-between" : "flex-col")}>
             <div className="flex max-w-md flex-col gap-ds-2">
               {stepFirst && (
-                <p role={attempted ? "alert" : undefined} className="text-body-sm">
-                  <span className="font-bold text-warning">
-                    {stepIssues.length} required {stepIssues.length === 1 ? "item" : "items"} missing.
-                  </span>{" "}
-                  <button type="button" onClick={() => jumpTo(stepFirst.field, stepFirst.section)} className="text-blue-700 underline">
+                <div role={attempted ? "alert" : undefined} className="flex flex-col gap-ds-1 text-body-sm">
+                  <p>
+                    <span className="font-bold text-danger">
+                      {stepIssues.length} required {stepIssues.length === 1 ? "item" : "items"} missing:
+                    </span>
+                  </p>
+                  <ul className="flex list-disc flex-col gap-0.5 pl-5">
+                    {[...new Map(stepIssues.map((i) => [i.label, i])).values()].slice(0, 3).map((i) => (
+                      <li key={i.label}>{i.label}</li>
+                    ))}
+                    {new Set(stepIssues.map((i) => i.label)).size > 3 && <li className="list-none">…and {new Set(stepIssues.map((i) => i.label)).size - 3} more</li>}
+                  </ul>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAttempted(true);
+                      jumpTo(stepFirst.field, stepFirst.section);
+                    }}
+                    className="self-start text-blue-700 underline"
+                  >
                     Show me
                   </button>
-                </p>
+                </div>
               )}
               {wizard ? (
                 step === lastStep && <p className="text-body-sm">Creating your documents is free. We only use what you entered here.</p>
@@ -484,9 +504,9 @@ function Section({
   children: ReactNode;
 }) {
   // Several empty fields in one job would repeat the same wording, so list each message once.
-  // Once inline errors are showing they say the same thing next to each field.
-  const { show, wizard } = useContext(ErrorsContext);
-  const todo = show ? [] : [...new Set(issues.map((i) => i.message))];
+  // Gaps already marked red next to their field are not listed again.
+  const { errors, wizard } = useContext(ErrorsContext);
+  const todo = [...new Set(issues.filter((i) => !errors.has(i.field)).map((i) => i.message))];
   return (
     <Card id={id} tabIndex={-1} aria-labelledby={`${id}-h`} className="scroll-mt-[84px] outline-none">
       <CardHeader
@@ -561,9 +581,9 @@ function F({
   field?: string;
 }) {
   const id = useId();
-  const { errors, show } = useContext(ErrorsContext);
+  const { errors } = useContext(ErrorsContext);
   const [badText, setBadText] = useState(false); // month fields only: typed text that isn't a month and year
-  const error = badText ? "Enter a month and year, like Mar 2021." : show && field ? errors.get(field) : undefined;
+  const error = badText ? "Enter a month and year, like Mar 2021." : field ? errors.get(field) : undefined;
   return (
     <Field label={label} htmlFor={id} required={required} hint={hint} error={error}>
       {type === "month" ? (

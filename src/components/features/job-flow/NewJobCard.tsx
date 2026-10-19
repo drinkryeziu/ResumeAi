@@ -1,3 +1,4 @@
+import { Briefcase } from "lucide-react";
 import { analyzeNewJob } from "@/app/(app)/jobs/actions";
 import { Card } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
@@ -13,13 +14,20 @@ import { JobInput } from "./JobInput";
 export function NewJobCard({ cost, sample }: { cost: number; sample: typeof DEMO_JOB | null }) {
   return (
     <section id="tailor" aria-labelledby="tailor-h" className="scroll-mt-[84px]">
-      <Card className="flex flex-col gap-ds-4">
-        <div className="flex flex-wrap items-end justify-between gap-ds-3">
-          <div className="flex flex-col gap-ds-1">
-            <h2 id="tailor-h" className="text-card-title">
-              Tailor your resume to a job
-            </h2>
-            <p className="text-body-sm max-w-xl">Paste the job description. We compare it with your profile and show your Job Match Score.</p>
+      {/* The dashboard's one sand-300 moment: a strip across the top of the main action. */}
+      <Card className="relative flex flex-col gap-ds-4 overflow-hidden pt-ds-5">
+        <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-sand-300" />
+        <div className="flex flex-wrap items-start justify-between gap-ds-3">
+          <div className="flex items-start gap-ds-3">
+            <span aria-hidden="true" className="grid size-12 shrink-0 place-items-center rounded-full bg-sky-50 text-blue-600">
+              <Briefcase size={24} />
+            </span>
+            <div className="flex flex-col gap-ds-1">
+              <h2 id="tailor-h" className="text-heading-section">
+                Tailor your resume to a job
+              </h2>
+              <p className="text-body-sm max-w-xl">Paste the job description. We compare it with your profile and show your Job Match Score.</p>
+            </div>
           </div>
           {!sample && (
             <ButtonLink href="/dashboard?sample=1#tailor" variant="link">

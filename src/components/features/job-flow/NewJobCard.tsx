@@ -36,6 +36,7 @@ export function NewJobCard({ cost, sample }: { cost: number; sample: typeof DEMO
           )}
         </div>
         <ActionForm
+          className="[&_input]:bg-white [&_textarea]:bg-white"
           action={analyzeNewJob}
           hidden={{ requestId: crypto.randomUUID() }}
           label="Tailor your resume to a job"

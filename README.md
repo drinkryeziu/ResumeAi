@@ -74,6 +74,8 @@ Atlas is always a replica set, which the credit ledger needs (it writes balance 
 | `AI_FORCE_MOCK` | no | `true` forces the mock even when keys are set |
 | `ALLOW_MEMORY_STORE` | no | `true` lets a Vercel preview run on the temporary in-memory store (data is lost). Leave unset |
 | `AUTH_GOOGLE_ID/SECRET`, `AUTH_LINKEDIN_ID/SECRET` | no | enable social sign-in |
+| `RESEND_API_KEY`, `EMAIL_FROM` | for "Forgot password?" | send reset emails through [Resend](https://resend.com). `EMAIL_FROM` must be on a domain you verified there (e.g. `ResumeAi <hello@example.com>`); Resend's test sender only reaches your own address. Without a key people cannot reset a forgotten password; `/api/health` shows `"email": false` |
+| `AUTH_URL` | no | public address of the site (`https://…`), used for the link in reset emails. Leave unset to use the address of the request |
 
 3. **Deploy.** Every push to `main` redeploys.
 

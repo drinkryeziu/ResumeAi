@@ -3,7 +3,6 @@ import type { AIRunRecord } from "@/server/ai/runner";
 import { MemoryCreditStore } from "@/server/credits/memory-store";
 import { CreditService } from "@/server/credits/service";
 import type { ProfileSnapshot } from "@/server/domain/profile";
-import { hashPassword } from "@/server/auth/password";
 import type { AnalysisRecord, AppStore, AtsRecord, CoverLetterRecord, CvImport, JobRecord, MatchRecord, ResumeRecord, UserRecord } from "./types";
 
 const id = (prefix: string) => `${prefix}_${randomUUID().slice(0, 8)}`;
@@ -15,6 +14,7 @@ export class MemoryAppStore implements AppStore {
   credits = new CreditService(this.creditStore);
 
   private users: UserRecord[] = [];
+  private resets = new Map<string, { userId: string; createdAt: Date; expiresAt: Date; usedAt: Date | null }>();
   private cvImports = new Map<string, CvImport>();
   private profiles = new Map<string, ProfileSnapshot>();
   private jobs: JobRecord[] = [];
@@ -54,6 +54,30 @@ export class MemoryAppStore implements AppStore {
   }
   async getUser(userId: string) {
     return this.users.find((x) => x.id === userId) ?? null;
+  }
+
+  async createPasswordReset(userId: string, tokenHash: string, createdAt: Date, expiresAt: Date) {
+    for (const [k, v] of this.resets) if (v.userId === userId) this.resets.delete(k);
+    this.resets.set(tokenHash, { userId, createdAt, expiresAt, usedAt: null });
+  }
+  async lastPasswordResetAt(userId: string) {
+    return [...this.resets.values()].filter((v) => v.userId === userId).sort((a, b) => +b.createdAt - +a.createdAt)[0]?.createdAt ?? null;
+  }
+  async findPasswordReset(tokenHash: string, now: Date) {
+    const r = this.resets.get(tokenHash);
+    return r && !r.usedAt && r.expiresAt > now ? { userId: r.userId } : null;
+  }
+  async consumePasswordReset(tokenHash: string, now: Date) {
+    const r = this.resets.get(tokenHash);
+    if (!r || r.usedAt || r.expiresAt <= now) return null;
+    r.usedAt = now; // synchronous: two requests can't both pass the check above
+    return { userId: r.userId };
+  }
+  async setPasswordHash(userId: string, passwordHash: string) {
+    const u = this.users.find((x) => x.id === userId);
+    if (!u) return false;
+    u.passwordHash = passwordHash;
+    return true;
   }
 
   private own<T extends { userId: string }>(rows: T[], userId: string) {

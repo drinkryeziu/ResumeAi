@@ -101,6 +101,19 @@ export interface AppStore {
   findUserByEmail(email: string): Promise<UserRecord | null>;
   getUser(userId: string): Promise<UserRecord | null>;
 
+  /**
+   * Password reset links. Only a hash of the token is stored. A user has at most one live link: creating a new one replaces the old.
+   */
+  createPasswordReset(userId: string, tokenHash: string, createdAt: Date, expiresAt: Date): Promise<void>;
+  /** When the user's latest reset link was made (used to throttle requests), or null. */
+  lastPasswordResetAt(userId: string): Promise<Date | null>;
+  /** The user a link belongs to, if it is still valid (not used, not expired). Does not use it up. */
+  findPasswordReset(tokenHash: string, now: Date): Promise<{ userId: string } | null>;
+  /** Uses the link up, once: returns its user, or null if it is unknown, expired or already used. */
+  consumePasswordReset(tokenHash: string, now: Date): Promise<{ userId: string } | null>;
+  /** Replaces the user's password hash. Returns false if the user doesn't exist. */
+  setPasswordHash(userId: string, passwordHash: string): Promise<boolean>;
+
   /** Throws if the user has no profile yet — use findProfile to check. */
   getProfile(userId: string): Promise<ProfileSnapshot>;
   findProfile(userId: string): Promise<ProfileSnapshot | null>;

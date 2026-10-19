@@ -2,7 +2,6 @@ import type { Collection, Db, Document, MongoClient } from "mongodb";
 import type { AIRunRecord } from "@/server/ai/runner";
 import { MongoCreditStore } from "@/server/credits/mongo-store";
 import { CreditService } from "@/server/credits/service";
-import { hashPassword } from "@/server/auth/password";
 import type { ProfileSnapshot } from "@/server/domain/profile";
 import type { AnalysisRecord, AppStore, AtsRecord, CoverLetterRecord, CvImport, JobRecord, MatchRecord, ResumeRecord, UserRecord } from "./types";
 
@@ -33,6 +32,7 @@ export class MongoAppStore implements AppStore {
   private readonly creditStore: MongoCreditStore;
 
   private users: Collection<Doc>;
+  private resets: Collection<Doc>;
   private profiles: Collection<Doc>;
   private cvImports: Collection<Doc>;
   private jobs: Collection<Doc>;
@@ -50,6 +50,7 @@ export class MongoAppStore implements AppStore {
     this.creditStore = new MongoCreditStore(client, db);
     this.credits = new CreditService(this.creditStore);
     this.users = db.collection("users");
+    this.resets = db.collection("password_resets");
     this.profiles = db.collection("profiles");
     this.cvImports = db.collection("cv_imports");
     this.jobs = db.collection("jobs");
@@ -65,6 +66,8 @@ export class MongoAppStore implements AppStore {
   async ensureIndexes() {
     await Promise.all([
       this.users.createIndex({ email: 1 }, { unique: true }),
+      this.resets.createIndex({ userId: 1 }),
+      this.resets.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 86_400 }), // used and expired links disappear a day after they stop working
       this.jobs.createIndex({ userId: 1, updatedAt: -1 }),
       this.analyses.createIndex({ userId: 1, jobId: 1, createdAt: -1 }),
       this.matches.createIndex({ userId: 1, jobId: 1, createdAt: -1 }),
@@ -110,6 +113,28 @@ export class MongoAppStore implements AppStore {
   }
   async getUser(userId: string) {
     return row<UserRecord>(await this.users.findOne({ _id: userId as never }));
+  }
+
+  async createPasswordReset(userId: string, tokenHash: string, createdAt: Date, expiresAt: Date) {
+    await this.resets.deleteMany({ userId });
+    await this.resets.insertOne({ _id: tokenHash as never, userId, createdAt, expiresAt, usedAt: null });
+  }
+  async lastPasswordResetAt(userId: string) {
+    const d = await this.resets.find({ userId }).sort({ createdAt: -1 }).limit(1).next();
+    return (d?.createdAt as Date | undefined) ?? null;
+  }
+  async findPasswordReset(tokenHash: string, now: Date) {
+    const d = await this.resets.findOne({ _id: tokenHash as never, usedAt: null, expiresAt: { $gt: now } });
+    return d ? { userId: d.userId as string } : null;
+  }
+  async consumePasswordReset(tokenHash: string, now: Date) {
+    // One atomic update: only the first request finds it unused.
+    const d = await this.resets.findOneAndUpdate({ _id: tokenHash as never, usedAt: null, expiresAt: { $gt: now } }, { $set: { usedAt: now } });
+    return d ? { userId: d.userId as string } : null;
+  }
+  async setPasswordHash(userId: string, passwordHash: string) {
+    const r = await this.users.updateOne({ _id: userId as never }, { $set: { passwordHash } });
+    return r.matchedCount === 1;
   }
 
   // ───────────── Profile ─────────────

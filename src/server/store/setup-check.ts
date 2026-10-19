@@ -8,6 +8,8 @@ export interface SetupStatus {
   authSecret: boolean;
   /** MongoDB is configured. False means the temporary in-memory store (fine locally, wrong on a host). */
   mongodbUri: boolean;
+  /** Password reset emails can be sent (RESEND_API_KEY is set). False does not stop the site; people just can't reset a forgotten password. */
+  email: boolean;
   /** "ok" | "failed" when MongoDB is configured, "in-memory" when it is not. */
   database: "ok" | "failed" | "in-memory";
   onVercel: boolean;
@@ -20,6 +22,7 @@ export async function setupStatus(opts: { pingTimeoutMs?: number } = {}): Promis
   // Outside production the app fills in a development secret itself (src/server/auth/config.ts); production never does.
   const authSecret = Boolean(process.env.AUTH_SECRET?.trim()) || process.env.NODE_ENV !== "production";
   const mongodbUri = usesMongo();
+  const email = Boolean(process.env.RESEND_API_KEY?.trim());
   const onVercel = Boolean(process.env.VERCEL);
   let database: SetupStatus["database"] = "in-memory";
   if (mongodbUri) {
@@ -39,5 +42,5 @@ export async function setupStatus(opts: { pingTimeoutMs?: number } = {}): Promis
       "MONGODB_URI is set but the database could not be reached. Check the user and password in the connection string, and that MongoDB Atlas Network Access allows 0.0.0.0/0.",
     );
   const ready = authSecret && database !== "failed" && (mongodbUri || !onVercel);
-  return { authSecret, mongodbUri, database, onVercel, ready, problems };
+  return { authSecret, mongodbUri, email, database, onVercel, ready, problems };
 }

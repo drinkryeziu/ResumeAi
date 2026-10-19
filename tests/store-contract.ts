@@ -317,5 +317,38 @@ export function storeContract(label: string, open: () => Promise<{ store: AppSto
       expect(await store.resumeForJob(u.id, null)).toEqual(master);
       expect(await store.credits.balance(u.id)).toBe(60 - 35); // no refund for credits already used
     });
+
+    it("password reset links: valid once, expire, and a new one replaces the old", async () => {
+      const u = await store.createUser({ email: "reset@example.com", name: "Reset", passwordHash: "old" });
+      const now = new Date("2026-01-01T10:00:00Z");
+      const hour = new Date(now.getTime() + 3_600_000);
+
+      expect(await store.lastPasswordResetAt(u.id)).toBeNull();
+      await store.createPasswordReset(u.id, "hash-1", now, hour);
+      expect(await store.lastPasswordResetAt(u.id)).toEqual(now);
+      expect(await store.findPasswordReset("hash-1", now)).toEqual({ userId: u.id });
+      expect(await store.findPasswordReset("hash-1", now)).toEqual({ userId: u.id }); // looking doesn't use it up
+      expect(await store.findPasswordReset("nope", now)).toBeNull();
+      expect(await store.findPasswordReset("hash-1", new Date(hour.getTime() + 1))).toBeNull(); // expired
+
+      // Two people clicking at once: only one gets in.
+      const both = await Promise.all([store.consumePasswordReset("hash-1", now), store.consumePasswordReset("hash-1", now)]);
+      expect(both.filter(Boolean)).toEqual([{ userId: u.id }]);
+      expect(await store.consumePasswordReset("hash-1", now)).toBeNull();
+      expect(await store.findPasswordReset("hash-1", now)).toBeNull();
+
+      await store.createPasswordReset(u.id, "hash-2", now, hour);
+      await store.createPasswordReset(u.id, "hash-3", now, hour);
+      expect(await store.findPasswordReset("hash-2", now)).toBeNull(); // replaced
+      expect(await store.findPasswordReset("hash-3", now)).toEqual({ userId: u.id });
+      expect(await store.consumePasswordReset("hash-3", new Date(hour.getTime() + 1))).toBeNull();
+    });
+
+    it("sets a new password hash for an existing user only", async () => {
+      const u = await store.createUser({ email: "pw@example.com", name: "Pw", passwordHash: "old" });
+      expect(await store.setPasswordHash(u.id, "new")).toBe(true);
+      expect((await store.getUser(u.id))!.passwordHash).toBe("new");
+      expect(await store.setPasswordHash("usr_missing", "x")).toBe(false);
+    });
   });
 }

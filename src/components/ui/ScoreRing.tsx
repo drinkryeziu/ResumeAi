@@ -1,8 +1,15 @@
+/** Score bands for the ring: 0–33 red, 34–66 amber, 67–100 green. Class names are written out so Tailwind sees them. */
+function bandStroke(score: number): string {
+  if (score <= 33) return "stroke-danger";
+  if (score <= 66) return "stroke-score-amber";
+  return "stroke-success";
+}
+
 /**
- * Circular score (0–100). Color is blue-600 — the action/brand color — rather than red/green,
- * because a "low" match is a to-do list, not a failure. The number always carries the meaning.
+ * Circular score (0–100). With `banded` the arc is red, amber or green by score; otherwise it is blue-600.
+ * The number is always printed in the middle, so color never carries the meaning alone.
  */
-export function ScoreRing({ value, label, size = 132 }: { value: number; label: string; size?: number }) {
+export function ScoreRing({ value, label, size = 132, banded = false }: { value: number; label: string; size?: number; banded?: boolean }) {
   const stroke = 10;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
@@ -16,7 +23,7 @@ export function ScoreRing({ value, label, size = 132 }: { value: number; label: 
           cy={size / 2}
           r={r}
           fill="none"
-          stroke="var(--blue-600)"
+          className={banded ? bandStroke(clamped) : "stroke-blue-600"}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={`${(clamped / 100) * c} ${c}`}

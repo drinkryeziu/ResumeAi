@@ -19,6 +19,7 @@
   --color-success: #13795b;
   --color-warning: #8a5a00;
   --color-danger: #b42318;
+  --color-score-amber: #c77700; /* ring stroke only, 3.4:1 on white */
   /* chip-only tints for the status colors above; cards and panels stay white / sky-50 / gray-100 */
   --color-success-tint: #e7f5ef;
   --color-warning-tint: #fff4de;

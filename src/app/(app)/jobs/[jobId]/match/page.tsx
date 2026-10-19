@@ -115,7 +115,7 @@ export default async function MatchPage({ params }: { params: Promise<{ jobId: s
           className="flex flex-col gap-ds-4 [@media(min-width:1024px)_and_(min-height:820px)]:sticky [@media(min-width:1024px)_and_(min-height:820px)]:top-[84px]"
         >
           <Card id="create" className="flex scroll-mt-[84px] flex-col items-center gap-ds-4">
-            <ScoreRing value={m.scores.overall} label="Job Match Score" />
+            <ScoreRing value={m.scores.overall} label="Job Match Score" banded />
             <p className="text-body-sm text-center">{explain(m)}</p>
 
             <div className="flex w-full flex-col gap-ds-2">

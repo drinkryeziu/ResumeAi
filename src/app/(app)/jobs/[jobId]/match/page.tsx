@@ -121,7 +121,7 @@ export default async function MatchPage({ params }: { params: Promise<{ jobId: s
             <div className="flex w-full flex-col gap-ds-2">
               {created ? (
                 <ButtonLink href={`/jobs/${jobId}`} className="w-full">
-                  Review & download
+                  Review and download
                 </ButtonLink>
               ) : (
                 <ActionForm
@@ -246,6 +246,12 @@ export default async function MatchPage({ params }: { params: Promise<{ jobId: s
               )}
             </div>
           </Card>
+
+          {created && (
+            <div className="flex justify-end">
+              <ButtonLink href={`/jobs/${jobId}`}>Review and download</ButtonLink>
+            </div>
+          )}
         </div>
       </div>
     </>

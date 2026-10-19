@@ -159,18 +159,6 @@ export function ProfileEditor({ initial, firstTime, requestId, intro }: { initia
 
         <div className="flex flex-col gap-ds-4">
           {step === lastStep && wizard && <ReviewStep p={p} />}
-          <div className={cn("rounded-md bg-sky-50 p-ds-4 lg:hidden", wizard && "hidden")}>
-            <Progress done={progress.completeCount} total={SECTIONS.length} onTint />
-            {first && (
-              <p className="mt-ds-2 text-body-sm">
-                {progress.issues.length} required {progress.issues.length === 1 ? "item" : "items"} missing.{" "}
-                <button type="button" onClick={() => jumpTo(first.field, first.section)} className="text-blue-700 underline">
-                  Show me
-                </button>
-              </p>
-            )}
-          </div>
-
           <StepPane show={inStep("personal")}>
             <Section id="personal" {...sec("personal")} title="Personal information">
               <Grid>

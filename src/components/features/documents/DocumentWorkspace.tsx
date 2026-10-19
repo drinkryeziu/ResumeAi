@@ -1,10 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Download, Eye, FileText, Mail, Package, PenLine } from "lucide-react";
+import { Download, FileText, Mail, Package, PenLine } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
-import { Button, ButtonAnchor } from "@/components/ui/Button";
+import { Button, ButtonAnchor, ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import type { CoverLetterRecord, ResumeRecord } from "@/server/store/types";
 import { restoreVersion } from "@/app/(app)/jobs/actions";
@@ -62,7 +62,10 @@ export function DocumentWorkspace({
               role="tab"
               aria-selected={tab === t}
               href={here(t)}
-              className={cn("inline-flex items-center gap-2 rounded-pill px-ds-4 py-2 text-body-sm no-underline", tab === t ? "bg-blue-600 font-bold text-white" : "bg-gray-100 text-navy-900")}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-pill px-ds-4 py-2 text-body-sm no-underline",
+                tab === t ? "bg-blue-600 font-bold text-white" : "bg-gray-100 text-navy-900",
+              )}
             >
               {icon}
               {label}
@@ -86,34 +89,6 @@ export function DocumentWorkspace({
 
       <div className="grid gap-ds-4 lg:grid-cols-[1fr_320px]">
         <div className="flex flex-col gap-ds-3">
-          {active && (
-            <>
-              <Card aria-labelledby="download-apply-h" className="flex flex-col gap-ds-3">
-                <h2 id="download-apply-h" className="text-card-title">
-                  Download and apply
-                </h2>
-                <div className="flex flex-wrap items-center gap-ds-3">
-                  <ButtonAnchor href={download(tab, "pdf")} variant="secondary" compact icon={<Download size={16} aria-hidden="true" />}>
-                    Download PDF
-                  </ButtonAnchor>
-                  <ButtonAnchor href={download(tab, "docx")} variant="secondary" compact icon={<Download size={16} aria-hidden="true" />}>
-                    Download Word
-                  </ButtonAnchor>
-                  <CopyTextButton text={tab === "resume" ? resumePlainText(resumeV!.content) : coverLetterPlainText(letterV!.content)} />
-                </div>
-                <p className="text-caption">Paste the text into an application form, or attach the file. You apply yourself; we never submit for you.</p>
-              </Card>
-              <div className="flex flex-wrap items-center gap-x-ds-5 gap-y-ds-2 text-body-sm" aria-label="Document actions">
-                <Link href={here(tab)} aria-current={!editing ? "page" : undefined} className={cn("inline-flex items-center gap-1", !editing ? "font-bold text-navy-900 no-underline" : "text-blue-700 underline")}>
-                  <Eye size={16} aria-hidden="true" /> Preview
-                </Link>
-                <Link href={here(tab, true)} aria-current={editing ? "page" : undefined} className={cn("inline-flex items-center gap-1", editing ? "font-bold text-navy-900 no-underline" : "text-blue-700 underline")}>
-                  <PenLine size={16} aria-hidden="true" /> Edit
-                </Link>
-              </div>
-            </>
-          )}
-
           {tab === "resume" &&
             (resumeV ? (
               editing ? (
@@ -134,6 +109,28 @@ export function DocumentWorkspace({
             ) : (
               <Empty>No cover letter yet.</Empty>
             ))}
+
+          {active && (
+            <div className="flex flex-col gap-ds-2">
+              <div className="flex flex-wrap items-center justify-between gap-ds-3" aria-label="Download and edit">
+                <div className="flex flex-wrap items-center gap-ds-3">
+                  <ButtonAnchor href={download(tab, "pdf")} variant="secondary" compact icon={<Download size={16} aria-hidden="true" />}>
+                    Download PDF
+                  </ButtonAnchor>
+                  <ButtonAnchor href={download(tab, "docx")} variant="secondary" compact icon={<Download size={16} aria-hidden="true" />}>
+                    Download Word
+                  </ButtonAnchor>
+                  <CopyTextButton text={tab === "resume" ? resumePlainText(resumeV!.content) : coverLetterPlainText(letterV!.content)} />
+                </div>
+                {!editing && (
+                  <ButtonLink href={here(tab, true)} variant="secondary" compact className="ml-auto" icon={<PenLine size={16} aria-hidden="true" />}>
+                    {tab === "resume" ? "Edit resume" : "Edit cover letter"}
+                  </ButtonLink>
+                )}
+              </div>
+              <p className="text-caption">Paste the text into an application form, or attach the file. You apply yourself; we never submit for you.</p>
+            </div>
+          )}
         </div>
 
         <aside className="flex flex-col gap-ds-4">

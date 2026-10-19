@@ -13,6 +13,12 @@
   --color-gray-400: var(--gray-400);
   --color-gray-500: var(--gray-500);
   --color-white: var(--white);
+  --color-bridal: var(--bridal);
+  --color-cards-yellow: var(--cards-yellow);
+  --color-cards-red: var(--cards-red);
+  --color-cards-orange: var(--cards-orange);
+  --color-cards-green: var(--cards-green);
+  --color-cards-blue: var(--cards-blue);
   --color-transparent: transparent;
   --color-current: currentColor;
   /* status colors are not in the design system yet; kept minimal and AA on white */

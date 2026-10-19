@@ -14,6 +14,12 @@
   --gray-500: #757474; /* placeholders, 24px+ muted text only */
   --gray-400: #5d5d5d; /* disabled */
   --white: #ffffff;
+  --bridal: #fbfbef;       /* warm page/card ground */
+  --cards-yellow: #fffaeb; /* card tints: one per card, content stays navy-900 */
+  --cards-red: #ffeff6;
+  --cards-orange: #fff5eb;
+  --cards-green: #f1ffed;
+  --cards-blue: #eefcff;
 
   /* Shadow */
   --shadow-header: 0px 0px 11px 0px rgba(0, 0, 0, 0.1);

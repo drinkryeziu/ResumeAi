@@ -63,11 +63,27 @@ function jumpTo(field: string, section: SectionId) {
 }
 
 /** `intro` (first-time setup only) shows above the fields on the first step, outside the form, e.g. the "import your CV" options. */
-export function ProfileEditor({ initial, firstTime, requestId, intro }: { initial: ProfileInput; firstTime: boolean; requestId: string; intro?: ReactNode }) {
+export function ProfileEditor({
+  initial,
+  baseline,
+  firstTime,
+  requestId,
+  intro,
+}: {
+  initial: ProfileInput;
+  /** What is saved right now. When `initial` already holds an unsaved CV import, Save must stay available. Defaults to `initial`. */
+  baseline?: ProfileInput;
+  firstTime: boolean;
+  requestId: string;
+  intro?: ReactNode;
+}) {
   const [p, setP] = useState<ProfileInput>(() => (initial.experiences.length ? initial : { ...initial, experiences: [blankExp()] }));
   const [state, action] = useActionState(saveProfile, undefined);
+  const savedJson = useRef(JSON.stringify(baseline ?? initial));
   const [attempted, setAttempted] = useState(false);
   const progress = useMemo(() => profileProgress(p), [p]);
+  // Saving with nothing changed would only repeat the last save; later edits (not first-time setup) wait for a change.
+  const changed = useMemo(() => JSON.stringify(p) !== savedJson.current, [p]);
   const first = progress.issues[0];
   const sec = (id: SectionId) => progress.sections[id];
 
@@ -391,7 +407,10 @@ export function ProfileEditor({ initial, firstTime, requestId, intro }: { initia
                     Continue
                   </Button>
                 ) : (
-                  <SaveButton label={wizard ? "Create my master documents" : "Save profile"} />
+                  <>
+                    <SaveButton label={wizard ? "Create my master documents" : "Save profile"} disabled={!wizard && !changed} />
+                    {!wizard && !changed && <p className="text-caption">Make a change to save.</p>}
+                  </>
                 )}
                 {state?.error && (
                   <p role="alert" className="text-body-sm text-danger">
@@ -412,10 +431,10 @@ function StepPane({ show, children }: { show: boolean; children: ReactNode }) {
   return <div hidden={!show}>{children}</div>;
 }
 
-function SaveButton({ label }: { label: string }) {
+function SaveButton({ label, disabled }: { label: string; disabled?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+    <Button type="submit" disabled={pending || disabled} className="w-full sm:w-auto">
       {pending ? "Saving and creating your documents…" : label}
     </Button>
   );

@@ -27,7 +27,16 @@ export function NewJobCard({ cost, sample }: { cost: number; sample: typeof DEMO
             </ButtonLink>
           )}
         </div>
-        <ActionForm action={analyzeNewJob} hidden={{ requestId: crypto.randomUUID() }} label="Tailor your resume to a job" pendingLabel="Analyzing the job…" cost={cost} fullWidth>
+        <ActionForm
+          action={analyzeNewJob}
+          hidden={{ requestId: crypto.randomUUID() }}
+          label="Tailor your resume to a job"
+          pendingLabel="Analyzing the job…"
+          cost={cost}
+          fullWidth
+          requireOneOf={["description", "file"]}
+          requireHint="Paste the job description or upload a file to continue."
+        >
           <div className="mb-ds-4 flex flex-col gap-ds-4">
             <JobInput defaultText={sample?.description} />
             <div className="grid gap-ds-4 md:grid-cols-2">

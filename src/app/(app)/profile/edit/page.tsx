@@ -23,12 +23,14 @@ export default async function EditProfilePage() {
         <SoftPanel className="mb-ds-4 flex flex-col gap-ds-3">
           <div>
             <h2 className="text-card-title">Import from a CV</h2>
-            <p className="text-body-sm mt-ds-1">Upload a newer CV to add jobs, education and skills you haven&apos;t entered yet. Nothing you&apos;ve already written is overwritten.</p>
+            <p className="text-body-sm mt-ds-1">
+              Upload a newer CV to add jobs, education and skills you haven&apos;t entered yet. Nothing you&apos;ve already written is overwritten.
+            </p>
           </div>
           <CvImport returnTo="edit" requestId={crypto.randomUUID()} compact />
         </SoftPanel>
       )}
-      <ProfileEditor key={cv ? cv.createdAt.toISOString() : "saved"} initial={merged?.input ?? base} firstTime={false} requestId={crypto.randomUUID()} />
+      <ProfileEditor key={cv ? cv.createdAt.toISOString() : "saved"} initial={merged?.input ?? base} baseline={base} firstTime={false} requestId={crypto.randomUUID()} />
     </>
   );
 }

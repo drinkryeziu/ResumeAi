@@ -1,4 +1,5 @@
 import type { ProfileSnapshot } from "@/server/domain/profile";
+import { experienceFactText } from "./experience";
 
 /**
  * The evidence index: every fact the AI is allowed to use, flattened into id-tagged lines.
@@ -20,6 +21,7 @@ export type EvidenceKind =
   | "certification"
   | "project"
   | "extra"
+  | "experience_total"
   | "approved_fact";
 
 export interface EvidenceItem {
@@ -41,6 +43,8 @@ export function buildEvidence(profile: ProfileSnapshot): EvidenceItem[] {
     e.achievements.forEach((a, i) => items.push({ id: `${e.id}#a${i}`, kind: "achievement", text: a, parentId: e.id }));
     if (e.tools.length) items.push({ id: `${e.id}#t`, kind: "tools", text: `Tools used: ${e.tools.join(", ")}`, parentId: e.id });
   }
+  const total = experienceFactText(profile);
+  if (total) items.push({ id: "experience_total", kind: "experience_total", text: total });
   for (const ed of profile.education) {
     items.push({ id: ed.id, kind: "education", text: [ed.degree, ed.field, ed.school].filter(Boolean).join(", ") + (ed.description ? ` — ${ed.description}` : "") });
   }

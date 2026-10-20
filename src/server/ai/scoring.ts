@@ -113,6 +113,7 @@ export function totalYears(experiences: Array<{ startDate: string; endDate?: str
   const nowM = now.getFullYear() * 12 + now.getMonth();
   const spans = experiences
     .map((e) => [toMonth(e.startDate), e.isCurrent || !e.endDate ? nowM : toMonth(e.endDate)] as const)
+    .filter(([s, e]) => Number.isFinite(s) && Number.isFinite(e) && s > 0 && e >= s)
     .sort((a, b) => a[0] - b[0]);
   let months = 0;
   let curStart = -1;

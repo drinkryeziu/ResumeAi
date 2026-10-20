@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import type { ProfileSnapshot } from "@/server/domain/profile";
 import { buildEvidence, evidenceBlock, type EvidenceItem } from "../evidence";
+import { groundYearsRequirements } from "../experience";
 import { unknownEvidence } from "../guard/fabrication-guard";
 import { keywordCoverage, scoreMatch, totalYears, type MatchScores, type RequirementAssessment } from "../scoring";
 import { containsTerm } from "../text";
@@ -55,7 +56,8 @@ Task: decide, for EACH job requirement, how well the candidate's evidence suppor
 - strong: evidence clearly shows it. partial: related evidence exists but is indirect or weaker. missing: no evidence.
 - strong and partial MUST cite evidence ids. missing cites none.
 - Be strict: a related tool is "partial", not "strong". Do not give credit for things the evidence doesn't say.
-- For important missing or partial requirements, write a short yes/no question (e.g. "Have you run accessibility testing on a product?").`,
+- For important missing or partial requirements, write a short yes/no question (e.g. "Have you run accessibility testing on a product?").
+- Years of experience: the evidence line "experience_total" is the candidate's whole work history added up from the dates. Judge every "N years" requirement against it (a role's own dates show how long they did something). NEVER ask the candidate a question about how many years they have.`,
     user: `${evidenceBlock(buildEvidence(profile))}
 
 <job_requirements>
@@ -81,8 +83,9 @@ ${analysis.requirements.map((r) => `[${r.id}] (${r.importance}, ${r.category}) $
 };
 
 /** Turn the model's classifications into the stored report (scores, lists, keywords). */
-export function buildMatchReport(input: MatchInput, out: MatchModelOutput): MatchReport {
-  const profileText = buildEvidence(input.profile).map((e) => e.text).join("\n");
+export function buildMatchReport(input: MatchInput, modelOut: MatchModelOutput): MatchReport {
+  const out = groundYearsRequirements(input.profile, input.analysis, modelOut);
+  const profileText = buildEvidence(input.profile).filter((e) => e.kind !== "experience_total").map((e) => e.text).join("\n");
   const scores = scoreMatch(input.analysis, out.assessments, profileText);
   const coverage = keywordCoverage(input.analysis, profileText);
   const reqText = new Map(input.analysis.requirements.map((r) => [r.id, r.text]));
@@ -106,7 +109,7 @@ export function buildMatchReport(input: MatchInput, out: MatchModelOutput): Matc
 // ───────────── mock: term overlap, so local runs give believable results ─────────────
 
 function heuristicMatch(profile: ProfileSnapshot, analysis: JobAnalysis): MatchModelOutput {
-  const evidence = buildEvidence(profile);
+  const evidence = buildEvidence(profile).filter((e) => e.kind !== "experience_total");
   const years = totalYears(profile.experiences);
   const find = (term: string): EvidenceItem[] => evidence.filter((e) => containsTerm(e.text, term));
 

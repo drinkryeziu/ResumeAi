@@ -1,5 +1,6 @@
 import type { ProfileSnapshot } from "@/server/domain/profile";
 import { claimableTerms, type EvidenceItem } from "../evidence";
+import { experienceYears, yearsMentioned } from "../experience";
 import { claimNumbers, normalize } from "../text";
 
 /**
@@ -37,6 +38,25 @@ export function inventedNumbers(cited: CitedText[], evidence: EvidenceItem[]): s
     const allowed = new Set(claimNumbers(source));
     for (const n of claimNumbers(c.text)) {
       if (!allowed.has(n)) out.push(`${c.where}: the number "${n}" does not appear in the cited evidence. Remove it or ask the user.`);
+    }
+  }
+  return out;
+}
+
+/**
+ * "N years" claims may not be longer than the work history adds up to (computed from the dates, overlaps counted once).
+ * Shorter claims are fine ("5 years in UX" inside a 12-year career); a figure the cited evidence itself states is accepted.
+ */
+export function overlongYears(cited: CitedText[], evidence: EvidenceItem[], profile: ProfileSnapshot): string[] {
+  const byId = new Map(evidence.map((e) => [e.id, e]));
+  const total = experienceYears(profile);
+  const out: string[] = [];
+  for (const c of cited) {
+    const stated = new Set(c.evidenceIds.flatMap((id) => (byId.get(id)?.kind === "experience_total" ? [] : yearsMentioned(byId.get(id)?.text ?? ""))));
+    for (const n of yearsMentioned(c.text)) {
+      if (n > Math.floor(total) && !stated.has(n)) {
+        out.push(`${c.where}: "${n} years" is longer than the work history covers (${Math.floor(total) >= 1 ? `${Math.floor(total)}+` : "under 1"} years from the dates). Use that figure or leave years out.`);
+      }
     }
   }
   return out;

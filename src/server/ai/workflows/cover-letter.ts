@@ -3,7 +3,7 @@ import type { ProfileSnapshot } from "@/server/domain/profile";
 import type { CoverLetterDocument, ResumeDocument } from "@/server/documents/model";
 import { locationOf } from "@/server/documents/model";
 import { buildEvidence, evidenceBlock } from "../evidence";
-import { inventedNumbers, unknownEvidence, unknownOrganizations } from "../guard/fabrication-guard";
+import { inventedNumbers, overlongYears, unknownEvidence, unknownOrganizations } from "../guard/fabrication-guard";
 import { normalize } from "../text";
 import { GROUNDING_RULES, wrapJob, type WorkflowDefinition } from "../workflow";
 import type { JobAnalysis } from "./job-analyzer";
@@ -82,6 +82,7 @@ ${evidenceBlock(buildEvidence(profile))}`,
       return [
         ...unknownEvidence(cited, evidence),
         ...inventedNumbers(cited, evidence),
+        ...overlongYears(cited, evidence, profile),
         ...unknownOrganizations(out.organizationsMentioned, profile, job ? [job.company] : []),
       ];
     },

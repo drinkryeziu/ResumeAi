@@ -2,7 +2,7 @@ import { z } from "zod/v4";
 import type { ProfileSnapshot } from "@/server/domain/profile";
 import type { ResumeDraft } from "@/server/documents/model";
 import { buildEvidence, evidenceBlock } from "../evidence";
-import { inventedNumbers, unknownEvidence, unknownRows, unsupportedSkills, type CitedText } from "../guard/fabrication-guard";
+import { inventedNumbers, overlongYears, unknownEvidence, unknownRows, unsupportedSkills, type CitedText } from "../guard/fabrication-guard";
 import { containsTerm, normalize } from "../text";
 import { GROUNDING_RULES, wrapJob, type WorkflowDefinition } from "../workflow";
 import type { MatchReport } from "./candidate-match";
@@ -97,6 +97,7 @@ export function checkOptimizedResume(profile: ProfileSnapshot, out: OptimizedRes
     ...unknownRows("projects", out.projects.map((p) => p.projectId), profile.projects),
     ...unknownEvidence(cited, evidence),
     ...inventedNumbers(cited, evidence),
+    ...overlongYears(cited, evidence, profile),
     ...unsupportedSkills(out.skills, profile),
   ];
   // A bullet may only cite its own role or user-approved answers — no borrowing achievements across jobs.

@@ -31,6 +31,7 @@ MongoDB (`mongodb` driver), @react-pdf/renderer + docx + jszip for exports, unpd
 1. **AI never invents candidate facts.** No new employers, titles, schools, certifications, skills, tools, dates, achievements or numbers.
    Facts are copied from the profile in code (`assembleResume`); AI only rewords. Every AI output cites evidence ids and passes the
    fabrication guard. Missing info → ask the user (gap questions), never guess. Keep or extend tests in `tests/fabrication-guard.test.ts`.
+   Years of experience are arithmetic on the profile's dates (`src/server/ai/experience.ts`): the models are given the total, requirements that ask for years are decided in code, the candidate is never asked about years, and the guard rejects any "N years" claim longer than the history.
 2. **The Master Profile and Master documents are read-only to job steps.** Each job gets its own versions.
 3. **Versions are immutable.** Edits and restores create a new version; nothing is overwritten.
 4. **Every paid AI action goes through `runWorkflow`** so credits are reserved, refunded on failure, and the run is logged.

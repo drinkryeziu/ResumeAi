@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import { Check, CircleAlert, CircleDashed, Plus, Trash2 } from "lucide-react";
 import { saveProfile } from "@/app/(app)/profile/actions";
 import { Badge } from "@/components/ui/Badge";
+import { BusyOverlay } from "@/components/ui/BusyOverlay";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { errorProps, Field, Input, Textarea } from "@/components/ui/Field";
@@ -150,6 +151,7 @@ export function ProfileEditor({
         </div>
       )}
       <form action={action} onSubmit={onSubmit} noValidate className={cn("grid gap-ds-4", !wizard && "lg:grid-cols-[232px_1fr]")}>
+        <SaveBusy wizard={wizard} />
         <input type="hidden" name="profile" value={JSON.stringify(p)} />
         <input type="hidden" name="requestId" value={requestId} />
         <SavedDialog open={!!state?.saved} updatedDocuments={!!state?.updatedDocuments} />
@@ -449,6 +451,13 @@ export function ProfileEditor({
 /** Keeps every section mounted (so typed text is never lost) and shows only the current step's. */
 function StepPane({ show, children }: { show: boolean; children: ReactNode }) {
   return <div hidden={!show}>{children}</div>;
+}
+
+/** Saving can also write the Master documents with AI; only then is there a long wait worth a window. */
+function SaveBusy({ wizard }: { wizard: boolean }) {
+  const { pending, data } = useFormStatus();
+  if (!pending || (!wizard && data?.get("regenerate") !== "on")) return null;
+  return <BusyOverlay title="Creating your documents…" />;
 }
 
 function SaveButton({ label, disabled, long }: { label: string; disabled?: boolean; long?: boolean }) {

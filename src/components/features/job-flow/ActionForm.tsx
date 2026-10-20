@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { Loader2 } from "lucide-react";
+import { BusyOverlay } from "@/components/ui/BusyOverlay";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import type { ActionState } from "@/app/(app)/jobs/actions";
@@ -69,6 +70,7 @@ export function ActionForm({
         <input key={k} type="hidden" name={k} value={v} />
       ))}
       {children}
+      <BusyOverlay title={pendingLabel ?? "Working…"} />
       <div className={cn("flex flex-col gap-ds-2", fullWidth ? "items-stretch" : "items-start")}>
         <Submit
           label={label}

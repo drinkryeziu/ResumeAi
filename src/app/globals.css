@@ -82,3 +82,13 @@
     }
   }
 }
+
+/* The "working" window stays invisible for its first 0.4 s so quick actions don't flash it. Pure CSS (no timer state to lose); if animations never run it simply shows at once. */
+.busy-in {
+  animation: busy-in 150ms ease-out 400ms backwards;
+}
+@keyframes busy-in {
+  from {
+    opacity: 0;
+  }
+}

@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { ClipboardPaste, FileUp, Loader2 } from "lucide-react";
 import { importCv } from "@/app/(app)/profile/actions";
+import { BusyOverlay } from "@/components/ui/BusyOverlay";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Field";
 import { cn } from "@/lib/cn";
@@ -39,6 +40,7 @@ export function CvImport({ returnTo, requestId, compact }: { returnTo: "onboardi
     <form action={action} className="flex flex-col gap-ds-3">
       <input type="hidden" name="returnTo" value={returnTo} />
       <input type="hidden" name="requestId" value={requestId} />
+      <BusyOverlay title="Reading your CV…" />
       <div role="tablist" aria-label="How to add your CV" className="flex flex-wrap gap-ds-2">
         {tab("file", "Upload a file", <FileUp size={16} aria-hidden="true" />)}
         {tab("paste", "Paste text", <ClipboardPaste size={16} aria-hidden="true" />)}

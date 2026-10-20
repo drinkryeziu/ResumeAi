@@ -4,6 +4,7 @@ import { LegalLinks } from "@/components/features/legal/LegalLinks";
 import { ToastProvider } from "@/components/ui/Toast";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { requireUser } from "@/server/auth/session";
+import { grantPromotions } from "@/server/credits/promotions";
 import { getStore } from "@/server/store";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,8 @@ export const maxDuration = 60;
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   const store = await getStore();
+  // Launch credits and any other active promotion, once per person. Never allowed to break the page.
+  await grantPromotions(store.credits, user.id).catch((e) => console.error("[promotions] could not grant:", (e as Error).message));
   const [balance, account, profile] = await Promise.all([store.credits.balance(user.id), store.getUser(user.id), store.findProfile(user.id)]);
   const name = profile ? `${profile.firstName} ${profile.lastName}`.trim() : (account?.name ?? user.email);
   return (

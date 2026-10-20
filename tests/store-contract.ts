@@ -407,5 +407,23 @@ export function storeContract(label: string, open: () => Promise<{ store: AppSto
       // The email can be used again for a brand-new account.
       await expect(store.createUser({ email: "gone@example.com", name: "New", passwordHash: null })).resolves.toBeTruthy();
     });
+
+    it("grants a promotion once per user, even when asked many times at once", async () => {
+      const { grantPromotions, resetPromotionMemory } = await import("@/server/credits/promotions");
+      resetPromotionMemory();
+      const promo = { id: "contract-promo", credits: 150, active: true, label: "Launch credits" };
+      const a = await user("promo-a@example.com");
+      const b = await user("promo-b@example.com");
+      const startA = await store.credits.balance(a.id);
+      const startB = await store.credits.balance(b.id);
+      await Promise.all(Array.from({ length: 6 }, () => grantPromotions(store.credits, a.id, [promo])));
+      resetPromotionMemory(); // as if the server restarted
+      await grantPromotions(store.credits, a.id, [promo]);
+      expect(await store.credits.balance(a.id)).toBe(startA + 150);
+      expect(await store.credits.balance(b.id)).toBe(startB); // nobody else is touched
+      await grantPromotions(store.credits, b.id, [promo]);
+      expect(await store.credits.balance(b.id)).toBe(startB + 150);
+      expect((await store.credits.history(a.id, 20)).filter((e) => e.note === "Launch credits")).toHaveLength(1);
+    });
   });
 }

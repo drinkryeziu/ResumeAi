@@ -24,6 +24,7 @@ MongoDB (`mongodb` driver), @react-pdf/renderer + docx + jszip for exports, unpd
 - `src/server/services/job-pipeline.ts` — business logic for every step. `src/server/store/` — `AppStore` interface + memory and MongoDB impls (`getStore()` picks by env).
 - `src/server/documents/` — `ResumeDocument` model, `templates/classic/` (pdf.tsx, docx.ts), `export.tsx`, `extract-text.ts`.
 - `src/server/credits/` — append-only ledger. Prices live in data (`billing/catalog.ts` seeds), never hard-coded in logic.
+- Promotions: `src/server/billing/promotions.ts` lists credit gifts (e.g. `launch-150`, 150 credits once per user, applied when a signed-in user loads the app). To stop one, set `active: false` and push; a new promotion needs a new `id`.
 - `src/server/domain/` — profile types, Zod schema, form ↔ profile mapping, CV-import merge.
 
 ## Non-negotiable product rules

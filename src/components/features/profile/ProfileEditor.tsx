@@ -2,11 +2,11 @@
 
 import { createContext, useActionState, useContext, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
-import { Check, CircleAlert, CircleDashed, Plus, Trash2 } from "lucide-react";
+import { Check, CircleAlert, CircleDashed, Plus, Trash2, X } from "lucide-react";
 import { saveProfile } from "@/app/(app)/profile/actions";
 import { Badge } from "@/components/ui/Badge";
 import { BusyOverlay } from "@/components/ui/BusyOverlay";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { errorProps, Field, Input, Textarea } from "@/components/ui/Field";
 import { MonthField } from "@/components/ui/MonthField";
@@ -407,7 +407,15 @@ export function ProfileEditor({
                     Continue
                   </Button>
                 ) : (
-                  <SaveButton label={wizard ? "Create my master documents" : "Save profile"} disabled={blocked || (!wizard && !changed)} long={!wizard} describedBy={blocked ? "required-hint" : undefined} />
+                  <div className="flex flex-wrap items-center gap-x-ds-4 gap-y-ds-2">
+                    <SaveButton label={wizard ? "Create my master documents" : "Save profile"} disabled={blocked || (!wizard && !changed)} long={!wizard} describedBy={blocked ? "required-hint" : undefined} />
+                    {/* Nothing changed: there is nothing to save, so the way out is right beside the button. */}
+                    {!wizard && !changed && (
+                      <ButtonLink href="/profile" variant="link" icon={<X size={16} aria-hidden="true" />}>
+                        Close without saving
+                      </ButtonLink>
+                    )}
+                  </div>
                 )}
                 {blocked ? (
                   <p id="required-hint" className={cn("text-caption", !wizard && "text-center")}>
@@ -445,7 +453,7 @@ function SaveBusy({ wizard }: { wizard: boolean }) {
 function SaveButton({ label, disabled, long, describedBy }: { label: string; disabled?: boolean; long?: boolean; describedBy?: string }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending || disabled} aria-describedby={describedBy} className={long ? "w-full" : "w-full sm:w-auto"}>
+    <Button type="submit" disabled={pending || disabled} aria-describedby={describedBy} className={long ? "min-w-[12rem] flex-1" : "w-full sm:w-auto"}>
       {pending ? "Saving and creating your documents…" : label}
     </Button>
   );

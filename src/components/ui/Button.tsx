@@ -6,11 +6,10 @@ import { cn } from "@/lib/cn";
  * Design-system Button: pill shape, uppercase `button` type style.
  * - primary: blue-600 fill — ONE per view (the main action).
  * - secondary: white with a 2px blue-600 ring — the second action.
- * - danger: the secondary outline in the error color — only for opening a "delete this" confirmation.
  * - link: blue-700 underlined body-sm — tertiary actions.
  * `cost` appends the credit price so users always see what an AI action costs before clicking.
  */
-type Variant = "primary" | "secondary" | "danger" | "link";
+type Variant = "primary" | "secondary" | "link";
 
 const base =
   "inline-flex items-center justify-center gap-2 rounded-pill transition-colors disabled:cursor-not-allowed";
@@ -20,9 +19,6 @@ const variants: Record<Variant, string> = {
     "text-button py-ds-3 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400",
   secondary:
     "text-button py-ds-3 bg-white text-blue-600 shadow-[inset_0_0_0_2px_var(--blue-600)] hover:text-blue-700 hover:shadow-[inset_0_0_0_2px_var(--blue-700)] disabled:shadow-none disabled:bg-gray-100 disabled:text-gray-400",
-  // The same outline as secondary, in the error color: only for the button that opens a confirmation to delete something.
-  danger:
-    "text-button py-ds-3 bg-white text-danger shadow-[inset_0_0_0_2px_var(--color-danger)] hover:bg-danger-tint disabled:shadow-none disabled:bg-gray-100 disabled:text-gray-400",
   link: "text-body-sm text-blue-700 underline px-0 py-0",
 };
 
@@ -95,15 +91,35 @@ export function ButtonAnchor({
   );
 }
 
-/** 40px gray-100 circle with shadow-card — carousel arrows and icon-only actions. */
-export function IconButton({ label, children, className, ...rest }: { label: string } & ComponentProps<"button">) {
+/**
+ * 40px gray-100 circle with shadow-card — carousel arrows and icon-only actions. The icon is ink at rest and takes the
+ * action's color on hover, focus and press: blue for ordinary actions, red for ones that delete.
+ */
+type IconTone = "blue" | "danger";
+const ICON_TONE: Record<IconTone, string> = {
+  blue: "hover:bg-sky-50 hover:text-blue-600 focus-visible:text-blue-600 active:bg-sky-50 active:text-blue-700",
+  danger: "hover:bg-danger-tint hover:text-danger focus-visible:text-danger active:bg-danger-tint active:text-danger",
+};
+const iconClass = (tone?: IconTone, className?: string) =>
+  cn(
+    "inline-grid size-10 shrink-0 place-items-center rounded-full bg-gray-100 text-navy-900 shadow-card no-underline transition-colors focus-visible:outline-2 focus-visible:outline-blue-600",
+    tone && ICON_TONE[tone],
+    className,
+  );
+
+export function IconButton({ label, children, className, tone, ...rest }: { label: string; tone?: IconTone } & ComponentProps<"button">) {
   return (
-    <button
-      aria-label={label}
-      className={cn("inline-grid size-10 place-items-center rounded-full bg-gray-100 text-navy-900 shadow-card", className)}
-      {...rest}
-    >
+    <button aria-label={label} title={label} className={iconClass(tone, className)} {...rest}>
       {children}
     </button>
+  );
+}
+
+/** The same round icon button, as a link. */
+export function IconLink({ label, href, children, className, tone }: { label: string; href: string; children: ReactNode; className?: string; tone?: IconTone }) {
+  return (
+    <Link href={href} aria-label={label} title={label} className={iconClass(tone, className)}>
+      {children}
+    </Link>
   );
 }

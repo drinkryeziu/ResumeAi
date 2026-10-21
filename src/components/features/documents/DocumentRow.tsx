@@ -1,7 +1,7 @@
 import { PenLine } from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/Badge";
-import { ButtonLink } from "@/components/ui/Button";
+import { IconLink } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/format";
 import type { VersionLabel } from "@/server/store/types";
@@ -66,11 +66,11 @@ export function DocumentRow({
       </details>
 
       <div className="flex items-center gap-ds-2 sm:justify-end">
-        <ButtonLink href={editHref} variant="secondary" compact icon={<PenLine size={16} aria-hidden="true" />} aria-label={`Edit ${kindLabel}`}>
-          <span className="sr-only sm:not-sr-only">Edit</span>
-        </ButtonLink>
+        <IconLink href={editHref} label={`Edit ${kindLabel}`} tone="blue">
+          <PenLine size={18} aria-hidden="true" />
+        </IconLink>
         {deleteButton}
-        <DownloadDialog variant="secondary" docLabel={kindLabel} pdfHref={`${downloadBase}&format=pdf`} docxHref={`${downloadBase}&format=docx`} />
+        <DownloadDialog iconOnly docLabel={kindLabel} pdfHref={`${downloadBase}&format=pdf`} docxHref={`${downloadBase}&format=docx`} />
       </div>
     </li>
   );

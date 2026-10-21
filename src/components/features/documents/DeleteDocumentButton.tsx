@@ -4,7 +4,7 @@ import { useId, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { Loader2, Trash2 } from "lucide-react";
 import { deleteDocument } from "@/app/(app)/jobs/actions";
-import { Button } from "@/components/ui/Button";
+import { Button, IconButton } from "@/components/ui/Button";
 
 function ConfirmButton() {
   const { pending } = useFormStatus();
@@ -25,9 +25,9 @@ export function DeleteDocumentButton({ kind, id, label, consequence }: { kind: "
   const close = () => dialog.current?.close();
   return (
     <>
-      <Button type="button" variant="danger" compact icon={<Trash2 size={16} aria-hidden="true" />} onClick={() => dialog.current?.showModal()} aria-haspopup="dialog" aria-label={`Delete ${label}`}>
-        <span className="sr-only sm:not-sr-only">Delete</span>
-      </Button>
+      <IconButton type="button" tone="danger" label={`Delete ${label}`} onClick={() => dialog.current?.showModal()} aria-haspopup="dialog">
+        <Trash2 size={18} aria-hidden="true" />
+      </IconButton>
       <dialog
         ref={dialog}
         aria-labelledby={`${uid}-title`}

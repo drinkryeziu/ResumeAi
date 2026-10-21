@@ -2,23 +2,29 @@
 
 import { useId, useRef } from "react";
 import { Download, X } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button, IconButton } from "@/components/ui/Button";
 import { PdfIcon, WordIcon } from "@/components/ui/FileIcons";
 
 /**
  * One "Download" button; it opens a small window where the format is chosen. A native <dialog> gives the focus trap,
  * Escape and focus return. Choosing a format starts the download and closes the window.
  */
-export function DownloadDialog({ docLabel, pdfHref, docxHref, variant = "primary" }: { docLabel: string; pdfHref: string; docxHref: string; variant?: "primary" | "secondary" }) {
+export function DownloadDialog({ docLabel, pdfHref, docxHref, variant = "primary", iconOnly = false }: { docLabel: string; pdfHref: string; docxHref: string; variant?: "primary" | "secondary"; iconOnly?: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId(); // several of these can be on one page
   const close = () => dialog.current?.close();
   const option = "flex items-center gap-ds-3 rounded-md bg-gray-100 p-ds-3 text-navy-900 no-underline hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-blue-600";
   return (
     <>
-      <Button type="button" variant={variant} compact icon={<Download size={16} aria-hidden="true" />} onClick={() => dialog.current?.showModal()} aria-haspopup="dialog" aria-label={`Download ${docLabel}`}>
-        Download
-      </Button>
+      {iconOnly ? (
+        <IconButton type="button" tone="blue" label={`Download ${docLabel}`} onClick={() => dialog.current?.showModal()} aria-haspopup="dialog">
+          <Download size={18} aria-hidden="true" />
+        </IconButton>
+      ) : (
+        <Button type="button" variant={variant} compact icon={<Download size={16} aria-hidden="true" />} onClick={() => dialog.current?.showModal()} aria-haspopup="dialog" aria-label={`Download ${docLabel}`}>
+          Download
+        </Button>
+      )}
       <dialog
         ref={dialog}
         aria-labelledby={titleId}

@@ -10,6 +10,12 @@ export interface Promotion {
   active: boolean;
   /** Shown to the user in their credit history. */
   label: string;
+  /** When set, only the accounts with these email addresses get it (a gift to one person); otherwise everyone does. */
+  emails?: readonly string[];
 }
 
-export const PROMOTIONS: readonly Promotion[] = [{ id: "launch-150", credits: 150, active: true, label: "Launch credits" }];
+export const PROMOTIONS: readonly Promotion[] = [
+  { id: "launch-150", credits: 150, active: true, label: "Launch credits" },
+  // A one-time gift to a single account (granted the next time that person opens the app).
+  { id: "gift-2026-10-21-drin", credits: 100, active: true, label: "Gift credits", emails: ["drinkryeziu@gmail.com"] },
+];

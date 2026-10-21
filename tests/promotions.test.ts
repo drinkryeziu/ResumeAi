@@ -14,7 +14,8 @@ describe("launch credits", () => {
   beforeEach(() => resetPromotionMemory());
 
   it("is on, for 150 credits, in the shipped list", () => {
-    expect(PROMOTIONS).toEqual([expect.objectContaining({ id: "launch-150", credits: 150, active: true })]);
+    expect(PROMOTIONS).toContainEqual(expect.objectContaining({ id: "launch-150", credits: 150, active: true }));
+    expect(PROMOTIONS.filter((p) => !p.emails).map((p) => p.id)).toEqual(["launch-150"]); // only one promotion goes to everybody
   });
 
   it("gives a user 150 credits once, however many times it is asked", async () => {
@@ -81,5 +82,32 @@ describe("launch credits", () => {
     expect(await grantPromotions(store.credits, id, [{ ...launch, credits: 0 }])).toBe(0);
     expect(await grantPromotions(store.credits, id, [])).toBe(0);
     expect(await store.credits.balance(id)).toBe(start);
+  });
+});
+
+describe("a gift to one account", () => {
+  beforeEach(() => resetPromotionMemory());
+  const gift = { id: "gift-test", credits: 100, active: true, label: "Gift credits", emails: ["Drin@Example.com"] };
+
+  it("goes to that address only, whatever its capitals, and only once", async () => {
+    const store = new MemoryAppStore();
+    const drin = await newUser(store, "drin@example.com");
+    const other = await newUser(store, "someone@example.com");
+    const [startDrin, startOther] = [await store.credits.balance(drin), await store.credits.balance(other)];
+
+    expect(await grantPromotions(store.credits, other, [gift], "someone@example.com")).toBe(0);
+    expect(await grantPromotions(store.credits, other, [gift])).toBe(0); // no address, no gift
+    expect(await grantPromotions(store.credits, drin, [gift], " DRIN@example.com ")).toBe(100);
+    resetPromotionMemory();
+    expect(await grantPromotions(store.credits, drin, [gift], "drin@example.com")).toBe(0);
+
+    expect(await store.credits.balance(drin)).toBe(startDrin + 100);
+    expect(await store.credits.balance(other)).toBe(startOther);
+    expect((await store.credits.history(drin, 10)).some((h) => h.note === "Gift credits" && h.delta === 100)).toBe(true);
+  });
+
+  it("is in the shipped list for the owner's address", () => {
+    const g = PROMOTIONS.find((p) => p.emails);
+    expect(g).toMatchObject({ credits: 100, active: true, emails: ["drinkryeziu@gmail.com"] });
   });
 });

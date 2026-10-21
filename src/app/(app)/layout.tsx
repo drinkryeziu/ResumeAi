@@ -15,7 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = await requireUser();
   const store = await getStore();
   // Launch credits and any other active promotion, once per person. Never allowed to break the page.
-  await grantPromotions(store.credits, user.id).catch((e) => console.error("[promotions] could not grant:", (e as Error).message));
+  await grantPromotions(store.credits, user.id, undefined, user.email).catch((e) => console.error("[promotions] could not grant:", (e as Error).message));
   const [balance, account, profile] = await Promise.all([store.credits.balance(user.id), store.getUser(user.id), store.findProfile(user.id)]);
   const name = profile ? `${profile.firstName} ${profile.lastName}`.trim() : (account?.name ?? user.email);
   return (

@@ -1,3 +1,4 @@
+import type { CareerAnalysis } from "@/server/ai/experience";
 import type { ProfileSnapshot } from "@/server/domain/profile";
 
 /**
@@ -31,6 +32,8 @@ export interface ResumeDocument {
   projects: Array<{ sourceId: string; name: string; description: string }>;
   /** Languages, awards, publications, volunteer work — copied from the profile as written. */
   additional?: Array<{ heading: string; items: string[] }>;
+  /** Master Resume only: what the career adds up to by profession and industry. Not printed on the resume. */
+  analysis?: CareerAnalysis;
 }
 
 export interface CoverLetterDocument {
@@ -51,6 +54,8 @@ export interface ResumeDraft {
   educationIds: string[];
   certificationIds: string[];
   projects: Array<{ projectId: string; description: string }>;
+  /** Plain functional equivalents of vague official titles, by role id. The official title is always kept. */
+  titleEquivalents?: Record<string, string>;
 }
 
 const LINK_LABELS: Record<string, string> = {
@@ -96,7 +101,8 @@ export function assembleResume(profile: ProfileSnapshot, draft: ResumeDraft, tem
     experience: draft.experiences.flatMap(({ experienceId, bullets }) => {
       const e = exps.get(experienceId);
       if (!e) return [];
-      return [{ sourceId: e.id, company: e.company, title: e.title, location: e.location, startDate: e.startDate, endDate: e.isCurrent ? null : e.endDate ?? null, bullets }];
+      const equivalent = draft.titleEquivalents?.[e.id]?.trim();
+      return [{ sourceId: e.id, company: e.company, title: equivalent ? `${e.title} (${equivalent})` : e.title, location: e.location, startDate: e.startDate, endDate: e.isCurrent ? null : e.endDate ?? null, bullets }];
     }),
     skills: draft.skills,
     education: draft.educationIds.flatMap((id) => {

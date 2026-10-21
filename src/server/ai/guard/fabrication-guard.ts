@@ -1,7 +1,7 @@
 import type { ProfileSnapshot } from "@/server/domain/profile";
 import { claimableTerms, type EvidenceItem } from "../evidence";
 import { experienceYears, yearsMentioned } from "../experience";
-import { claimNumbers, normalize } from "../text";
+import { claimNumbers, containsTerm, normalize } from "../text";
 
 /**
  * Code-level checks that run on every AI output, whatever the prompt said.
@@ -59,6 +59,57 @@ export function overlongYears(cited: CitedText[], evidence: EvidenceItem[], prof
       }
     }
   }
+  return out;
+}
+
+const NOT_A_COMPETENCY = /\d|\b(certified|certification|certificate|degree|bachelor|master of|phd|diploma|license|licence|sdk|api|framework|library|language)\b|\.(js|ts|net|io)\b/i;
+
+/**
+ * Skills the candidate never wrote down may be added only when their own words show them: each must cite evidence from the
+ * profile and be a competency (team leadership, stakeholder management), never a tool, language, certification or degree.
+ */
+export function badInferredSkills(items: Array<{ name: string; evidenceIds: string[] }>, profile: ProfileSnapshot, evidence: EvidenceItem[]): string[] {
+  const byId = new Map(evidence.map((e) => [e.id, e]));
+  const listed = claimableTerms(profile);
+  const out: string[] = [];
+  for (const it of items) {
+    const name = it.name.trim();
+    if (!name || name.split(/\s+/).length > 6 || name.length > 50) out.push(`inferred skill "${name}": use a short competency name (up to six words).`);
+    else if (NOT_A_COMPETENCY.test(name)) out.push(`inferred skill "${name}": only competencies can be inferred, never tools, languages, certifications or degrees.`);
+    else if (listed.has(name.toLowerCase())) continue; // already in the profile: nothing inferred
+    const real = it.evidenceIds.filter((id) => {
+      const k = byId.get(id)?.kind;
+      return k === "responsibility" || k === "achievement" || k === "project" || k === "approved_fact" || k === "experience";
+    });
+    if (real.length === 0) out.push(`inferred skill "${name}": cite the responsibility, achievement or project that shows it.`);
+  }
+  return out;
+}
+
+const SENIOR_TITLE_WORDS = /\b(director|head of|vice president|vp|chief|cto|ceo|cfo|coo|founder|president|executive|manager)\b/i;
+
+/**
+ * A vague, company-specific title may be followed by a plain functional equivalent: "Experience Designer III (Product/UX Designer)".
+ * The official title is never replaced, and the equivalent may not claim a management or executive level the title does not have.
+ */
+export function badTitleEquivalents(items: Array<{ experienceId: string; equivalent: string; evidenceIds: string[] }>, profile: ProfileSnapshot): string[] {
+  const roles = new Map(profile.experiences.map((e) => [e.id, e]));
+  const out: string[] = [];
+  for (const it of items) {
+    const role = roles.get(it.experienceId);
+    const eq = it.equivalent.trim();
+    if (!role) out.push(`title equivalent: "${it.experienceId}" is not a role in the profile.`);
+    else if (!eq || eq.length > 60 || /\d/.test(eq) || normalize(eq).includes(normalize(role.company))) out.push(`title equivalent "${eq}": keep it short, plain and without numbers or the employer name.`);
+    else if (SENIOR_TITLE_WORDS.test(eq) && !SENIOR_TITLE_WORDS.test(role.title)) out.push(`title equivalent "${eq}": it claims a level the official title "${role.title}" does not have.`);
+    else if (it.evidenceIds.length === 0 || it.evidenceIds.some((id) => id !== role.id && !id.startsWith(`${role.id}#`))) out.push(`title equivalent "${eq}": cite only evidence from that same role.`);
+  }
+  return out;
+}
+
+/** A job keyword the evidence does not support must not show up in the resume, however much the job wants it. */
+export function unsupportedKeywordUse(texts: Array<{ text: string; where: string }>, avoid: string[]): string[] {
+  const out: string[] = [];
+  for (const t of texts) for (const k of avoid) if (containsTerm(t.text, k)) out.push(`${t.where}: "${k}" is not supported by the candidate's evidence. Remove it.`);
   return out;
 }
 

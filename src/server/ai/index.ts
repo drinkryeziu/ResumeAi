@@ -10,4 +10,6 @@ export { coverLetterGenerator, coverLetterEditor, toCoverLetterDocument, TONES, 
 export { atsChecker, scoreAts, ATS_LABELS, type AtsScores, type AtsAdvice } from "./workflows/ats-check";
 export { resumeParser, type ProfileDraft } from "./workflows/resume-parser";
 export { profileStrength } from "./profile-strength";
-export { CATEGORY_LABELS, MATCH_CATEGORIES } from "./scoring";
+export { CATEGORY_LABELS, MATCH_CATEGORIES, LABEL_TEXT, labelOf, type MatchLabel } from "./scoring";
+export { DIMENSION_LABELS, type FitLevel, type FitReport, type Strength } from "./fit";
+export { fmtYears, type CareerAnalysis, type ExperienceSummary } from "./experience";

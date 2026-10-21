@@ -1,9 +1,10 @@
 import { notFound, redirect } from "next/navigation";
-import { CheckCircle2, ChevronDown, CircleDashed, CircleSlash } from "lucide-react";
-import type { ReactNode } from "react";
 import { ActionForm } from "@/components/features/job-flow/ActionForm";
 import { StepProgress } from "@/components/features/job-flow/StepProgress";
+import { ExperienceSummaryCard } from "@/components/features/match/ExperienceSummaryCard";
+import { FitSummary } from "@/components/features/match/FitSummary";
 import { GapQuestion } from "@/components/features/match/GapQuestion";
+import { RequirementScorecard } from "@/components/features/match/RequirementScorecard";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -23,21 +24,6 @@ function Chips({ items, tone }: { items: string[]; tone: "match" | "missing" }) 
       {items.map((k) => (
         <li key={k} className={`rounded-pill px-ds-3 py-1 text-body-sm ${tone === "match" ? "bg-sky-50 text-blue-700" : "bg-gray-100"}`}>
           {k}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function RequirementList({ items, icon }: { items: string[]; icon: ReactNode }) {
-  return (
-    <ul className="flex flex-col gap-ds-2">
-      {items.map((t) => (
-        <li key={t} className="flex gap-ds-2 text-body-sm">
-          <span className="mt-0.5 shrink-0" aria-hidden="true">
-            {icon}
-          </span>
-          {t}
         </li>
       ))}
     </ul>
@@ -155,43 +141,8 @@ export default async function MatchPage({ params }: { params: Promise<{ jobId: s
         </aside>
 
         <div className="flex flex-col gap-ds-4">
-          <Card aria-labelledby="requirements-h">
-            <CardHeader
-              title={<span id="requirements-h">Requirements</span>}
-              subtitle={`You fully meet ${m.strong.length} of ${m.strong.length + m.partial.length + m.missing.length}.`}
-            />
-            <div className="flex flex-col gap-ds-5">
-              {m.missing.length > 0 && (
-                <div>
-                  <GroupHeading
-                    title="Not found in your profile"
-                    count={m.missing.length}
-                    note={m.questions.length > 0 ? "If any of these are true for you, tell us in the questions below." : undefined}
-                  />
-                  <RequirementList items={m.missing} icon={<CircleSlash size={16} className="text-gray-500" />} />
-                </div>
-              )}
-              {m.partial.length > 0 && (
-                <div>
-                  <GroupHeading title="Partly met" count={m.partial.length} note="You have related experience. The tailored resume will state it more clearly." />
-                  <RequirementList items={m.partial} icon={<CircleDashed size={16} className="text-blue-600" />} />
-                </div>
-              )}
-              {m.strong.length > 0 && (
-                <details open={m.missing.length + m.partial.length === 0} className="group">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-ds-3 rounded-sm text-heading-feature [&::-webkit-details-marker]:hidden">
-                    <span>
-                      Fully met <span className="font-normal">({m.strong.length})</span>
-                    </span>
-                    <ChevronDown size={16} aria-hidden="true" className="transition-transform group-open:rotate-180" />
-                  </summary>
-                  <div className="mt-ds-2">
-                    <RequirementList items={m.strong} icon={<CheckCircle2 size={16} className="text-success" />} />
-                  </div>
-                </details>
-              )}
-            </div>
-          </Card>
+          {m.fit && <FitSummary fit={m.fit} />}
+          <RequirementScorecard analysis={a} match={m} />
 
           {m.questions.length > 0 && (
             <Card id="questions" aria-labelledby="questions-h" className="scroll-mt-[84px]">
@@ -227,21 +178,39 @@ export default async function MatchPage({ params }: { params: Promise<{ jobId: s
             </Card>
           )}
 
+          {m.experience && <ExperienceSummaryCard summary={m.experience} profession={a.profession ?? null} industry={a.industry ?? null} />}
+
           <Card aria-labelledby="keywords-h">
             <CardHeader title={<span id="keywords-h">Keywords</span>} subtitle="Terms from the job description, compared with your profile." />
             <div className="flex flex-col gap-ds-4">
               <div>
-                <GroupHeading title="In your profile" count={m.matchingKeywords.length} />
+                <GroupHeading title="Already in your profile" count={m.matchingKeywords.length} />
                 {m.matchingKeywords.length ? (
                   <Chips items={m.matchingKeywords} tone="match" />
                 ) : (
                   <p className="text-body-sm">None of the job&apos;s keywords appear in your profile yet.</p>
                 )}
               </div>
-              {m.missingKeywords.length > 0 && (
+              {m.keywordStrategy && m.keywordStrategy.supported.length > 0 && (
                 <div>
-                  <GroupHeading title="Not in your profile" count={m.missingKeywords.length} note="We only add these if they're true for you." />
-                  <Chips items={m.missingKeywords} tone="missing" />
+                  <GroupHeading title="Shown by your experience" count={m.keywordStrategy.supported.length} note="Your work shows these, in different words. Your tailored resume will use the employer's wording." />
+                  <ul className="flex flex-col gap-ds-1 text-body-sm">
+                    {m.keywordStrategy.supported.map((k) => (
+                      <li key={k.term}>
+                        <strong>{k.term}</strong> — {k.reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {(m.keywordStrategy ? m.keywordStrategy.unsupported : m.missingKeywords).length > 0 && (
+                <div>
+                  <GroupHeading
+                    title="Not added, no evidence"
+                    count={(m.keywordStrategy ? m.keywordStrategy.unsupported : m.missingKeywords).length}
+                    note="We never add these to your resume unless they're true for you."
+                  />
+                  <Chips items={m.keywordStrategy ? m.keywordStrategy.unsupported : m.missingKeywords} tone="missing" />
                 </div>
               )}
             </div>

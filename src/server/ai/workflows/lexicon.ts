@@ -54,3 +54,6 @@ export const LEXICON: Record<string, "skill" | "tool" | "domain" | "soft_skill" 
   storytelling: "soft_skill",
   "cross-functional": "soft_skill",
 };
+
+/** Industries the mock job reader can recognise (mock only). */
+export const INDUSTRIES = ["banking", "fintech", "financial services", "insurance", "healthcare", "e-commerce", "retail", "saas", "telecom", "logistics", "education", "government", "energy", "media", "gaming", "travel", "automotive"];

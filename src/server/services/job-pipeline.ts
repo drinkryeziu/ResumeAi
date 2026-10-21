@@ -15,6 +15,7 @@ import {
 } from "@/server/ai";
 import type { CoverLetterMode } from "@/server/ai/workflows/cover-letter";
 import { masterCoverLetter } from "@/server/ai/workflows/cover-letter";
+import { buildCareerAnalysis } from "@/server/ai/experience";
 import { masterResume } from "@/server/ai/workflows/resume-optimizer";
 import { assembleResume, resumeFromProfile, type CoverLetterDocument, type ResumeDocument } from "@/server/documents/model";
 import type { AppStore } from "@/server/store/types";
@@ -56,7 +57,7 @@ export async function generateMasterDocuments(store: AppStore, userId: string, r
   const profile = await store.getProfile(userId);
   const name = `${profile.firstName} ${profile.lastName}`.trim();
   const { output } = await runWorkflow(masterResume, { profile }, ctx(store, userId, null, `${requestId}:resume`));
-  const resume = assembleResume(profile, toResumeDraft(output));
+  const resume = { ...assembleResume(profile, toResumeDraft(output)), analysis: buildCareerAnalysis(profile, output.career) };
   await store.addResumeVersion(userId, null, { label: "AI_OPTIMIZED", content: resume, changeNotes: output.changeNotes, name: `${name} — Master Resume` });
 
   const input = { profile, resume, job: null, analysis: null, tone: "PROFESSIONAL" as Tone, mode: "generate" as const };
@@ -124,7 +125,8 @@ export async function optimizeResume(store: AppStore, userId: string, jobId: str
     const master = current(await store.resumeForJob(userId, null));
     await store.addResumeVersion(userId, jobId, {
       label: "ORIGINAL",
-      content: master ? structuredClone(master.content) : resumeFromProfile(profile),
+      // The career analysis belongs to the Master Resume only; a job's resume is a document, not an analysis.
+      content: master ? (({ analysis: _analysis, ...doc }) => structuredClone(doc))(master.content) : resumeFromProfile(profile),
       changeNotes: [master ? "Copy of your Master Resume" : "Built from your profile"],
       name,
     });

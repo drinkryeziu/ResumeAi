@@ -41,7 +41,7 @@ export type CoverLetterOutput = z.infer<typeof CoverLetterSchema>;
 function build(actionKey: "GENERATE_COVER_LETTER" | "EDIT_COVER_LETTER" | "MASTER_COVER_LETTER"): WorkflowDefinition<CoverLetterInput, CoverLetterOutput> {
   return {
     name: "cover_letter",
-    promptVersion: "cover-letter@2",
+    promptVersion: "cover-letter@3",
     actionKey,
     schema: CoverLetterSchema,
 
@@ -62,7 +62,11 @@ Tone: ${TONE_GUIDE[tone]}
 
 Task: ${mode === "generate" ? "write a cover letter" : mode === "shorten" ? "shorten this cover letter by about a third" : mode === "expand" ? "expand this cover letter with more relevant evidence" : `rewrite this cover letter in a ${tone.toLowerCase()} tone`} for the job below.
 Tone: ${TONE_GUIDE[tone]}
-- Paragraph 1: the role and a specific, evidence-based reason the candidate fits. Paragraphs 2–3: two or three strongest matching experiences. Last: a short close.
+- Do not repeat the resume. Connect the employer's most important needs with two to four of the candidate's strongest pieces of evidence: relevant experience, industry exposure, achievements, leadership, technical or functional expertise.
+- Paragraph 1: the role and a specific, evidence-based reason the candidate fits. Paragraphs 2–3: the strongest matching experiences. Last: a short close.
+- If the candidate lacks direct experience but has strong transferable experience, say so positively and truthfully; never pretend it is a direct match. Never claim an industry, tool or requirement the evidence does not show.
+- Specific, confident, concise and natural. No clichés or generic filler ("I am writing to express my interest", "passionate team player").
+- Years of experience may not exceed the "experience_total" evidence line.
 - Do not write the greeting, sign-off or the candidate's name — the app adds them.
 - Each paragraph cites evidence ids. The opening and closing paragraphs may cite "summary" or a role id.
 - You may mention the hiring company (${job.company}). Do not claim knowledge about the company beyond the job description.`,

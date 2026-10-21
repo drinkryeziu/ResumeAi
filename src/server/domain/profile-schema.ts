@@ -1,4 +1,5 @@
 import { z } from "zod/v4";
+import { normalizeUrl } from "@/lib/url";
 
 /** Server-side validation for profile saves. Ids are generated client-side but must be safe evidence ids. */
 // Any short id without "#" — "#" is reserved for evidence references like "exp_1#a0". Accepts DB cuids too.
@@ -6,7 +7,8 @@ const id = z.string().regex(/^[A-Za-z0-9_-]{2,40}$/, "Invalid item id");
 const month = z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}$/)]).optional();
 const text = (max: number) => z.string().trim().max(max);
 const lines = z.array(text(400)).max(30).transform((a) => a.filter(Boolean));
-const url = z.union([z.literal(""), z.url().max(500)]).optional();
+// "linkedin.com/in/alex" is accepted and saved as a full address.
+const url = z.string().transform(normalizeUrl).pipe(z.union([z.literal(""), z.url().max(500)])).optional();
 
 export const ProfileInputSchema = z.object({
   firstName: text(80).min(1, "Add your first name."),

@@ -65,7 +65,7 @@ describe("profile editor progress", () => {
   it("never says a profile is fine when the server schema would reject it", () => {
     const input = complete();
     input.email = "not-an-email";
-    input.links.linkedin = "linkedin.com/in/alex";
+    input.links.linkedin = "my linkedin page"; // an address like linkedin.com/in/alex is fine now: it is completed on save
     expect(ProfileInputSchema.safeParse(input).success).toBe(false);
     const p = profileProgress(input);
     expect(p.issues.length).toBeGreaterThan(0);

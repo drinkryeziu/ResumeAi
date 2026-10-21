@@ -1,3 +1,4 @@
+import { CareerAnalysisCard } from "@/components/features/match/CareerAnalysisCard";
 import { DocumentWorkspace, type DocTab } from "@/components/features/documents/DocumentWorkspace";
 import { ActionForm } from "@/components/features/job-flow/ActionForm";
 import { ButtonLink } from "@/components/ui/Button";
@@ -15,6 +16,7 @@ export default async function MasterPage({ searchParams }: { searchParams: Promi
   const { user } = await requireProfile();
   const store = await getStore();
   const [resume, letter] = await Promise.all([store.resumeForJob(user.id, null), store.coverLetterForJob(user.id, null)]);
+  const analysis = resume?.versions.find((v) => v.id === resume.currentVersionId)?.content.analysis;
   const tab: DocTab = sp.doc === "cover-letter" ? "cover-letter" : "resume";
 
   const regenerate = (
@@ -48,7 +50,12 @@ export default async function MasterPage({ searchParams }: { searchParams: Promi
         editing={sp.mode === "edit"}
         resume={resume}
         letter={letter}
-        resumeSide={regenerate}
+        resumeSide={
+          <>
+            {analysis && <CareerAnalysisCard analysis={analysis} />}
+            {regenerate}
+          </>
+        }
         letterSide={regenerate}
       />
     </>

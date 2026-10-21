@@ -7,14 +7,48 @@ import { containsTerm } from "./text";
  * classification always yields the same score and every point can be explained.
  */
 
+/** The three buckets the lists and counts use. Derived from the finer label below. */
 export type MatchStatus = "strong" | "partial" | "missing";
+
+/**
+ * How well one requirement is met, judged from evidence:
+ * strong = clearly meets or exceeds · match = meets with adequate direct evidence · partial = related or transferable
+ * · weak = well below or outside what is asked · none = no evidence · unknown = not enough information to judge.
+ */
+export const MATCH_LABELS = ["strong", "match", "partial", "weak", "none", "unknown"] as const;
+export type MatchLabel = (typeof MATCH_LABELS)[number];
+
+export const LABEL_TEXT: Record<MatchLabel, string> = {
+  strong: "Strong match",
+  match: "Match",
+  partial: "Partial match",
+  weak: "Weak match",
+  none: "No evidence",
+  unknown: "Cannot determine",
+};
+
+/** What each label is worth in the score. "Cannot determine" is not a failure, so it earns a little. */
+export const LABEL_VALUE: Record<MatchLabel, number> = { strong: 1, match: 0.9, partial: 0.55, weak: 0.2, none: 0, unknown: 0.3 };
+
+export const statusOfLabel = (l: MatchLabel): MatchStatus => (l === "strong" || l === "match" ? "strong" : l === "none" ? "missing" : "partial");
 
 export interface RequirementAssessment {
   requirementId: string;
   status: MatchStatus;
+  /** Absent on matches saved before labels existed. */
+  label?: MatchLabel;
   evidenceIds: string[];
   explanation: string;
+  /** For requirements measured in years: what the dates add up to (computed in code, overlaps counted once). */
+  requiredYears?: number | null;
+  qualifyingYears?: number | null;
+  relatedYears?: number | null;
+  qualifyingRoleIds?: string[];
+  relatedRoleIds?: string[];
 }
+
+/** The label of an assessment, also for matches saved before labels existed. */
+export const labelOf = (a: Pick<RequirementAssessment, "status" | "label">): MatchLabel => a.label ?? (a.status === "strong" ? "strong" : a.status === "partial" ? "partial" : "none");
 
 export const MATCH_CATEGORIES = ["skills", "experience", "keywords", "education", "tools", "industry"] as const;
 export type MatchCategory = (typeof MATCH_CATEGORIES)[number];
@@ -50,7 +84,6 @@ const CATEGORY_WEIGHT: Record<MatchCategory, number> = {
   industry: 0.05,
 };
 
-const STATUS_VALUE: Record<MatchStatus, number> = { strong: 1, partial: 0.5, missing: 0 };
 const IMPORTANCE_WEIGHT = { required: 2, preferred: 1 } as const;
 const KEYWORD_WEIGHT = { high: 3, medium: 2, low: 1 } as const;
 
@@ -76,14 +109,14 @@ export interface MatchScores {
 }
 
 export function scoreMatch(analysis: JobAnalysis, assessments: RequirementAssessment[], profileText: string): MatchScores {
-  const status = new Map(assessments.map((a) => [a.requirementId, a.status]));
+  const value = new Map(assessments.map((a) => [a.requirementId, LABEL_VALUE[labelOf(a)]]));
   const acc: Record<string, { got: number; total: number }> = {};
   for (const r of analysis.requirements) {
     const cat = CATEGORY_OF[r.category];
     const w = IMPORTANCE_WEIGHT[r.importance];
     acc[cat] ??= { got: 0, total: 0 };
     acc[cat].total += w;
-    acc[cat].got += w * STATUS_VALUE[status.get(r.id) ?? "missing"];
+    acc[cat].got += w * (value.get(r.id) ?? 0);
   }
   const categories = Object.fromEntries(
     MATCH_CATEGORIES.map((c) => {
@@ -104,8 +137,8 @@ export function scoreMatch(analysis: JobAnalysis, assessments: RequirementAssess
   return { overall: weights ? Math.round(weighted / weights) : 0, categories };
 }
 
-/** Years of experience from month-precision dates; overlapping roles are not double-counted. */
-export function totalYears(experiences: Array<{ startDate: string; endDate?: string | null; isCurrent: boolean }>, now = new Date()): number {
+/** Months covered by these roles; overlapping roles are not double-counted. */
+export function unionMonths(experiences: Array<{ startDate: string; endDate?: string | null; isCurrent: boolean }>, now = new Date()): number {
   const toMonth = (d: string) => {
     const [y, m] = d.split("-").map(Number);
     return (y ?? 0) * 12 + ((m ?? 1) - 1);
@@ -114,6 +147,9 @@ export function totalYears(experiences: Array<{ startDate: string; endDate?: str
   const spans = experiences
     .map((e) => [toMonth(e.startDate), e.isCurrent || !e.endDate ? nowM : toMonth(e.endDate)] as const)
     .filter(([s, e]) => Number.isFinite(s) && Number.isFinite(e) && s > 0 && e >= s)
+    // Both the start month and the end month are worked months: Jan 2010 – Dec 2012 is 36 months. Spans are half-open, so
+    // a job that starts the month after another ends joins it with no gap.
+    .map(([s, e]) => [s, e + 1] as const)
     .sort((a, b) => a[0] - b[0]);
   let months = 0;
   let curStart = -1;
@@ -126,5 +162,10 @@ export function totalYears(experiences: Array<{ startDate: string; endDate?: str
     } else curEnd = Math.max(curEnd, e);
   }
   if (curEnd >= 0) months += curEnd - curStart;
-  return Math.round((months / 12) * 10) / 10;
+  return months;
+}
+
+/** Years of experience from month-precision dates; overlapping roles are not double-counted. */
+export function totalYears(experiences: Array<{ startDate: string; endDate?: string | null; isCurrent: boolean }>, now = new Date()): number {
+  return Math.round((unionMonths(experiences, now) / 12) * 10) / 10;
 }

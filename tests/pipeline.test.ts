@@ -41,13 +41,22 @@ describe("application flow (mock provider)", () => {
     expect(match.overallScore).toBeGreaterThan(40);
     expect(match.result.matchingKeywords).toContain("figma");
     expect(match.result.missing.join(" ")).toMatch(/WCAG/i);
+    // Every requirement carries a label, the overall fit is in words, and experience is counted from the dates.
+    expect(match.result.assessments.every((a) => ["strong", "match", "partial", "weak", "none", "unknown"].includes(a.label ?? ""))).toBe(true);
+    expect(match.result.fit?.overall).toMatch(/fit|evidence/);
+    expect(match.result.experience?.totalYears).toBeGreaterThan(5);
+    expect(match.result.experience?.roles).toHaveLength(3);
+    expect(match.result.keywordStrategy?.present).toContain("figma");
+    expect(match.result.questions.every((q) => !/\d+\+?\s*years/i.test(q.question))).toBe(true);
     expect(await store.credits.balance(U)).toBe(1840 - 10);
 
     // Create Application = tailored resume + tailored cover letter
     await pipeline.createApplication(store, U, job.id, "r2");
     const resume = (await store.resumeForJob(U, job.id))!;
     expect(resume.versions.map((v) => v.label)).toEqual(["ORIGINAL", "AI_OPTIMIZED"]);
-    expect(resume.versions[0]!.content).toEqual(masterBefore!.versions[0]!.content); // V1 = copy of the Master Resume
+    const { analysis: masterAnalysis, ...masterDoc } = masterBefore!.versions[0]!.content;
+    expect(masterAnalysis?.primaryProfession).toBeTruthy(); // the Master Resume carries the career analysis…
+    expect(resume.versions[0]!.content).toEqual(masterDoc); // …V1 of a job is a copy of the Master Resume without it
     expect(resume.versions[1]!.content.experience[0]).toMatchObject({ company: "Harbor Credit Union", startDate: "2021-03", endDate: null });
     const letter = (await store.coverLetterForJob(U, job.id))!;
     expect(letter.versions[0]!.content.greeting).toBe("Dear Northwind Financial hiring team,");

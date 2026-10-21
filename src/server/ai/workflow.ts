@@ -15,6 +15,11 @@ export interface WorkflowDefinition<I, O> {
   prompt(input: I): { system: string; user: string };
   /** Deterministic output used when no provider key is configured (local development and tests). */
   mock(input: I): O;
+  /**
+   * Runs on a schema-valid answer before `check`. Drops optional extras that fail their own rules (an inferred skill with
+   * no evidence, say) instead of failing the whole run; nothing is ever repaired or invented here.
+   */
+  sanitize?(input: I, output: O): O;
   /** Grounding checks. Return violations; [] = accept. */
   check?(input: I, output: O): string[];
 }

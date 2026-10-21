@@ -1,4 +1,5 @@
 import type { z } from "zod/v4";
+import { normalizeUrl } from "@/lib/url";
 import type { ProfileSnapshot, SkillCategory } from "./profile";
 import type { ProfileInput, ProfileInputSchema } from "./profile-schema";
 
@@ -95,7 +96,7 @@ export function mergeDraftIntoInput(base: ProfileInput, d: Draft): { input: Prof
   const links = { ...base.links };
   for (const l of d.links) {
     const k = linkKey(l.label, l.url) as keyof typeof links;
-    if (!links[k]) links[k] = l.url;
+    if (!links[k]) links[k] = normalizeUrl(l.url);
   }
 
   const newExp = d.experiences

@@ -78,9 +78,14 @@ export async function runWorkflow<I, O>(wf: WorkflowDefinition<I, O>, input: I, 
         temperature: route.temperature,
       });
       const parsed = wf.schema.safeParse(res.raw);
-      const violations = parsed.success
-        ? (wf.check?.(input, parsed.data) ?? [])
-        : parsed.error.issues.slice(0, 10).map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`);
+      let data: O | undefined;
+      let violations: string[];
+      if (parsed.success) {
+        data = wf.sanitize ? wf.sanitize(input, parsed.data) : parsed.data;
+        violations = wf.check?.(input, data) ?? [];
+      } else {
+        violations = parsed.error.issues.slice(0, 10).map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`);
+      }
 
       const run = await ctx.runs.record({
         userId: ctx.userId,
@@ -96,9 +101,9 @@ export async function runWorkflow<I, O>(wf: WorkflowDefinition<I, O>, input: I, 
         error: violations.length ? violations.join(" | ").slice(0, 2000) : null,
       });
 
-      if (parsed.success && violations.length === 0) {
+      if (data !== undefined && violations.length === 0) {
         await ctx.credits.settle(reservation, { aiRunId: run.id });
-        return { output: parsed.data, run, reservation };
+        return { output: data, run, reservation };
       }
 
       lastViolations = violations;

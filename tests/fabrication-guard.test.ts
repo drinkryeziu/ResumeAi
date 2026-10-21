@@ -16,6 +16,8 @@ const valid = (): OptimizedResume => ({
     },
   ],
   skills: ["Figma", "Design systems", "Usability testing"],
+  inferredSkills: [],
+  titleEquivalents: [],
   educationIds: ["edu_unc"],
   certificationIds: ["cert_nng"],
   projects: [],

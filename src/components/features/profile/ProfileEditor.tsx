@@ -386,9 +386,14 @@ export function ProfileEditor({
               {stepFirst && (
                 <div role={attempted ? "alert" : undefined} className="flex flex-col gap-ds-1 text-body-sm">
                   <p>
-                    <span className="font-bold text-danger">
-                      {stepIssues.length} required {stepIssues.length === 1 ? "item" : "items"} missing:
-                    </span>
+                    {/* Calm until the person has tried to continue; red only once something actually blocked them. */}
+                    {attempted ? (
+                      <span className="font-bold text-danger">
+                        {stepIssues.length} required {stepIssues.length === 1 ? "item" : "items"} missing:
+                      </span>
+                    ) : (
+                      <span className="font-bold">Still needed:</span>
+                    )}
                   </p>
                   <ul className="flex list-disc flex-col gap-0.5 pl-5">
                     {[...new Map(stepIssues.map((i) => [i.label, i])).values()].slice(0, 3).map((i) => (

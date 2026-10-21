@@ -25,15 +25,9 @@ export function DeleteDocumentButton({ kind, id, label, consequence }: { kind: "
   const close = () => dialog.current?.close();
   return (
     <>
-      <button
-        type="button"
-        onClick={() => dialog.current?.showModal()}
-        aria-haspopup="dialog"
-        aria-label={`Delete ${label}`}
-        className="grid size-10 shrink-0 place-items-center rounded-full bg-gray-100 text-navy-900 shadow-card transition-colors hover:text-danger focus-visible:outline-2 focus-visible:outline-blue-600"
-      >
-        <Trash2 size={16} aria-hidden="true" />
-      </button>
+      <Button type="button" variant="danger" compact icon={<Trash2 size={16} aria-hidden="true" />} onClick={() => dialog.current?.showModal()} aria-haspopup="dialog" aria-label={`Delete ${label}`}>
+        <span className="sr-only sm:not-sr-only">Delete</span>
+      </Button>
       <dialog
         ref={dialog}
         aria-labelledby={`${uid}-title`}

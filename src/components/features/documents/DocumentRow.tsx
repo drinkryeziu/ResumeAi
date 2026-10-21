@@ -51,7 +51,6 @@ export function DocumentRow({
       <p className="text-label-bold">
         <Link
           href={viewHref}
-          scroll={false}
           aria-label={`Open ${kindLabel}`}
           className="no-underline after:absolute after:inset-0 after:rounded-md after:content-[''] hover:text-blue-700 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-blue-600"
         >

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { ChevronDown, Coins, LogOut, Settings } from "lucide-react";
 import { signOutAction } from "@/app/(auth)/actions";
@@ -15,7 +15,11 @@ export const NAV_ITEMS = [
   { href: "/profile", label: "Profile", match: ["/profile", "/onboarding"] },
 ] as const;
 
-const isActive = (pathname: string, match: readonly string[]) => match.some((m) => pathname === m || pathname.startsWith(`${m}/`));
+const isActive = (pathname: string, match: readonly string[], fromDocuments = false, href = "") => {
+  // A document opened from the Documents tab keeps that tab lit, even though it lives under /jobs.
+  if (fromDocuments && pathname.startsWith("/jobs")) return href === "/documents";
+  return match.some((m) => pathname === m || pathname.startsWith(`${m}/`));
+};
 
 /**
  * Design-system SiteHeader: 60px white bar, shadow-header, wordmark left, plain body-sm links right.
@@ -25,6 +29,7 @@ const isActive = (pathname: string, match: readonly string[]) => match.some((m) 
  */
 export function SiteHeader({ creditBalance, name, email, setup = false }: { creditBalance: number; name: string; email: string; setup?: boolean }) {
   const pathname = usePathname();
+  const fromDocuments = useSearchParams().get("from") === "documents";
   if (setup) {
     return (
       <header className="sticky top-0 z-20 bg-white shadow-header">
@@ -46,7 +51,7 @@ export function SiteHeader({ creditBalance, name, email, setup = false }: { cred
         </Link>
         <nav aria-label="Main" className="hidden items-center gap-ds-5 md:flex">
           {NAV_ITEMS.map((item) => {
-            const active = isActive(pathname, item.match);
+            const active = isActive(pathname, item.match, fromDocuments, item.href);
             return (
               <Link
                 key={item.href}
@@ -64,7 +69,7 @@ export function SiteHeader({ creditBalance, name, email, setup = false }: { cred
           <AccountMenu creditBalance={creditBalance} name={name} email={email} />
           <SignOutLink />
         </nav>
-        <MobileNav creditBalance={creditBalance} pathname={pathname} />
+        <MobileNav creditBalance={creditBalance} pathname={pathname} fromDocuments={fromDocuments} />
       </div>
     </header>
   );
@@ -148,7 +153,7 @@ function AccountMenu({ creditBalance, name, email }: { creditBalance: number; na
 }
 
 /** Below md: logo + menu; the open menu is a sky-50 panel, per the design system. */
-function MobileNav({ creditBalance, pathname }: { creditBalance: number; pathname: string }) {
+function MobileNav({ creditBalance, pathname, fromDocuments }: { creditBalance: number; pathname: string; fromDocuments: boolean }) {
   const ref = useDismissible();
   return (
     <details ref={ref} className="relative md:hidden">
@@ -158,8 +163,8 @@ function MobileNav({ creditBalance, pathname }: { creditBalance: number; pathnam
           <Link
             key={item.href}
             href={item.href}
-            aria-current={isActive(pathname, item.match) ? "page" : undefined}
-            className={cn("rounded-sm px-ds-3 py-ds-2 text-body-sm no-underline hover:bg-white", isActive(pathname, item.match) && "font-bold text-blue-700")}
+            aria-current={isActive(pathname, item.match, fromDocuments, item.href) ? "page" : undefined}
+            className={cn("rounded-sm px-ds-3 py-ds-2 text-body-sm no-underline hover:bg-white", isActive(pathname, item.match, fromDocuments, item.href) && "font-bold text-blue-700")}
           >
             {item.label}
           </Link>

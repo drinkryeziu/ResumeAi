@@ -1,4 +1,5 @@
 import { CareerAnalysisCard } from "@/components/features/match/CareerAnalysisCard";
+import { DocumentActions } from "@/components/features/documents/DocumentActions";
 import { DocumentWorkspace, type DocTab } from "@/components/features/documents/DocumentWorkspace";
 import { ActionForm } from "@/components/features/job-flow/ActionForm";
 import { ButtonLink } from "@/components/ui/Button";
@@ -11,7 +12,7 @@ import { regenerateMasterDocuments } from "../jobs/actions";
 export const metadata = { title: "Master Resume & Cover Letter" };
 
 /** The Master documents: built from the profile, the starting point for every tailored application. */
-export default async function MasterPage({ searchParams }: { searchParams: Promise<{ doc?: string; mode?: string }> }) {
+export default async function MasterPage({ searchParams }: { searchParams: Promise<{ doc?: string; mode?: string; from?: string }> }) {
   const sp = await searchParams;
   const { user } = await requireProfile();
   const store = await getStore();
@@ -38,9 +39,18 @@ export default async function MasterPage({ searchParams }: { searchParams: Promi
         title="Your Master Resume & Cover Letter"
         description="Built from your profile and the starting point for every application. Tailoring to a job never changes them."
         actions={
-          <ButtonLink href="/dashboard#tailor" variant="secondary">
-            Tailor to a job
-          </ButtonLink>
+          <>
+            <DocumentActions
+              target="master"
+              basePath="/master"
+              tab={tab}
+              editing={sp.mode === "edit"}
+              fromDocuments={sp.from === "documents"}
+              hasDocument={tab === "resume" ? Boolean(resume) : Boolean(letter)}
+              docLabel={tab === "resume" ? "Master Resume" : "Master Cover Letter"}
+            />
+            <ButtonLink href="/dashboard#tailor">Create new application</ButtonLink>
+          </>
         }
       />
       <DocumentWorkspace
@@ -48,6 +58,7 @@ export default async function MasterPage({ searchParams }: { searchParams: Promi
         basePath="/master"
         tab={tab}
         editing={sp.mode === "edit"}
+        fromDocuments={sp.from === "documents"}
         resume={resume}
         letter={letter}
         resumeSide={

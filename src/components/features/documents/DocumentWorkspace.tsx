@@ -10,7 +10,6 @@ import type { CoverLetterRecord, ResumeRecord } from "@/server/store/types";
 import { restoreVersion } from "@/app/(app)/jobs/actions";
 import { coverLetterPlainText, resumePlainText } from "@/server/documents/plain-text";
 import { CopyTextButton } from "./CopyTextButton";
-import { DownloadDialog } from "./DownloadDialog";
 import { EditWindow } from "./EditWindow";
 import { CoverLetterEditor, ResumeEditor } from "./DocumentEditors";
 import { CoverLetterPreview, ResumePreview } from "./ResumePreview";
@@ -32,6 +31,7 @@ export function DocumentWorkspace({
   resumeSide,
   letterSide,
   fresh,
+  fromDocuments,
 }: {
   target: string;
   basePath: string;
@@ -43,12 +43,14 @@ export function DocumentWorkspace({
   letterSide?: ReactNode;
   /** Just created: keep `?new=1` on the document links so the step progress on the page stays while switching tabs. */
   fresh?: boolean;
+  /** Opened from the Documents tab: keep that on the links so the page can offer "Close". */
+  fromDocuments?: boolean;
 }) {
   const download = (doc: string, format?: string) => `/api/jobs/${target}/download?doc=${doc}${format ? `&format=${format}` : ""}`;
   const resumeV = resume?.versions.find((v) => v.id === resume.currentVersionId) ?? null;
   const letterV = letter?.versions.find((v) => v.id === letter.currentVersionId) ?? null;
   const active = tab === "resume" ? resumeV : letterV;
-  const here = (t: DocTab, edit = false) => `${basePath}?doc=${t}${edit ? "&mode=edit" : ""}${fresh ? "&new=1" : ""}`;
+  const here = (t: DocTab, edit = false) => `${basePath}?doc=${t}${edit ? "&mode=edit" : ""}${fresh ? "&new=1" : ""}${fromDocuments ? "&from=documents" : ""}`;
 
   return (
     <div className="flex flex-col gap-ds-4">
@@ -94,24 +96,23 @@ export function DocumentWorkspace({
 
           {active && (
             <div className="flex flex-col gap-ds-2">
-              <div className="flex flex-wrap items-center justify-between gap-ds-3" aria-label="Download and edit">
-                <DownloadDialog docLabel={tab === "resume" ? "resume" : "cover letter"} pdfHref={download(tab, "pdf")} docxHref={download(tab, "docx")} />
-                <div className="flex flex-wrap items-center gap-x-ds-5 gap-y-ds-2">
-                  <CopyTextButton variant="link" text={tab === "resume" ? resumePlainText(resumeV!.content) : coverLetterPlainText(letterV!.content)} />
-                  <EditWindow
-                    label={tab === "resume" ? "Edit resume" : "Edit cover letter"}
-                    title={tab === "resume" ? "Edit your resume" : "Edit your cover letter"}
-                    openInitially={editing}
-                    closeHref={here(tab)}
-                  >
-                    {tab === "resume" ? (
-                      <ResumeEditor doc={resumeV!.content} target={target} cancelHref={here("resume")} />
-                    ) : (
-                      <CoverLetterEditor doc={letterV!.content} target={target} cancelHref={here("cover-letter")} />
-                    )}
-                  </EditWindow>
-                </div>
+              <div className="flex flex-wrap items-center gap-x-ds-5 gap-y-ds-2">
+                <CopyTextButton variant="link" text={tab === "resume" ? resumePlainText(resumeV!.content) : coverLetterPlainText(letterV!.content)} />
               </div>
+              {/* Edit and Download are in the page header; the editing window itself lives here, open when the address says so. */}
+              <EditWindow
+                hideTrigger
+                label={tab === "resume" ? "Edit resume" : "Edit cover letter"}
+                title={tab === "resume" ? "Edit your resume" : "Edit your cover letter"}
+                openInitially={editing}
+                closeHref={here(tab)}
+              >
+                {tab === "resume" ? (
+                  <ResumeEditor doc={resumeV!.content} target={target} cancelHref={here("resume")} />
+                ) : (
+                  <CoverLetterEditor doc={letterV!.content} target={target} cancelHref={here("cover-letter")} />
+                )}
+              </EditWindow>
               <p className="text-caption">Paste the text into an application form, or attach the file. You apply yourself; we never submit for you.</p>
             </div>
           )}

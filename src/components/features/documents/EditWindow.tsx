@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
  * "Edit resume" / "Edit cover letter": a text link that opens the editor in a window over the page.
  * `openInitially` opens it straight away (a link with ?mode=edit); closing it then returns to `closeHref`.
  */
-export function EditWindow({ label, title, openInitially, closeHref, children }: { label: string; title: string; openInitially: boolean; closeHref: string; children: ReactNode }) {
+export function EditWindow({ label, title, openInitially, closeHref, hideTrigger = false, children }: { label: string; title: string; openInitially: boolean; closeHref: string; hideTrigger?: boolean; children: ReactNode }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const router = useRouter();
   useEffect(() => {
@@ -17,14 +17,16 @@ export function EditWindow({ label, title, openInitially, closeHref, children }:
   }, [openInitially]);
   return (
     <>
-      <Button type="button" variant="link" onClick={() => dialog.current?.showModal()} aria-haspopup="dialog">
-        {label}
-      </Button>
+      {!hideTrigger && (
+        <Button type="button" variant="link" onClick={() => dialog.current?.showModal()} aria-haspopup="dialog">
+          {label}
+        </Button>
+      )}
       <dialog
         ref={dialog}
         aria-labelledby="edit-window-title"
         onClose={() => {
-          if (openInitially) router.replace(closeHref, { scroll: false });
+          if (openInitially || hideTrigger) router.replace(closeHref, { scroll: false });
         }}
         className="m-auto max-h-[90vh] w-[min(760px,calc(100%-32px))] overflow-y-auto rounded-md bg-white p-0 text-navy-900 shadow-card backdrop:bg-navy-900/50"
       >

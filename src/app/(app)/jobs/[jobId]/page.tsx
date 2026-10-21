@@ -2,6 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { AlertTriangle, ExternalLink } from "lucide-react";
 import { ActionForm } from "@/components/features/job-flow/ActionForm";
 import { StepProgress } from "@/components/features/job-flow/StepProgress";
+import { DocumentActions } from "@/components/features/documents/DocumentActions";
+import { MatchMetricsCard } from "@/components/features/match/MatchMetricsCard";
 import { DocumentWorkspace, type DocTab } from "@/components/features/documents/DocumentWorkspace";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader, SoftPanel } from "@/components/ui/Card";
@@ -24,7 +26,7 @@ export default async function JobApplicationPage({
   searchParams,
 }: {
   params: Promise<{ jobId: string }>;
-  searchParams: Promise<{ doc?: string; mode?: string; new?: string }>;
+  searchParams: Promise<{ doc?: string; mode?: string; new?: string; from?: string }>;
 }) {
   const [{ jobId }, sp] = await Promise.all([params, searchParams]);
   const { user } = await requireProfile();
@@ -83,104 +85,112 @@ export default async function JobApplicationPage({
   const fixes = new Set(ats?.result.scores.findings.filter((f) => !f.ok).map((f) => f.fix) ?? []);
   const suggestions = (ats?.result.advice.suggestions ?? []).filter((s) => !fixes.has(s)); // don't repeat the issues list
 
+  // The job's match numbers sit beside whichever document is open; the ATS score is in the resume's own card.
+  const matchCard = p.match ? <MatchMetricsCard jobId={jobId} overallScore={p.match.overallScore} match={p.match.result} /> : null;
   const resumeSide = !currentResume ? undefined : (
-    <Card id="ats" className="scroll-mt-[84px]">
-      <CardHeader title="ATS compatibility" subtitle="Optional: check how this version's structure and keywords line up with the job." />
-      {ats ? (
-        <div className="flex flex-col gap-ds-4">
-          <ScoreRing value={ats.overallScore} label="ATS Compatibility Score" size={112} />
-          <div className="flex flex-col gap-ds-2">
-            {(Object.keys(ATS_LABELS) as Array<keyof typeof ATS_LABELS>).map((k) => (
-              <ScoreBar key={k} label={ATS_LABELS[k]} value={ats.result.scores.categories[k]} />
-            ))}
-          </div>
-          {ats.result.scores.findings.some((f) => !f.ok) && (
-            <ul className="flex flex-col gap-ds-1">
+    <>
+      {matchCard}
+      <Card id="ats" className="scroll-mt-[84px]">
+        <CardHeader title="ATS compatibility" subtitle="Optional: check how this version's structure and keywords line up with the job." />
+        {ats ? (
+          <div className="flex flex-col gap-ds-4">
+            <ScoreRing value={ats.overallScore} label="ATS Compatibility Score" size={112} />
+            <div className="flex flex-col gap-ds-2">
+              {(Object.keys(ATS_LABELS) as Array<keyof typeof ATS_LABELS>).map((k) => (
+                <ScoreBar key={k} label={ATS_LABELS[k]} value={ats.result.scores.categories[k]} />
+              ))}
+            </div>
+            {ats.result.scores.findings.some((f) => !f.ok) && (
+              <ul className="flex flex-col gap-ds-1">
+                {ats.result.scores.findings
+                  .filter((f) => !f.ok)
+                  .map((f) => (
+                    <li key={f.id} className="flex gap-ds-2 text-body-sm">
+                      <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
+                      {f.fix}
+                    </li>
+                  ))}
+              </ul>
+            )}
+            {suggestions.length > 0 && (
+              <ul className="flex list-disc flex-col gap-ds-1 pl-5 text-body-sm">
+                {suggestions.map((s) => (
+                  <li key={s}>{s}</li>
+                ))}
+              </ul>
+            )}
+            <ActionForm action={improveResume} hidden={{ jobId, requestId: rid() }} label="Improve resume" pendingLabel="Improving…" cost={optCost} variant="secondary">
               {ats.result.scores.findings
                 .filter((f) => !f.ok)
                 .map((f) => (
-                  <li key={f.id} className="flex gap-ds-2 text-body-sm">
-                    <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
-                    {f.fix}
-                  </li>
+                  <input key={f.id} type="hidden" name="improve" value={f.fix} />
                 ))}
-            </ul>
-          )}
-          {suggestions.length > 0 && (
-            <ul className="flex list-disc flex-col gap-ds-1 pl-5 text-body-sm">
-              {suggestions.map((s) => (
-                <li key={s}>{s}</li>
+              {ats.result.advice.suggestions.map((s) => (
+                <input key={s} type="hidden" name="improve" value={s} />
               ))}
-            </ul>
-          )}
-          <ActionForm action={improveResume} hidden={{ jobId, requestId: rid() }} label="Improve resume" pendingLabel="Improving…" cost={optCost} variant="secondary">
-            {ats.result.scores.findings
-              .filter((f) => !f.ok)
-              .map((f) => (
-                <input key={f.id} type="hidden" name="improve" value={f.fix} />
-              ))}
-            {ats.result.advice.suggestions.map((s) => (
-              <input key={s} type="hidden" name="improve" value={s} />
-            ))}
-          </ActionForm>
-          <p className="text-caption">Employers&apos; systems differ; this is an estimate, not a guarantee.</p>
-        </div>
-      ) : (
-        <ActionForm action={runAtsCheck} hidden={{ jobId, requestId: rid() }} label="Run ATS check" pendingLabel="Checking…" cost={atsCost} variant="secondary" />
-      )}
-    </Card>
+            </ActionForm>
+            <p className="text-caption">Employers&apos; systems differ; this is an estimate, not a guarantee.</p>
+          </div>
+        ) : (
+          <ActionForm action={runAtsCheck} hidden={{ jobId, requestId: rid() }} label="Run ATS check" pendingLabel="Checking…" cost={atsCost} variant="secondary" />
+        )}
+      </Card>
+    </>
   );
 
   const letterSide = currentLetter && (
-    <Card>
-      <CardHeader title="Rewrite with AI" subtitle="Each rewrite is saved as a new version." />
-      <ActionForm
-        action={rewriteCoverLetter}
-        hidden={{ jobId, mode: "retone", requestId: rid() }}
-        label="Change tone"
-        pendingLabel="Rewriting…"
-        cost={editCost}
-        variant="secondary"
-      >
-        <fieldset className="mb-ds-3 flex flex-wrap gap-ds-2">
-          <legend className="sr-only">Tone</legend>
-          {TONES.map((t) => (
-            <label key={t} className="cursor-pointer">
-              <input type="radio" name="tone" value={t} defaultChecked={t === currentLetter.tone} className="peer sr-only" />
-              <span className="inline-block rounded-pill bg-gray-100 px-ds-3 py-1.5 text-body-sm peer-checked:bg-blue-600 peer-checked:text-white peer-focus-visible:outline-2 peer-focus-visible:outline-blue-600">
-                {TONE_LABEL[t]}
-              </span>
-            </label>
-          ))}
-        </fieldset>
-      </ActionForm>
-      <div className="mt-ds-4 flex flex-wrap gap-ds-3">
+    <>
+      {matchCard}
+      <Card>
+        <CardHeader title="Rewrite with AI" subtitle="Each rewrite is saved as a new version." />
         <ActionForm
           action={rewriteCoverLetter}
-          hidden={{ jobId, mode: "shorten", tone: currentLetter.tone, requestId: rid() }}
-          label="Shorten"
-          pendingLabel="Shortening…"
+          hidden={{ jobId, mode: "retone", requestId: rid() }}
+          label="Change tone"
+          pendingLabel="Rewriting…"
+          cost={editCost}
           variant="secondary"
-        />
-        <ActionForm
-          action={rewriteCoverLetter}
-          hidden={{ jobId, mode: "expand", tone: currentLetter.tone, requestId: rid() }}
-          label="Expand"
-          pendingLabel="Expanding…"
-          variant="secondary"
-        />
-        <ActionForm
-          action={rewriteCoverLetter}
-          hidden={{ jobId, mode: "generate", tone: currentLetter.tone, requestId: rid() }}
-          label="Regenerate"
-          pendingLabel="Writing…"
-          variant="secondary"
-        />
-      </div>
-      <p className="text-caption mt-ds-3">
-        Shorten, expand and tone: {editCost} credits · Regenerate: {genCost} credits
-      </p>
-    </Card>
+        >
+          <fieldset className="mb-ds-3 flex flex-wrap gap-ds-2">
+            <legend className="sr-only">Tone</legend>
+            {TONES.map((t) => (
+              <label key={t} className="cursor-pointer">
+                <input type="radio" name="tone" value={t} defaultChecked={t === currentLetter.tone} className="peer sr-only" />
+                <span className="inline-block rounded-pill bg-gray-100 px-ds-3 py-1.5 text-body-sm peer-checked:bg-blue-600 peer-checked:text-white peer-focus-visible:outline-2 peer-focus-visible:outline-blue-600">
+                  {TONE_LABEL[t]}
+                </span>
+              </label>
+            ))}
+          </fieldset>
+        </ActionForm>
+        <div className="mt-ds-4 flex flex-wrap gap-ds-3">
+          <ActionForm
+            action={rewriteCoverLetter}
+            hidden={{ jobId, mode: "shorten", tone: currentLetter.tone, requestId: rid() }}
+            label="Shorten"
+            pendingLabel="Shortening…"
+            variant="secondary"
+          />
+          <ActionForm
+            action={rewriteCoverLetter}
+            hidden={{ jobId, mode: "expand", tone: currentLetter.tone, requestId: rid() }}
+            label="Expand"
+            pendingLabel="Expanding…"
+            variant="secondary"
+          />
+          <ActionForm
+            action={rewriteCoverLetter}
+            hidden={{ jobId, mode: "generate", tone: currentLetter.tone, requestId: rid() }}
+            label="Regenerate"
+            pendingLabel="Writing…"
+            variant="secondary"
+          />
+        </div>
+        <p className="text-caption mt-ds-3">
+          Shorten, expand and tone: {editCost} credits · Regenerate: {genCost} credits
+        </p>
+      </Card>
+    </>
   );
 
   return (
@@ -191,6 +201,17 @@ export default async function JobApplicationPage({
         eyebrow={`Job match ${p.match?.overallScore ?? "—"}%${ats ? ` · ATS ${ats.overallScore}%` : ""}`}
         title={`${p.job.title} — ${p.job.company}`}
         description="Review and edit your tailored resume and cover letter, then download them and apply on the company's site or job board."
+        actions={
+          <DocumentActions
+            target={jobId}
+            basePath={`/jobs/${jobId}`}
+            tab={tab}
+            editing={sp.mode === "edit"}
+            fromDocuments={sp.from === "documents"}
+            hasDocument={tab === "resume" ? Boolean(currentResume) : Boolean(currentLetter)}
+            docLabel={`${p.job.company} ${tab === "resume" ? "resume" : "cover letter"}`}
+          />
+        }
       />
       {unfinished && (
         <SoftPanel className="mb-ds-4 flex flex-wrap items-center justify-between gap-ds-3">
@@ -212,6 +233,7 @@ export default async function JobApplicationPage({
         resumeSide={resumeSide}
         letterSide={letterSide}
         fresh={fresh}
+        fromDocuments={sp.from === "documents"}
       />
       <SoftPanel className="mt-ds-5 flex flex-wrap items-center justify-between gap-ds-4">
         <p className="text-body-sm max-w-xl">

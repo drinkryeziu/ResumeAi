@@ -126,6 +126,8 @@ ${analysis.requirements
 
   mock: ({ profile, analysis }) => heuristicMatch(profile, analysis),
 
+  sanitize: (input, out) => sanitizeMatch(input, out),
+
   check: ({ profile, analysis }, out) => {
     const evidence = buildEvidence(profile);
     const reqIds = new Set(analysis.requirements.map((r) => r.id));
@@ -152,6 +154,52 @@ ${analysis.requirements
     return v;
   },
 };
+
+/**
+ * A model that slips on bookkeeping (a missing role tag, a mistyped id, a keyword worded a little differently) should not
+ * block the whole analysis. Invalid ids and entries are dropped; anything missing is filled in the cautious way:
+ * "cannot determine" for a requirement, a middling tag for a role. Nothing here ever raises a judgment.
+ */
+export function sanitizeMatch({ profile, analysis }: MatchInput, out: MatchModelOutput): MatchModelOutput {
+  const evidenceIds = new Set(buildEvidence(profile).map((e) => e.id));
+  const roleIds = new Set(profile.experiences.map((e) => e.id));
+  const reqIds = new Set(analysis.requirements.map((r) => r.id));
+  const loose = (t: string) => normalize(t).replace(/-/g, " ").replace(/\s+/g, " ");
+  const keywords = new Map(analysis.keywords.map((k) => [loose(k.term), k.term]));
+  const onlyRoles = (ids: string[]) => [...new Set(ids.filter((id) => roleIds.has(id)))];
+
+  const seenRoles = new Set<string>();
+  const roles = out.roles.filter((r) => roleIds.has(r.experienceId) && !seenRoles.has(r.experienceId) && seenRoles.add(r.experienceId));
+  for (const e of profile.experiences) {
+    if (!seenRoles.has(e.id)) roles.push({ experienceId: e.id, profession: e.title, industry: "Unclear", professionFit: "related", industryFit: "transferable", leadership: "none" });
+  }
+
+  const seen = new Set<string>();
+  const assessments = out.assessments
+    .filter((a) => reqIds.has(a.requirementId) && !seen.has(a.requirementId) && seen.add(a.requirementId))
+    .map((a) => {
+      const ids = [...new Set(a.evidenceIds.filter((id) => evidenceIds.has(id)))];
+      const needsEvidence = a.label !== "none" && a.label !== "unknown";
+      return { ...a, evidenceIds: ids, label: needsEvidence && ids.length === 0 ? ("unknown" as const) : a.label, qualifyingRoleIds: onlyRoles(a.qualifyingRoleIds), relatedRoleIds: onlyRoles(a.relatedRoleIds) };
+    });
+  for (const r of analysis.requirements) {
+    if (!seen.has(r.id)) assessments.push({ requirementId: r.id, label: "unknown", evidenceIds: [], explanation: "Not enough information to judge this requirement.", qualifyingRoleIds: [], relatedRoleIds: [], yearsDeterminable: true });
+  }
+
+  const supportedKeywords = out.supportedKeywords.flatMap((k) => {
+    const term = keywords.get(loose(k.term));
+    const ids = [...new Set(k.evidenceIds.filter((id) => evidenceIds.has(id)))];
+    return term && ids.length ? [{ ...k, term, evidenceIds: ids }] : [];
+  });
+
+  return {
+    roles,
+    titleGroups: out.titleGroups.filter((g) => g.experienceIds.length >= 2 && g.experienceIds.every((id) => roleIds.has(id))),
+    assessments,
+    questions: out.questions.filter((q) => reqIds.has(q.requirementId)),
+    supportedKeywords,
+  };
+}
 
 /** Turn the model's judgments into the stored report: years from the dates, labels, scores, lists, fit and keywords. */
 export function buildMatchReport(input: MatchInput, out: MatchModelOutput): MatchReport {

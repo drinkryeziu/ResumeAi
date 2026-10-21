@@ -109,6 +109,8 @@ export async function runWorkflow<I, O>(wf: WorkflowDefinition<I, O>, input: I, 
       lastViolations = violations;
       feedback = `\n\nYour previous answer was rejected for these reasons. Fix them and answer again:\n- ${violations.join("\n- ")}`;
     }
+    // The reasons go to the server log so a rejected answer can be understood (they name rules and ids, not the document).
+    console.error(`[ai] ${wf.name} (${wf.promptVersion}) rejected after ${MAX_ATTEMPTS} attempts: ${lastViolations.join(" | ").slice(0, 1500)}`);
     throw new WorkflowOutputError(lastViolations);
   } catch (err) {
     await ctx.credits.refund(reservation, err instanceof Error ? err.message.slice(0, 200) : "AI run failed");

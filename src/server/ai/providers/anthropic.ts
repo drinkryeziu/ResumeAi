@@ -56,6 +56,7 @@ export class AnthropicProvider implements AIProvider {
           tool_choice: forced ? { type: "tool", name: req.schemaName } : { type: "auto" },
           messages: [{ role: "user", content: req.user }],
         });
+        if (res.stop_reason === "max_tokens") console.warn(`[ai] ${req.model} was cut off at ${req.maxTokens} tokens while writing "${req.schemaName}"; its answer cannot be read. Raise maxTokens in routing.ts.`);
         const block = res.content.find((b) => b.type === "tool_use");
         if (!block || block.type !== "tool_use") {
           // Without a forced call the model can occasionally answer in prose: ask once more before giving up.

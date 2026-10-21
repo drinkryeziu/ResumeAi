@@ -5,6 +5,7 @@ import { assembleResume, resumeText, skillSections } from "@/server/documents/mo
 import { resumePlainText } from "@/server/documents/plain-text";
 import { buildEvidence } from "@/server/ai/evidence";
 import { sanitizeOptimized, type OptimizedResume } from "@/server/ai/workflows/resume-optimizer";
+import { sanitizeMatch, type MatchModelOutput } from "@/server/ai/workflows/candidate-match";
 import type { MatchLabel, RequirementAssessment } from "@/server/ai/scoring";
 import { statusOfLabel } from "@/server/ai/scoring";
 import type { JobAnalysis, Requirement } from "@/server/ai/workflows/job-analyzer";
@@ -133,5 +134,42 @@ describe("core competencies and technical skills", () => {
 
   it("flags a competency nobody can vouch for", () => {
     expect(unsupportedCompetencies(["Figma", "Mentoring", "Blockchain strategy"], [{ name: "Mentoring" }], TEST_PROFILE)).toHaveLength(1);
+  });
+});
+
+describe("a slip in bookkeeping does not block the analysis", () => {
+  const job = (): JobAnalysis => ({
+    ...analysis(req("r1", "required"), req("r2", "required")),
+    keywords: [{ term: "Cross-functional collaboration", count: 2, importance: "high" }],
+  });
+  const slipped: MatchModelOutput = {
+    roles: [{ experienceId: "exp_harbor", profession: "Product design", industry: "Banking", professionFit: "same", industryFit: "direct", leadership: "people" }, { experienceId: "ghost", profession: "x", industry: "y", professionFit: "same", industryFit: "direct", leadership: "none" }],
+    titleGroups: [{ name: "Design", experienceIds: ["exp_harbor", "ghost"], reason: "x" }],
+    assessments: [{ requirementId: "r1", label: "strong", evidenceIds: ["nope"], explanation: "x", qualifyingRoleIds: ["exp_harbor", "ghost"], relatedRoleIds: [], yearsDeterminable: true }, { requirementId: "zzz", label: "match", evidenceIds: ["exp_harbor"], explanation: "x", qualifyingRoleIds: [], relatedRoleIds: [], yearsDeterminable: true }],
+    questions: [{ requirementId: "zzz", question: "?" }, { requirementId: "r1", question: "Have you done X?" }],
+    supportedKeywords: [{ term: "cross functional collaboration", evidenceIds: ["exp_harbor#r2", "nope"], reason: "Works with PMs." }, { term: "Not a job keyword", evidenceIds: ["exp_harbor#r2"], reason: "x" }],
+  };
+
+  it("drops what is invalid and fills what is missing, the cautious way", () => {
+    const out = sanitizeMatch({ profile: TEST_PROFILE, analysis: job() }, slipped);
+    expect(out.roles.map((r) => r.experienceId).sort()).toEqual(TEST_PROFILE.experiences.map((e) => e.id).sort()); // every role tagged; the unknown one dropped
+    expect(out.titleGroups).toEqual([]);
+    expect(out.assessments.map((a) => [a.requirementId, a.label])).toEqual([["r1", "unknown"], ["r2", "unknown"]]); // cited nothing real → cannot determine; missing → cannot determine
+    expect(out.assessments[0]!.qualifyingRoleIds).toEqual(["exp_harbor"]);
+    expect(out.questions.map((q) => q.requirementId)).toEqual(["r1"]);
+    expect(out.supportedKeywords).toEqual([{ term: "Cross-functional collaboration", evidenceIds: ["exp_harbor#r2"], reason: "Works with PMs." }]);
+  });
+});
+
+describe("resume extras that miss a rule are corrected, not fatal", () => {
+  it("falls back to the profile headline, drops unlisted technical skills and ties a years claim to the dates", () => {
+    const out = {
+      headline: "Senior Product Designer | UX Strategy", summary: { text: "Designer with 5+ years of experience.", evidenceIds: ["summary"] }, experiences: [],
+      coreCompetencies: [], skills: ["Figma", "Design Systems 2000", "Miro"], inferredSkills: [], titleEquivalents: [], educationIds: [], certificationIds: [], projects: [], changeNotes: [], questions: [],
+    } satisfies OptimizedResume;
+    const clean = sanitizeOptimized(TEST_PROFILE, out);
+    expect(clean.headline).toBe(TEST_PROFILE.headline);
+    expect(clean.skills).toEqual(["Figma", "Miro"]);
+    expect(clean.summary.evidenceIds).toContain("experience_total");
   });
 });

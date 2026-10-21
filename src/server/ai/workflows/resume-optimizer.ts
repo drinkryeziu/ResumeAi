@@ -1,7 +1,7 @@
 import { z } from "zod/v4";
 import type { ProfileSnapshot } from "@/server/domain/profile";
 import type { ResumeDraft } from "@/server/documents/model";
-import type { CareerModelOutput } from "../experience";
+import { experienceYears, yearsMentioned, type CareerModelOutput } from "../experience";
 import { buildEvidence, claimableTerms, evidenceBlock } from "../evidence";
 import { badInferredSkills, badTitleEquivalents, inventedNumbers, overlongYears, unknownEvidence, unknownRows, unsupportedCompetencies, unsupportedKeywordUse, unsupportedSkills, type CitedText } from "../guard/fabrication-guard";
 import { containsTerm, normalize } from "../text";
@@ -92,7 +92,30 @@ export function sanitizeOptimized<T extends OptimizedResume>(profile: ProfileSna
   // A core competency is either something the candidate listed, a competency their work shows (and cites), or a supported job term.
   const allowed = new Set([...claimableTerms(profile), ...inferredSkills.map((s) => s.name.trim().toLowerCase()), ...supportedTerms.map((t) => t.trim().toLowerCase())]);
   const coreCompetencies = [...new Set(out.coreCompetencies.map((c) => c.trim()).filter((c) => c && allowed.has(c.toLowerCase())))];
-  return { ...out, inferredSkills, coreCompetencies, titleEquivalents: out.titleEquivalents.filter((t) => badTitleEquivalents([t], profile).length === 0) };
+  // The headline is the candidate's own title: anything else falls back to the profile's headline. Technical skills not in the profile are dropped.
+  const headline = allowedHeadlines(profile).some((h) => normalize(h) === normalize(out.headline)) ? out.headline : profile.headline || out.headline;
+  const listed = claimableTerms(profile);
+  const skills = [...new Set(out.skills.map((s) => s.trim()).filter((s) => s && listed.has(s.toLowerCase())))];
+  // A summary that states the candidate's years of experience may cite the line that adds up their dates, if the claim is not longer than that.
+  const total = Math.floor(experienceYears(profile));
+  const summaryYears = yearsMentioned(out.summary.text);
+  const summary =
+    summaryYears.length > 0 && summaryYears.every((n) => n <= total) && !out.summary.evidenceIds.includes("experience_total")
+      ? { ...out.summary, evidenceIds: [...out.summary.evidenceIds, "experience_total"] }
+      : out.summary;
+  return { ...out, headline, summary, skills, inferredSkills, coreCompetencies, titleEquivalents: out.titleEquivalents.filter((t) => badTitleEquivalents([t], profile).length === 0) };
+}
+
+/** The Master Resume's career reading, with the same tolerance: unknown ids dropped, missing roles filled with a plain default. */
+export function sanitizeMaster(profile: ProfileSnapshot, out: MasterOutput): MasterOutput {
+  const base = sanitizeOptimized(profile, out);
+  const known = new Set(profile.experiences.map((e) => e.id));
+  const seen = new Set<string>();
+  const roles = out.career.roles.filter((r) => known.has(r.experienceId) && !seen.has(r.experienceId) && seen.add(r.experienceId));
+  for (const e of profile.experiences) {
+    if (!seen.has(e.id)) roles.push({ experienceId: e.id, profession: e.title, industry: "Unclear", leadership: "none" });
+  }
+  return { ...base, career: { ...out.career, roles, titleGroups: out.career.titleGroups.filter((g) => g.experienceIds.length >= 2 && g.experienceIds.every((id) => known.has(id))) } };
 }
 
 export const resumeOptimizer: WorkflowDefinition<OptimizeInput, OptimizedResume> = {
@@ -183,7 +206,12 @@ export function checkOptimizedResume(profile: ProfileSnapshot, out: OptimizedRes
   if (avoid.length) {
     v.push(
       ...unsupportedKeywordUse(
-        [...cited.map((c) => ({ text: c.text, where: c.where })), ...out.skills.map((s) => ({ text: s, where: "skills" })), ...out.coreCompetencies.map((s) => ({ text: s, where: "core competencies" })), ...out.inferredSkills.map((s) => ({ text: s.name, where: "inferred skills" }))],
+        // The skill lists only, and not what the writer cites evidence for: prose and inferred skills are held to their citations,
+        // so the writer can use the employer's words for what the work shows even where the match step was more cautious.
+        [
+          ...out.skills.map((s) => ({ text: s, where: "skills" })),
+          ...out.coreCompetencies.filter((c) => !out.inferredSkills.some((i) => normalize(i.name) === normalize(c))).map((s) => ({ text: s, where: "core competencies" })),
+        ],
         avoid,
       ),
     );
@@ -308,7 +336,7 @@ ${evidenceBlock(buildEvidence(profile))}`,
     return { ...out, changeNotes: ["Built from your profile, with your strongest results first in each role."], questions: [], career: heuristicCareer(profile) };
   },
 
-  sanitize: ({ profile }, out) => sanitizeOptimized(profile, out),
+  sanitize: ({ profile }, out) => sanitizeMaster(profile, out),
 
   check: ({ profile }, out) => {
     const roleIds = new Set(profile.experiences.map((e) => e.id));

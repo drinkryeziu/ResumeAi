@@ -33,13 +33,13 @@ export function DocumentActions({
   return (
     <>
       {fromDocuments && (
-        <ButtonLink href="/documents" variant="secondary" compact icon={<X size={16} aria-hidden="true" />}>
-          Close
+        <ButtonLink href="/documents" variant="secondary" compact icon={<X size={16} aria-hidden="true" />} aria-label="Close and go back to Documents">
+          <span className="sr-only sm:not-sr-only">Close</span>
         </ButtonLink>
       )}
       {hasDocument && !editing && (
-        <ButtonLink href={`${basePath}?doc=${tab}&mode=edit${from}`} variant="secondary" compact icon={<PenLine size={16} aria-hidden="true" />}>
-          Edit
+        <ButtonLink href={`${basePath}?doc=${tab}&mode=edit${from}`} variant="secondary" compact icon={<PenLine size={16} aria-hidden="true" />} aria-label={`Edit ${docLabel}`}>
+          <span className="sr-only sm:not-sr-only">Edit</span>
         </ButtonLink>
       )}
       {hasDocument && <DownloadDialog variant="secondary" docLabel={docLabel} pdfHref={download("pdf")} docxHref={download("docx")} zipHref={bothExist ? `/api/jobs/${target}/download?doc=package` : undefined} />}

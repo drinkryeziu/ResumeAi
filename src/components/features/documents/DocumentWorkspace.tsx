@@ -1,11 +1,12 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { FileText, Mail, Package } from "lucide-react";
+import { FileText, Mail } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { DocumentActions } from "./DocumentActions";
 import type { CoverLetterRecord, ResumeRecord } from "@/server/store/types";
 import { restoreVersion } from "@/app/(app)/jobs/actions";
 import { coverLetterPlainText, resumePlainText } from "@/server/documents/plain-text";
@@ -32,6 +33,7 @@ export function DocumentWorkspace({
   letterSide,
   fresh,
   fromDocuments,
+  labels,
 }: {
   target: string;
   basePath: string;
@@ -45,6 +47,8 @@ export function DocumentWorkspace({
   fresh?: boolean;
   /** Opened from the Documents tab: keep that on the links so the page can offer "Close". */
   fromDocuments?: boolean;
+  /** What each document is called in the download window: "Master Resume", "IBM resume". */
+  labels: { resume: string; "cover-letter": string };
 }) {
   const download = (doc: string, format?: string) => `/api/jobs/${target}/download?doc=${doc}${format ? `&format=${format}` : ""}`;
   const resumeV = resume?.versions.find((v) => v.id === resume.currentVersionId) ?? null;
@@ -78,15 +82,18 @@ export function DocumentWorkspace({
             </Link>
           ))}
         </div>
-        {resumeV && (
-          <a
-            href={download("package")}
-            className="mb-ds-2 inline-flex items-center gap-2 rounded-pill bg-blue-600 px-7 py-ds-3 text-button text-white no-underline hover:bg-blue-700"
-          >
-            <Package size={14} aria-hidden="true" />
-            Download both
-          </a>
-        )}
+        <div className="mb-ds-2 flex flex-wrap items-center gap-ds-3">
+          <DocumentActions
+            target={target}
+            basePath={basePath}
+            tab={tab}
+            editing={editing}
+            fromDocuments={Boolean(fromDocuments)}
+            hasDocument={Boolean(active)}
+            docLabel={labels[tab]}
+            bothExist={Boolean(resumeV && letterV)}
+          />
+        </div>
       </div>
 
       <div className="grid gap-ds-4 lg:grid-cols-[1fr_320px]">
@@ -108,9 +115,9 @@ export function DocumentWorkspace({
                 closeHref={here(tab)}
               >
                 {tab === "resume" ? (
-                  <ResumeEditor doc={resumeV!.content} target={target} cancelHref={here("resume")} />
+                  <ResumeEditor doc={resumeV!.content} target={target} cancelHref={here("resume")} fromDocuments={fromDocuments} />
                 ) : (
-                  <CoverLetterEditor doc={letterV!.content} target={target} cancelHref={here("cover-letter")} />
+                  <CoverLetterEditor doc={letterV!.content} target={target} cancelHref={here("cover-letter")} fromDocuments={fromDocuments} />
                 )}
               </EditWindow>
               <p className="text-caption">Paste the text into an application form, or attach the file. You apply yourself; we never submit for you.</p>
@@ -137,6 +144,7 @@ export function DocumentWorkspace({
                     ) : (
                       <form action={restoreVersion}>
                         <input type="hidden" name="jobId" value={target} />
+                        {fromDocuments && <input type="hidden" name="from" value="documents" />}
                         <input type="hidden" name="resumeId" value={resume.id} />
                         <input type="hidden" name="versionId" value={v.id} />
                         <Button variant="link" type="submit">

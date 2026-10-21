@@ -2,7 +2,6 @@ import { notFound, redirect } from "next/navigation";
 import { AlertTriangle, ExternalLink } from "lucide-react";
 import { ActionForm } from "@/components/features/job-flow/ActionForm";
 import { StepProgress } from "@/components/features/job-flow/StepProgress";
-import { DocumentActions } from "@/components/features/documents/DocumentActions";
 import { MatchMetricsCard } from "@/components/features/match/MatchMetricsCard";
 import { DocumentWorkspace, type DocTab } from "@/components/features/documents/DocumentWorkspace";
 import { ButtonLink } from "@/components/ui/Button";
@@ -201,17 +200,6 @@ export default async function JobApplicationPage({
         eyebrow={`Job match ${p.match?.overallScore ?? "—"}%${ats ? ` · ATS ${ats.overallScore}%` : ""}`}
         title={`${p.job.title} — ${p.job.company}`}
         description="Review and edit your tailored resume and cover letter, then download them and apply on the company's site or job board."
-        actions={
-          <DocumentActions
-            target={jobId}
-            basePath={`/jobs/${jobId}`}
-            tab={tab}
-            editing={sp.mode === "edit"}
-            fromDocuments={sp.from === "documents"}
-            hasDocument={tab === "resume" ? Boolean(currentResume) : Boolean(currentLetter)}
-            docLabel={`${p.job.company} ${tab === "resume" ? "resume" : "cover letter"}`}
-          />
-        }
       />
       {unfinished && (
         <SoftPanel className="mb-ds-4 flex flex-wrap items-center justify-between gap-ds-3">
@@ -234,6 +222,7 @@ export default async function JobApplicationPage({
         letterSide={letterSide}
         fresh={fresh}
         fromDocuments={sp.from === "documents"}
+        labels={{ resume: `${p.job.company} resume`, "cover-letter": `${p.job.company} cover letter` }}
       />
       <SoftPanel className="mt-ds-5 flex flex-wrap items-center justify-between gap-ds-4">
         <p className="text-body-sm max-w-xl">

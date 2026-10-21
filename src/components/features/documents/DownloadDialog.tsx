@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useRef } from "react";
-import { Download, X } from "lucide-react";
+import { Download, Package, X } from "lucide-react";
 import { Button, IconButton } from "@/components/ui/Button";
 import { PdfIcon, WordIcon } from "@/components/ui/FileIcons";
 
@@ -9,7 +9,7 @@ import { PdfIcon, WordIcon } from "@/components/ui/FileIcons";
  * One "Download" button; it opens a small window where the format is chosen. A native <dialog> gives the focus trap,
  * Escape and focus return. Choosing a format starts the download and closes the window.
  */
-export function DownloadDialog({ docLabel, pdfHref, docxHref, variant = "primary", iconOnly = false }: { docLabel: string; pdfHref: string; docxHref: string; variant?: "primary" | "secondary"; iconOnly?: boolean }) {
+export function DownloadDialog({ docLabel, pdfHref, docxHref, variant = "primary", iconOnly = false, zipHref }: { docLabel: string; pdfHref: string; docxHref: string; variant?: "primary" | "secondary"; iconOnly?: boolean; zipHref?: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId(); // several of these can be on one page
   const close = () => dialog.current?.close();
@@ -66,6 +66,19 @@ export function DownloadDialog({ docLabel, pdfHref, docxHref, variant = "primary
                 </span>
               </a>
             </li>
+            {zipHref && (
+              <li>
+                <a href={zipHref} onClick={() => setTimeout(close, 0)} className={option}>
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white text-blue-600">
+                    <Package size={20} aria-hidden="true" />
+                  </span>
+                  <span className="flex flex-col">
+                    <span className="text-label-bold">Resume and cover letter (.zip)</span>
+                    <span className="text-caption">Both documents together, as PDF files.</span>
+                  </span>
+                </a>
+              </li>
+            )}
           </ul>
         </div>
       </dialog>

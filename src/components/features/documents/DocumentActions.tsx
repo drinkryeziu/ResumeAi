@@ -15,6 +15,7 @@ export function DocumentActions({
   fromDocuments,
   hasDocument,
   docLabel,
+  bothExist = false,
 }: {
   target: string;
   basePath: string;
@@ -24,6 +25,8 @@ export function DocumentActions({
   hasDocument: boolean;
   /** Names the document in the download window: "Northwind Financial resume", "Master Resume". */
   docLabel: string;
+  /** A resume and a cover letter both exist: the download window also offers them together. */
+  bothExist?: boolean;
 }) {
   const from = fromDocuments ? "&from=documents" : "";
   const download = (format: string) => `/api/jobs/${target}/download?doc=${tab}&format=${format}`;
@@ -39,7 +42,7 @@ export function DocumentActions({
           Edit
         </ButtonLink>
       )}
-      {hasDocument && <DownloadDialog variant="secondary" docLabel={docLabel} pdfHref={download("pdf")} docxHref={download("docx")} />}
+      {hasDocument && <DownloadDialog variant="secondary" docLabel={docLabel} pdfHref={download("pdf")} docxHref={download("docx")} zipHref={bothExist ? `/api/jobs/${target}/download?doc=package` : undefined} />}
     </>
   );
 }

@@ -1,5 +1,4 @@
 import { CareerAnalysisCard } from "@/components/features/match/CareerAnalysisCard";
-import { DocumentActions } from "@/components/features/documents/DocumentActions";
 import { DocumentWorkspace, type DocTab } from "@/components/features/documents/DocumentWorkspace";
 import { ActionForm } from "@/components/features/job-flow/ActionForm";
 import { ButtonLink } from "@/components/ui/Button";
@@ -38,20 +37,7 @@ export default async function MasterPage({ searchParams }: { searchParams: Promi
       <PageHeader
         title="Your Master Resume & Cover Letter"
         description="Built from your profile and the starting point for every application. Tailoring to a job never changes them."
-        actions={
-          <>
-            <DocumentActions
-              target="master"
-              basePath="/master"
-              tab={tab}
-              editing={sp.mode === "edit"}
-              fromDocuments={sp.from === "documents"}
-              hasDocument={tab === "resume" ? Boolean(resume) : Boolean(letter)}
-              docLabel={tab === "resume" ? "Master Resume" : "Master Cover Letter"}
-            />
-            <ButtonLink href="/dashboard#tailor">Create new application</ButtonLink>
-          </>
-        }
+        actions={<ButtonLink href="/dashboard#tailor">Create new application</ButtonLink>}
       />
       <DocumentWorkspace
         target="master"
@@ -59,6 +45,7 @@ export default async function MasterPage({ searchParams }: { searchParams: Promi
         tab={tab}
         editing={sp.mode === "edit"}
         fromDocuments={sp.from === "documents"}
+        labels={{ resume: "Master Resume", "cover-letter": "Master Cover Letter" }}
         resume={resume}
         letter={letter}
         resumeSide={

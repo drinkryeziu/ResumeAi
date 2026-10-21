@@ -33,12 +33,13 @@ function SaveBar({ state }: { state: ActionState }) {
  * Wording is editable here. Employer, title, dates and school are facts from the profile —
  * they're shown read-only, with a link to change them in the profile, so every document stays consistent.
  */
-export function ResumeEditor({ doc, target, cancelHref }: { doc: ResumeDocument; target: string; cancelHref: string }) {
+export function ResumeEditor({ doc, target, cancelHref, fromDocuments }: { doc: ResumeDocument; target: string; cancelHref: string; fromDocuments?: boolean }) {
   const [state, action] = useActionState(saveResumeEdits, undefined);
   const uid = useId();
   return (
     <form action={action} className="flex flex-col gap-ds-4">
       <input type="hidden" name="jobId" value={target} />
+      {fromDocuments && <input type="hidden" name="from" value="documents" />}
       <p className="flex gap-ds-2 rounded-md bg-sky-50 p-ds-3 text-body-sm">
         <Info size={18} className="shrink-0 text-blue-600" aria-hidden="true" />
         <span>
@@ -93,12 +94,13 @@ export function ResumeEditor({ doc, target, cancelHref }: { doc: ResumeDocument;
   );
 }
 
-export function CoverLetterEditor({ doc, target, cancelHref }: { doc: CoverLetterDocument; target: string; cancelHref: string }) {
+export function CoverLetterEditor({ doc, target, cancelHref, fromDocuments }: { doc: CoverLetterDocument; target: string; cancelHref: string; fromDocuments?: boolean }) {
   const [state, action] = useActionState(saveCoverLetterEdits, undefined);
   const uid = useId();
   return (
     <form action={action} className="flex flex-col gap-ds-4">
       <input type="hidden" name="jobId" value={target} />
+      {fromDocuments && <input type="hidden" name="from" value="documents" />}
       <Field label="Greeting" htmlFor={`${uid}-g`} required>
         <Input id={`${uid}-g`} name="greeting" defaultValue={doc.greeting} required />
       </Field>

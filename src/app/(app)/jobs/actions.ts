@@ -43,6 +43,8 @@ const targetOf = (fd: FormData) => {
   return v === "master" ? null : v;
 };
 const pathOf = (jobId: string | null) => (jobId ? `/jobs/${jobId}` : "/master");
+/** A document opened from the Documents tab keeps its "Close" button after a save or restore. */
+const fromOf = (fd: FormData) => (fd.get("from") === "documents" ? "&from=documents" : "");
 
 const JobFields = z.object({
   title: z.string().trim().max(200).default(""),
@@ -215,7 +217,7 @@ export async function saveResumeEdits(_: ActionState, fd: FormData): Promise<Act
     return toState(e, { userId: id, jobId });
   }
   revalidatePath(pathOf(jobId));
-  redirect(`${pathOf(jobId)}?doc=resume&notice=${notice("version-saved")}`);
+  redirect(`${pathOf(jobId)}?doc=resume&notice=${notice("version-saved")}${fromOf(fd)}`);
 }
 
 const LetterEdit = z.object({
@@ -243,7 +245,7 @@ export async function saveCoverLetterEdits(_: ActionState, fd: FormData): Promis
     return toState(e, { userId: id, jobId });
   }
   revalidatePath(pathOf(jobId));
-  redirect(`${pathOf(jobId)}?doc=cover-letter&notice=${notice("version-saved")}`);
+  redirect(`${pathOf(jobId)}?doc=cover-letter&notice=${notice("version-saved")}${fromOf(fd)}`);
 }
 
 export async function restoreVersion(fd: FormData) {
@@ -251,7 +253,7 @@ export async function restoreVersion(fd: FormData) {
   const jobId = targetOf(fd);
   await (await getStore()).restoreResumeVersion(id, String(fd.get("resumeId")), String(fd.get("versionId")));
   revalidatePath(pathOf(jobId));
-  redirect(`${pathOf(jobId)}?doc=resume&notice=${notice("version-restored")}`);
+  redirect(`${pathOf(jobId)}?doc=resume&notice=${notice("version-restored")}${fromOf(fd)}`);
 }
 
 /** "Delete" on a document in the Documents tab, after the person confirms. */

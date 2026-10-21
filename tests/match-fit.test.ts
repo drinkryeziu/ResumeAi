@@ -8,6 +8,7 @@ import { sanitizeOptimized, type OptimizedResume } from "@/server/ai/workflows/r
 import { sanitizeMatch, type MatchModelOutput } from "@/server/ai/workflows/candidate-match";
 import type { MatchLabel, RequirementAssessment } from "@/server/ai/scoring";
 import { statusOfLabel } from "@/server/ai/scoring";
+import { experienceYears } from "@/server/ai/experience";
 import type { JobAnalysis, Requirement } from "@/server/ai/workflows/job-analyzer";
 import { TEST_PROFILE } from "./fixtures";
 
@@ -162,14 +163,24 @@ describe("a slip in bookkeeping does not block the analysis", () => {
 });
 
 describe("resume extras that miss a rule are corrected, not fatal", () => {
-  it("falls back to the profile headline, drops unlisted technical skills and ties a years claim to the dates", () => {
-    const out = {
-      headline: "Senior Product Designer | UX Strategy", summary: { text: "Designer with 5+ years of experience.", evidenceIds: ["summary"] }, experiences: [],
+  const base = (summaryText: string) =>
+    ({
+      headline: "Senior Product Designer | UX Strategy", summary: { text: summaryText, evidenceIds: ["summary"] }, experiences: [],
       coreCompetencies: [], skills: ["Figma", "Design Systems 2000", "Miro"], inferredSkills: [], titleEquivalents: [], educationIds: [], certificationIds: [], projects: [], changeNotes: [], questions: [],
-    } satisfies OptimizedResume;
-    const clean = sanitizeOptimized(TEST_PROFILE, out);
+    }) satisfies OptimizedResume;
+
+  it("falls back to the profile headline, drops unlisted technical skills and ties a years claim to the dates", () => {
+    const total = Math.floor(experienceYears(TEST_PROFILE));
+    const clean = sanitizeOptimized(TEST_PROFILE, base(`Designer with ${total}+ years of experience.`));
     expect(clean.headline).toBe(TEST_PROFILE.headline);
     expect(clean.skills).toEqual(["Figma", "Miro"]);
     expect(clean.summary.evidenceIds).toContain("experience_total");
+    expect(clean.summary.text).toBe(`Designer with ${total}+ years of experience.`);
+  });
+
+  it("replaces a summary whose years the dates do not state with the candidate's own", () => {
+    const clean = sanitizeOptimized(TEST_PROFILE, base("Designer with 40+ years of experience."));
+    expect(clean.summary).toEqual({ text: TEST_PROFILE.summary!.trim(), evidenceIds: ["summary"] });
   });
 });
+

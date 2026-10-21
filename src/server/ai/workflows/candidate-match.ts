@@ -26,37 +26,34 @@ const RoleTagSchema = z.object({
   experienceId: z.string(),
   profession: z.string().describe("The profession or function this role actually was, in plain words (e.g. 'Product and UX design'), judged from the work done and not from the title's wording"),
   industry: z.string().describe("The industry the employer works in (e.g. 'Banking')"),
-  professionFit: z.enum(["same", "related", "different"]).describe("Compared with the JOB's profession: the same profession, a closely related one, or a different one"),
-  industryFit: z.enum(["direct", "related", "transferable", "unrelated"]).describe("Compared with the JOB's industry: same industry, closely related industry, a different industry, or unrelated. Never call a related industry 'direct'."),
-  leadership: z.enum(["people", "project", "none"]).describe("people = managed, hired or coached people; project = led a team, project or program without managing people; none"),
+  professionFit: z.enum(["same", "related", "different"]).catch("related").describe("Compared with the JOB's profession: the same profession, a closely related one, or a different one"),
+  industryFit: z.enum(["direct", "related", "transferable", "unrelated"]).catch("transferable").describe("Compared with the JOB's industry: same industry, closely related industry, a different industry, or unrelated. Never call a related industry 'direct'."),
+  leadership: z.enum(["people", "project", "none"]).catch("none").describe("people = managed, hired or coached people; project = led a team, project or program without managing people; none"),
 });
 
 /** What the model returns: judgments about roles and requirements. Years and scores are computed afterwards in code. */
 export const MatchModelSchema = z.object({
   roles: z.array(RoleTagSchema).describe("One entry for EVERY role in the profile"),
   titleGroups: z
-    .array(z.object({ name: z.string().describe("The profession the grouped titles share"), experienceIds: z.array(z.string()).min(2), reason: z.string().describe("One short sentence on why the work is the same") }))
-    .max(5)
-    .describe("Roles with different titles that are really the same profession, with the reason. Only when the work supports it."),
+    .array(z.object({ name: z.string().describe("The profession the grouped titles share"), experienceIds: z.array(z.string()), reason: z.string().describe("One short sentence on why the work is the same") }))
+    .describe("At most 5 groups of roles with different titles that are really the same profession, with the reason. Only when the work supports it."),
   assessments: z.array(
     z.object({
       requirementId: z.string(),
-      label: z.enum(MATCH_LABELS),
-      evidenceIds: z.array(z.string()),
+      label: z.enum(MATCH_LABELS).catch("unknown"),
+      evidenceIds: z.array(z.string()).catch([]),
       explanation: z.string().describe("One short sentence a candidate would understand"),
-      qualifyingRoleIds: z.array(z.string()).describe("Roles whose work fully satisfies this requirement. For skill and leadership requirements, the roles that show it. Empty when none."),
-      relatedRoleIds: z.array(z.string()).describe("Roles that only partly or indirectly satisfy it. Empty when none."),
-      yearsDeterminable: z.boolean().describe("For skill or leadership requirements: false when the resume shows the skill was used but not for how long"),
+      qualifyingRoleIds: z.array(z.string()).catch([]).describe("Roles whose work fully satisfies this requirement. For skill and leadership requirements, the roles that show it. Empty when none."),
+      relatedRoleIds: z.array(z.string()).catch([]).describe("Roles that only partly or indirectly satisfy it. Empty when none."),
+      yearsDeterminable: z.boolean().catch(true).describe("For skill or leadership requirements: false when the resume shows the skill was used but not for how long"),
     }),
   ),
   questions: z
     .array(z.object({ requirementId: z.string(), question: z.string().describe("A yes/no question to the candidate, in second person") }))
-    .max(8)
-    .describe("Ask about important missing or partial requirements instead of assuming. Never ask about years or dates."),
+    .describe("At most 8. Ask about important missing or partial requirements instead of assuming. Never ask about years or dates."),
   supportedKeywords: z
-    .array(z.object({ term: z.string().describe("A job keyword exactly as in the job's keyword list"), evidenceIds: z.array(z.string()).min(1), reason: z.string() }))
-    .max(15)
-    .describe("Job keywords the profile does not literally contain but the evidence clearly supports (the same experience in the employer's words)"),
+    .array(z.object({ term: z.string().describe("A job keyword exactly as in the job's keyword list"), evidenceIds: z.array(z.string()).catch([]), reason: z.string().catch("") }))
+    .describe("At most 15 job keywords the profile does not literally contain but the evidence clearly supports (the same experience in the employer's words)"),
 });
 export type MatchModelOutput = z.infer<typeof MatchModelSchema>;
 
@@ -194,10 +191,10 @@ export function sanitizeMatch({ profile, analysis }: MatchInput, out: MatchModel
 
   return {
     roles,
-    titleGroups: out.titleGroups.filter((g) => g.experienceIds.length >= 2 && g.experienceIds.every((id) => roleIds.has(id))),
+    titleGroups: out.titleGroups.filter((g) => g.experienceIds.length >= 2 && g.experienceIds.every((id) => roleIds.has(id))).slice(0, 5),
     assessments,
-    questions: out.questions.filter((q) => reqIds.has(q.requirementId)),
-    supportedKeywords,
+    questions: out.questions.filter((q) => reqIds.has(q.requirementId)).slice(0, 8),
+    supportedKeywords: supportedKeywords.slice(0, 15),
   };
 }
 

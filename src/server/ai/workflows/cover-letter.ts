@@ -2,7 +2,7 @@ import { z } from "zod/v4";
 import type { ProfileSnapshot } from "@/server/domain/profile";
 import type { CoverLetterDocument, ResumeDocument } from "@/server/documents/model";
 import { locationOf } from "@/server/documents/model";
-import { buildEvidence, evidenceBlock } from "../evidence";
+import { buildEvidence, claimableTerms, evidenceBlock } from "../evidence";
 import { inventedNumbers, overlongYears, unknownEvidence, unknownOrganizations } from "../guard/fabrication-guard";
 import { normalize } from "../text";
 import { GROUNDING_RULES, wrapJob, type WorkflowDefinition } from "../workflow";
@@ -33,8 +33,8 @@ export interface CoverLetterInput {
 }
 
 export const CoverLetterSchema = z.object({
-  paragraphs: z.array(z.object({ text: z.string(), evidenceIds: z.array(z.string()) })).min(2).max(6),
-  organizationsMentioned: z.array(z.string()).describe("Every company, school or organization name you mentioned, other than the hiring company"),
+  paragraphs: z.array(z.object({ text: z.string(), evidenceIds: z.array(z.string()).catch([]) })).describe("2 to 6 paragraphs"),
+  organizationsMentioned: z.array(z.string()).catch([]).describe("Every company, school or organization name you mentioned, other than the hiring company"),
 });
 export type CoverLetterOutput = z.infer<typeof CoverLetterSchema>;
 
@@ -80,6 +80,8 @@ ${evidenceBlock(buildEvidence(profile))}`,
 
     mock: (input) => templateLetter(input),
 
+    sanitize: (input, out) => sanitizeLetter(input, out),
+
     check: ({ profile, job }, out) => {
       const evidence = buildEvidence(profile);
       const cited = out.paragraphs.map((p, i) => ({ ...p, where: `paragraph ${i + 1}` }));
@@ -91,6 +93,32 @@ ${evidenceBlock(buildEvidence(profile))}`,
       ];
     },
   };
+}
+
+/**
+ * Keeps the paragraphs that cite real evidence and say nothing the evidence doesn't show (no unsupported numbers, no organization
+ * outside the profile and the hiring company). If fewer than two paragraphs survive, the letter is the plain template that only
+ * restates profile facts: a short honest letter is better than a refund and an error.
+ */
+export function sanitizeLetter(input: CoverLetterInput, out: CoverLetterOutput): CoverLetterOutput {
+  const { profile, job } = input;
+  const evidence = buildEvidence(profile);
+  const known = new Set(evidence.map((e) => e.id));
+  const tools = claimableTerms(profile);
+  const orgs = new Set([...profile.experiences.map((e) => e.company), ...profile.education.map((e) => e.school), ...profile.certifications.flatMap((c) => [c.name, c.issuer ?? ""]), ...(job ? [job.company] : [])].filter(Boolean).map(normalize));
+  // A name the model lists as an organization but that is really a tool or skill the candidate lists is not an invented employer.
+  const unknownOrgs = out.organizationsMentioned.filter((o) => !orgs.has(normalize(o)) && !tools.has(o.trim().toLowerCase()));
+  const paragraphs = out.paragraphs
+    .flatMap((p) => {
+      const evidenceIds = [...new Set(p.evidenceIds.filter((id) => known.has(id)))];
+      const text = p.text.trim();
+      const cited = [{ text, evidenceIds, where: "" }];
+      const mentionsUnknownOrg = unknownOrgs.some((o) => normalize(text).includes(normalize(o)));
+      return text && evidenceIds.length > 0 && !mentionsUnknownOrg && inventedNumbers(cited, evidence).length === 0 && overlongYears(cited, evidence, profile).length === 0 ? [{ text, evidenceIds }] : [];
+    })
+    .slice(0, 6);
+  if (paragraphs.length < 2) return templateLetter(input);
+  return { paragraphs, organizationsMentioned: out.organizationsMentioned.filter((o) => !unknownOrgs.includes(o)) };
 }
 
 export const coverLetterGenerator = build("GENERATE_COVER_LETTER");

@@ -17,6 +17,8 @@ import { getStore } from "@/server/store";
 
 export type ActionState = { error?: string; needCredits?: boolean; creditStop?: CreditStop; ok?: string } | undefined;
 
+const rejectionDetail = (e: WorkflowOutputError) => (e.violations.length ? ` (Reason: ${e.violations.slice(0, 2).map((v) => v.slice(0, 180)).join(" · ")})` : "");
+
 /**
  * Typed errors → the plain-language messages users see. Internals never leak. Running out of credits is not a failure: the
  * state carries what is really saved (read back from the store) so the page can show the credit-limit window.
@@ -26,7 +28,9 @@ async function toState(err: unknown, who?: { userId: string; jobId: string | nul
     const creditStop = who ? await describeCreditStop(await getStore(), who.userId, who.jobId, err) : undefined;
     return { error: err.message, needCredits: true, creditStop };
   }
-  if (err instanceof pipeline.PipelineError || err instanceof WorkflowOutputError || err instanceof UploadError) return { error: err.message };
+  // An answer the checks turned down: say which check, so a repeat can be understood and fixed (rule names and ids, nothing personal).
+  if (err instanceof WorkflowOutputError) return { error: `${err.message}${rejectionDetail(err)}` };
+  if (err instanceof pipeline.PipelineError || err instanceof UploadError) return { error: err.message };
   if (err instanceof AIProviderError) return { error: `${describeAIError(err, "finish that")} Your credits were refunded.` };
   console.error("[jobs/actions]", err);
   return { error: "Something went wrong. Any credits used were refunded." };

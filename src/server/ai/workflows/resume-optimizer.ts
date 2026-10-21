@@ -18,8 +18,11 @@ export interface OptimizeInput {
   improvementNotes?: string[];
 }
 
-const Cited = z.object({ text: z.string(), evidenceIds: z.array(z.string()).min(1) });
+const ids = z.array(z.string()).catch([]);
+const Cited = z.object({ text: z.string(), evidenceIds: ids });
 
+// Limits on how many items to write are asked for in the descriptions and enforced by `sanitize`, not by the schema: a model
+// that writes seven bullets instead of six should get its seventh trimmed, not have the whole answer thrown away.
 export const OptimizedResumeSchema = z.object({
   headline: z.string().describe("The candidate's professional title — their profile headline or a title they have actually held"),
   summary: Cited.describe("3–4 sentences, tailored to the job, only from evidence"),
@@ -27,30 +30,30 @@ export const OptimizedResumeSchema = z.object({
     .array(
       z.object({
         experienceId: z.string(),
-        bullets: z.array(Cited).min(1).max(6).describe("Strongest, most relevant first. Start with a verb."),
+        bullets: z.array(Cited).describe("1 to 6 bullets, strongest and most relevant first. Start with a verb."),
       }),
     )
     .describe("Roles to include, most relevant first. Omit only clearly irrelevant, old roles."),
   coreCompetencies: z
     .array(z.string())
-    .max(12)
+    .catch([])
     .describe(
-      "The Core Competencies section, built for this reader (not a copy of the skills list): functional expertise, leadership, collaboration, process and domain strengths. Each must be a skill the candidate listed, or one of your inferredSkills, or a supported term. Most relevant first.",
+      "At most 12. The Core Competencies section, built for this reader (not a copy of the skills list): functional expertise, leadership, collaboration, process and domain strengths. Each must be a skill the candidate listed, or one of your inferredSkills, or a supported term. Most relevant first.",
     ),
-  skills: z.array(z.string()).max(25).describe("Technical Skills: only the software, platforms, languages, design tools, frameworks, systems and methods that are in the profile, most relevant first"),
+  skills: z.array(z.string()).catch([]).describe("At most 25. Technical Skills: only the software, platforms, languages, design tools, frameworks, systems and methods that are in the profile, most relevant first"),
   inferredSkills: z
-    .array(z.object({ name: z.string().describe("A short competency name, e.g. 'Cross-functional collaboration'"), evidenceIds: z.array(z.string()).min(1), reason: z.string().describe("One short sentence: what in the evidence shows it") }))
-    .max(8)
-    .describe("Competencies the candidate never listed but their own responsibilities, achievements or projects clearly demonstrate. Never tools, languages, certifications or degrees. Empty when nothing is clearly shown."),
+    .array(z.object({ name: z.string().describe("A short competency name, e.g. 'Cross-functional collaboration'"), evidenceIds: ids, reason: z.string().catch("").describe("One short sentence: what in the evidence shows it") }))
+    .catch([])
+    .describe("At most 8. Competencies the candidate never listed but their own responsibilities, achievements or projects clearly demonstrate. Never tools, languages, certifications or degrees. Empty when nothing is clearly shown."),
   titleEquivalents: z
-    .array(z.object({ experienceId: z.string(), equivalent: z.string().describe("A plain industry-standard functional title, e.g. 'Senior Product/UX Designer'"), evidenceIds: z.array(z.string()).min(1) }))
-    .max(6)
-    .describe("Only for roles whose official title is vague or company-specific (e.g. 'Experience Designer III'). The official title is always kept; this is added after it. Empty when titles are already clear."),
-  educationIds: z.array(z.string()),
-  certificationIds: z.array(z.string()),
-  projects: z.array(z.object({ projectId: z.string(), description: Cited })).max(4),
-  changeNotes: z.array(z.string()).max(8).describe("Plain-language notes on what was changed and why"),
-  questions: z.array(z.object({ topic: z.string(), question: z.string() })).max(5).describe("Ask instead of inventing"),
+    .array(z.object({ experienceId: z.string(), equivalent: z.string().describe("A plain industry-standard functional title, e.g. 'Senior Product/UX Designer'"), evidenceIds: ids }))
+    .catch([])
+    .describe("At most 6. Only for roles whose official title is vague or company-specific (e.g. 'Experience Designer III'). The official title is always kept; this is added after it. Empty when titles are already clear."),
+  educationIds: ids,
+  certificationIds: ids,
+  projects: z.array(z.object({ projectId: z.string(), description: Cited })).catch([]).describe("At most 4"),
+  changeNotes: z.array(z.string()).catch([]).describe("At most 8 plain-language notes on what was changed and why"),
+  questions: z.array(z.object({ topic: z.string(), question: z.string() })).catch([]).describe("At most 5. Ask instead of inventing"),
 });
 export type OptimizedResume = z.infer<typeof OptimizedResumeSchema>;
 
@@ -65,45 +68,130 @@ export const MasterResumeSchema = OptimizedResumeSchema.extend({
           experienceId: z.string(),
           profession: z.string().describe("The profession this role actually was, judged from the work and not the title's wording"),
           industry: z.string().describe("The industry the employer works in"),
-          leadership: z.enum(["people", "project", "none"]).describe("people = managed, hired or coached people; project = led a team or project without managing people; none"),
+          leadership: z.enum(["people", "project", "none"]).catch("none").describe("people = managed, hired or coached people; project = led a team or project without managing people; none"),
         }),
       )
       .describe("One entry for EVERY role"),
     titleGroups: z
-      .array(z.object({ name: z.string(), experienceIds: z.array(z.string()).min(2), reason: z.string() }))
-      .max(5)
-      .describe("Roles with different titles that are the same profession, and why. Only when the work supports it."),
-    progression: z.array(z.string()).max(6).describe("How the career developed, one short sentence per step, using only facts in the evidence"),
-    strengths: z.array(z.string()).max(6).describe("The candidate's strongest points, from the evidence"),
-    differentiators: z.array(z.string()).max(5).describe("What sets this candidate apart, from the evidence"),
-    gaps: z.array(z.string()).max(6).describe("Information that would make the resume stronger (for example 'Add a result with a number for your role at X'). Never invent it."),
+      .array(z.object({ name: z.string(), experienceIds: z.array(z.string()), reason: z.string() }))
+      .catch([])
+      .describe("At most 5 groups of roles with different titles that are the same profession, and why. Only when the work supports it."),
+    progression: z.array(z.string()).catch([]).describe("At most 6. How the career developed, one short sentence per step, using only facts in the evidence"),
+    strengths: z.array(z.string()).catch([]).describe("At most 6. The candidate's strongest points, from the evidence"),
+    differentiators: z.array(z.string()).catch([]).describe("At most 5. What sets this candidate apart, from the evidence"),
+    gaps: z.array(z.string()).catch([]).describe("At most 6. Information that would make the resume stronger (for example 'Add a result with a number for your role at X'). Never invent it."),
   }),
 });
 export type MasterOutput = z.infer<typeof MasterResumeSchema>;
 
 /**
- * Optional extras that fail their own rules are dropped, not repaired and not allowed to fail the whole run:
- * an inferred skill without evidence, or a title equivalent that claims too much.
+ * Makes an answer that is almost right fully right, without ever adding a fact. Anything that fails its own rule is dropped or
+ * replaced by the candidate's own words, and lists are cut to size:
+ *  - citations are kept only if they exist (and, for a bullet, belong to its own role or an approved answer);
+ *  - a bullet, summary or project that states a number or a span of years its evidence doesn't support is dropped;
+ *  - a role left with no bullet gets its own profile lines back, a failed summary becomes the profile's summary;
+ *  - an inferred skill without evidence, a technical skill that is not in the profile, a title equivalent that claims too much,
+ *    and a headline that is not the candidate's own title are dropped or put right.
+ * So an almost-right answer is never refunded and thrown away, and a wrong claim still never reaches a document.
  */
 export function sanitizeOptimized<T extends OptimizedResume>(profile: ProfileSnapshot, out: T, supportedTerms: string[] = []): T {
   const evidence = buildEvidence(profile);
-  const have = new Set(out.skills.map((s) => s.trim().toLowerCase()));
-  const inferredSkills = out.inferredSkills.filter((s) => badInferredSkills([s], profile, evidence).length === 0 && !have.has(s.name.trim().toLowerCase()));
-  // A core competency is either something the candidate listed, a competency their work shows (and cites), or a supported job term.
-  const allowed = new Set([...claimableTerms(profile), ...inferredSkills.map((s) => s.name.trim().toLowerCase()), ...supportedTerms.map((t) => t.trim().toLowerCase())]);
-  const coreCompetencies = [...new Set(out.coreCompetencies.map((c) => c.trim()).filter((c) => c && allowed.has(c.toLowerCase())))];
-  // The headline is the candidate's own title: anything else falls back to the profile's headline. Technical skills not in the profile are dropped.
-  const headline = allowedHeadlines(profile).some((h) => normalize(h) === normalize(out.headline)) ? out.headline : profile.headline || out.headline;
-  const listed = claimableTerms(profile);
-  const skills = [...new Set(out.skills.map((s) => s.trim()).filter((s) => s && listed.has(s.toLowerCase())))];
-  // A summary that states the candidate's years of experience may cite the line that adds up their dates, if the claim is not longer than that.
+  const known = new Set(evidence.map((e) => e.id));
+  const factIds = new Set(profile.approvedFacts.map((f) => f.id));
+  const roles = new Map(profile.experiences.map((e) => [e.id, e]));
+  const pick = (listed: string[], rows: Array<{ id: string }>) => {
+    const real = [...new Set(listed.filter((id) => rows.some((r) => r.id === id)))];
+    return real.length > 0 ? real : rows.map((r) => r.id);
+  };
+  const cleanIds = (list: string[]) => [...new Set(list.filter((id) => known.has(id)))];
+  const ownIds = (roleId: string, list: string[]) => cleanIds(list).filter((id) => id === roleId || id.startsWith(`${roleId}#`) || factIds.has(id));
+  const statesOnlyWhatIsShown = (text: string, evidenceIds: string[]) => {
+    const cited = [{ text, evidenceIds, where: "" }];
+    return inventedNumbers(cited, evidence).length === 0 && overlongYears(cited, evidence, profile).length === 0;
+  };
+
+  // Roles: only real ones, each once, each with at least one supported bullet.
+  const seenRoles = new Set<string>();
+  const experiences = out.experiences.flatMap((e) => {
+    const role = roles.get(e.experienceId);
+    if (!role || seenRoles.has(role.id)) return [];
+    seenRoles.add(role.id);
+    let bullets = e.bullets
+      .flatMap((b) => {
+        const text = b.text.trim();
+        const citedIds = ownIds(role.id, b.evidenceIds);
+        return text && citedIds.length > 0 && statesOnlyWhatIsShown(text, citedIds) ? [{ text, evidenceIds: citedIds }] : [];
+      })
+      .slice(0, 6);
+    if (bullets.length === 0) {
+      bullets = [
+        ...role.achievements.map((t, i) => ({ text: t, evidenceIds: [`${role.id}#a${i}`] })),
+        ...role.responsibilities.map((t, i) => ({ text: t, evidenceIds: [`${role.id}#r${i}`] })),
+      ].slice(0, 4);
+    }
+    if (bullets.length === 0) bullets = [{ text: `${role.title} at ${role.company}.`, evidenceIds: [role.id] }];
+    return [{ experienceId: role.id, bullets }];
+  });
+
+  // A model that returned no usable role at all gets every role back in the candidate's own words.
+  if (experiences.length === 0) {
+    for (const role of profile.experiences) {
+      const lines = [
+        ...role.achievements.map((t, i) => ({ text: t, evidenceIds: [`${role.id}#a${i}`] })),
+        ...role.responsibilities.map((t, i) => ({ text: t, evidenceIds: [`${role.id}#r${i}`] })),
+      ].slice(0, 4);
+      experiences.push({ experienceId: role.id, bullets: lines.length ? lines : [{ text: `${role.title} at ${role.company}.`, evidenceIds: [role.id] }] });
+    }
+  }
+
+  // Summary: the model's own, with the line that adds up the candidate's dates cited when it states their years (never longer than that).
   const total = Math.floor(experienceYears(profile));
-  const summaryYears = yearsMentioned(out.summary.text);
+  const years = yearsMentioned(out.summary.text);
+  let summaryIds = cleanIds(out.summary.evidenceIds);
+  if (years.length > 0 && years.every((n) => n <= total) && !summaryIds.includes("experience_total")) summaryIds = [...summaryIds, "experience_total"];
+  const summaryText = out.summary.text.trim();
   const summary =
-    summaryYears.length > 0 && summaryYears.every((n) => n <= total) && !out.summary.evidenceIds.includes("experience_total")
-      ? { ...out.summary, evidenceIds: [...out.summary.evidenceIds, "experience_total"] }
-      : out.summary;
-  return { ...out, headline, summary, skills, inferredSkills, coreCompetencies, titleEquivalents: out.titleEquivalents.filter((t) => badTitleEquivalents([t], profile).length === 0) };
+    summaryText && summaryIds.length > 0 && statesOnlyWhatIsShown(summaryText, summaryIds)
+      ? { text: summaryText, evidenceIds: summaryIds }
+      : profile.summary?.trim()
+        ? { text: profile.summary.trim(), evidenceIds: ["summary"] }
+        : { text: `${profile.headline || "Professional"}.`, evidenceIds: [profile.experiences[0]?.id ?? "summary"] };
+
+  const projects = out.projects
+    .flatMap((p) => {
+      const proj = profile.projects.find((x) => x.id === p.projectId);
+      const citedIds = cleanIds(p.description.evidenceIds);
+      const text = p.description.text.trim();
+      return proj && text && citedIds.length > 0 && statesOnlyWhatIsShown(text, citedIds) ? [{ projectId: proj.id, description: { text, evidenceIds: citedIds } }] : [];
+    })
+    .slice(0, 4);
+
+  const have = new Set(out.skills.map((s) => s.trim().toLowerCase()));
+  const inferredSkills = out.inferredSkills.filter((s) => badInferredSkills([s], profile, evidence).length === 0 && !have.has(s.name.trim().toLowerCase())).slice(0, 8);
+  // A core competency is either something the candidate listed, a competency their work shows (and cites), or a supported job term.
+  const listed = claimableTerms(profile);
+  const allowed = new Set([...listed, ...inferredSkills.map((s) => s.name.trim().toLowerCase()), ...supportedTerms.map((t) => t.trim().toLowerCase())]);
+  const coreCompetencies = [...new Set(out.coreCompetencies.map((c) => c.trim()).filter((c) => c && allowed.has(c.toLowerCase())))].slice(0, 12);
+  // The headline is the candidate's own title; technical skills must be in the profile.
+  const headline = allowedHeadlines(profile).some((h) => normalize(h) === normalize(out.headline)) ? out.headline : profile.headline || out.headline;
+  const skills = [...new Set(out.skills.map((s) => s.trim()).filter((s) => s && listed.has(s.toLowerCase())))].slice(0, 25);
+
+  return {
+    ...out,
+    headline,
+    summary,
+    experiences,
+    skills,
+    inferredSkills,
+    coreCompetencies,
+    titleEquivalents: out.titleEquivalents.filter((t) => badTitleEquivalents([t], profile).length === 0).slice(0, 6),
+    // Every education entry and certification belongs on the resume; a list the model left out or got wrong is filled in from the profile.
+    educationIds: pick(out.educationIds, profile.education),
+    certificationIds: pick(out.certificationIds, profile.certifications),
+    projects,
+    changeNotes: out.changeNotes.slice(0, 8),
+    questions: out.questions.slice(0, 5),
+  };
 }
 
 /** The Master Resume's career reading, with the same tolerance: unknown ids dropped, missing roles filled with a plain default. */
@@ -115,7 +203,19 @@ export function sanitizeMaster(profile: ProfileSnapshot, out: MasterOutput): Mas
   for (const e of profile.experiences) {
     if (!seen.has(e.id)) roles.push({ experienceId: e.id, profession: e.title, industry: "Unclear", leadership: "none" });
   }
-  return { ...base, career: { ...out.career, roles, titleGroups: out.career.titleGroups.filter((g) => g.experienceIds.length >= 2 && g.experienceIds.every((id) => known.has(id))) } };
+  const c = out.career;
+  return {
+    ...base,
+    career: {
+      ...c,
+      roles,
+      titleGroups: c.titleGroups.filter((g) => g.experienceIds.length >= 2 && g.experienceIds.every((id) => known.has(id))).slice(0, 5),
+      progression: c.progression.slice(0, 6),
+      strengths: c.strengths.slice(0, 6),
+      differentiators: c.differentiators.slice(0, 5),
+      gaps: c.gaps.slice(0, 6),
+    },
+  };
 }
 
 export const resumeOptimizer: WorkflowDefinition<OptimizeInput, OptimizedResume> = {

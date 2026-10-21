@@ -50,7 +50,7 @@ export async function saveProfile(_: ProfileState, fd: FormData): Promise<Profil
   try {
     await generateMasterDocuments(store, user.id, String(fd.get("requestId") || crypto.randomUUID()));
   } catch (e) {
-    if (e instanceof WorkflowOutputError) return { error: "Your profile was saved, but we couldn't update your Master documents. Save again to retry." };
+    if (e instanceof WorkflowOutputError) return { error: `Your profile was saved, but we couldn't update your Master documents. Save again to retry.${e.violations.length ? ` (Reason: ${e.violations.slice(0, 2).map((v) => v.slice(0, 180)).join(" · ")})` : ""}` };
     if (e instanceof AIProviderError) return { error: `Your profile was saved. ${describeAIError(e, "update your Master documents")} Save again to retry.` };
     throw e;
   }

@@ -85,9 +85,9 @@ export interface AtsInput {
 }
 
 export const AtsAdviceSchema = z.object({
-  weakSections: z.array(z.object({ section: z.string(), reason: z.string() })).max(5),
-  suggestions: z.array(z.string()).max(8).describe("Concrete, truthful edits. Never suggest claiming skills the candidate lacks."),
-  underrepresented: z.array(z.string()).max(6).describe("Important job requirements the resume does not state clearly"),
+  weakSections: z.array(z.object({ section: z.string(), reason: z.string() })).describe("At most 5"),
+  suggestions: z.array(z.string()).describe("At most 8. Concrete, truthful edits. Never suggest claiming skills the candidate lacks."),
+  underrepresented: z.array(z.string()).describe("At most 6 important job requirements the resume does not state clearly"),
 });
 export type AtsAdvice = z.infer<typeof AtsAdviceSchema>;
 
@@ -96,6 +96,7 @@ export const atsChecker: WorkflowDefinition<AtsInput, AtsAdvice> = {
   promptVersion: "ats-check@1",
   actionKey: "ATS_CHECK",
   schema: AtsAdviceSchema,
+  sanitize: (_input, out) => ({ weakSections: out.weakSections.slice(0, 5), suggestions: out.suggestions.slice(0, 8), underrepresented: out.underrepresented.slice(0, 6) }),
   prompt: ({ resume, analysis, match, scores }) => ({
     system: `${GROUNDING_RULES}
 

@@ -27,33 +27,33 @@ export type RequirementMeasure = (typeof REQUIREMENT_MEASURES)[number];
 export const RequirementSchema = z.object({
   id: z.string().describe("r1, r2, … in order of appearance"),
   text: z.string().describe("The requirement in a short plain sentence"),
-  category: z.enum(REQUIREMENT_CATEGORIES),
-  importance: z.enum(["required", "preferred"]),
-  keywords: z.array(z.string()).describe("1–4 terms a resume would contain if this requirement is met"),
+  category: z.enum(REQUIREMENT_CATEGORIES).catch("skill"),
+  importance: z.enum(["required", "preferred"]).catch("required"),
+  keywords: z.array(z.string()).catch([]).describe("1–4 terms a resume would contain if this requirement is met"),
   measures: z
     .enum(REQUIREMENT_MEASURES)
+    .catch("none")
     .describe(
       "What the employer is measuring. industry: years in an industry ('10+ years in banking'). profession: years in a profession/function ('5+ years in graphic design'), whatever the industry. profession_industry: both together ('5+ years of graphic design in banking'). skill: years of one skill ('5+ years of UX research'). leadership: managing or leading people/projects. none: no experience duration or type is measured (a tool, a degree, a trait).",
     ),
-  years: z.number().nullable().describe("The number of years this requirement asks for, or null"),
-  subject: z.string().nullable().describe("What the years are of, e.g. 'graphic design', 'banking', 'UX research', or null"),
+  years: z.number().nullable().catch(null).describe("The number of years this requirement asks for, or null"),
+  subject: z.string().nullable().catch(null).describe("What the years are of, e.g. 'graphic design', 'banking', 'UX research', or null"),
 });
 
 export const JobAnalysisSchema = z.object({
   title: z.string(),
-  seniority: z.enum(SENIORITY),
-  minYears: z.number().nullable().describe("Minimum years of experience stated, or null"),
-  profession: z.string().nullable().describe("The profession or function the job belongs to, in plain words (e.g. 'Product and UX design'), or null"),
-  industry: z.string().nullable().describe("The industry the employer works in or asks for (e.g. 'Banking'), or null"),
-  relatedIndustries: z.array(z.string()).max(8).describe("Industries the posting says also count (e.g. 'Banking, FinTech or related' → ['FinTech']); empty when it names none"),
-  outcomes: z.array(z.string()).max(8).describe("Results the employer expects from this hire, in short plain sentences; empty when none are stated"),
+  seniority: z.enum(SENIORITY).catch("unspecified"),
+  minYears: z.number().nullable().catch(null).describe("Minimum years of experience stated, or null"),
+  profession: z.string().nullable().catch(null).describe("The profession or function the job belongs to, in plain words (e.g. 'Product and UX design'), or null"),
+  industry: z.string().nullable().catch(null).describe("The industry the employer works in or asks for (e.g. 'Banking'), or null"),
+  relatedIndustries: z.array(z.string()).catch([]).describe("At most 8 industries the posting says also count (e.g. 'Banking, FinTech or related' → ['FinTech']); empty when it names none"),
+  outcomes: z.array(z.string()).catch([]).describe("At most 8 results the employer expects from this hire, in short plain sentences; empty when none are stated"),
   summary: z.string().describe("One sentence: what this role is for"),
-  responsibilities: z.array(z.string()).max(12),
-  requirements: z.array(RequirementSchema).max(30),
+  responsibilities: z.array(z.string()).describe("At most 12, the main ones"),
+  requirements: z.array(RequirementSchema).describe("Up to 30 requirements, the most important first"),
   keywords: z
-    .array(z.object({ term: z.string(), count: z.number().int().min(1), importance: z.enum(["high", "medium", "low"]) }))
-    .max(30)
-    .describe("Important terms as written in the posting, with how often each appears"),
+    .array(z.object({ term: z.string(), count: z.number().catch(1), importance: z.enum(["high", "medium", "low"]).catch("medium") }))
+    .describe("Up to 30 important terms as written in the posting, with how often each appears"),
 });
 
 export type JobAnalysis = z.infer<typeof JobAnalysisSchema>;
@@ -79,6 +79,8 @@ Task: analyze a job description for a candidate who wants to tailor their resume
   }),
 
   mock: (job) => heuristicAnalysis(job),
+
+  sanitize: (_job, out) => sanitizeAnalysis(out),
 
   check: (_job, out) => {
     const ids = out.requirements.map((r) => r.id);
@@ -192,3 +194,26 @@ function professionOf(title: string): string {
 }
 
 const tokensOf = (s: string) => normalize(s).split(" ").filter((w) => w.length > 3);
+
+/**
+ * The model overshoots lists it was asked to keep short, and repeats a requirement id now and then. Neither is worth failing the
+ * job over: lists are cut to size, ids are made unique, and counts are made whole numbers.
+ */
+export function sanitizeAnalysis(out: JobAnalysis): JobAnalysis {
+  const seen = new Set<string>();
+  const requirements = out.requirements.slice(0, 30).map((r, i) => {
+    let id = r.id?.trim() || `r${i + 1}`;
+    if (seen.has(id)) id = `r${i + 1}`;
+    while (seen.has(id)) id = `${id}x`;
+    seen.add(id);
+    return { ...r, id, keywords: r.keywords.slice(0, 6) };
+  });
+  return {
+    ...out,
+    relatedIndustries: out.relatedIndustries.slice(0, 8),
+    outcomes: out.outcomes.slice(0, 8),
+    responsibilities: out.responsibilities.slice(0, 12),
+    requirements,
+    keywords: out.keywords.slice(0, 30).map((k) => ({ ...k, count: Math.max(1, Math.round(Number.isFinite(k.count) ? k.count : 1)) })),
+  };
+}

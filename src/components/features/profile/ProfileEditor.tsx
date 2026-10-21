@@ -12,7 +12,6 @@ import { errorProps, Field, Input, Textarea } from "@/components/ui/Field";
 import { MonthField } from "@/components/ui/MonthField";
 import { cn } from "@/lib/cn";
 import type { ProfileInput } from "@/server/domain/profile-schema";
-import { SavedDialog } from "./SavedDialog";
 import { isStartedField, issuesForStep, profileProgress, SECTIONS, SETUP_STEPS, type ProfileIssue, type SectionId, type SectionStatus } from "./profile-progress";
 import { ReviewStep } from "./ReviewStep";
 import { SetupSteps } from "./SetupSteps";
@@ -156,7 +155,6 @@ export function ProfileEditor({
         <SaveBusy wizard={wizard} />
         <input type="hidden" name="profile" value={JSON.stringify(p)} />
         <input type="hidden" name="requestId" value={requestId} />
-        <SavedDialog open={!!state?.saved} updatedDocuments={!!state?.updatedDocuments} />
 
         {!wizard && (
           <nav aria-label="Profile sections" className="hidden lg:block">

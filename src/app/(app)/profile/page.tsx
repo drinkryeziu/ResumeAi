@@ -1,4 +1,3 @@
-import { PenLine } from "lucide-react";
 import { DeleteProfileDialog } from "@/components/features/profile/DeleteProfileDialog";
 import { ButtonLink } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -20,15 +19,6 @@ const SKILL_GROUPS = [
   ["SOFT", "Soft skills"],
 ] as const;
 
-/** Opens the editor at one section. The visible label stays "Edit"; the aria-label says which section. */
-function EditLink({ section, label }: { section: string; label: string }) {
-  return (
-    <ButtonLink href={`/profile/edit#${section}`} variant="secondary" compact icon={<PenLine size={16} aria-hidden="true" />} aria-label={label}>
-      Edit
-    </ButtonLink>
-  );
-}
-
 /** Read view of the Master Profile; editing happens at /profile/edit. */
 export default async function ProfilePage() {
   const { profile: p } = await requireProfile();
@@ -39,14 +29,7 @@ export default async function ProfilePage() {
       <PageHeader
         title="Your professional profile"
         description="Your master source of truth. Every tailored resume and cover letter is built from this — tailoring never changes it."
-        actions={
-          <>
-            <ButtonLink href="/master" variant="link">
-              View Master Resume
-            </ButtonLink>
-            <ButtonLink href="/profile/edit">Update profile</ButtonLink>
-          </>
-        }
+        actions={<ButtonLink href="/profile/edit">Update profile</ButtonLink>}
       />
       <div className="grid gap-ds-4 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col gap-ds-4">
@@ -58,7 +41,7 @@ export default async function ProfilePage() {
             <p className="text-body-sm mt-ds-2">{[p.email, p.phone, locationOf(p)].filter(Boolean).join(" · ")}</p>
           </Card>
           <Card aria-labelledby="summary-h">
-            <CardHeader title={<span id="summary-h">Professional summary</span>} action={<EditLink section="summary" label="Edit professional summary" />} />
+            <CardHeader title={<span id="summary-h">Professional summary</span>} />
             {p.summary ? <p className="text-body">{p.summary}</p> : <p className="text-body-sm">No summary yet. A short one makes a stronger resume.</p>}
           </Card>
           <Card>
@@ -85,7 +68,7 @@ export default async function ProfilePage() {
             </ol>
           </Card>
           <Card>
-            <CardHeader title="Skills" action={<EditLink section="skills" label="Edit skills" />} />
+            <CardHeader title="Skills" />
             <div className="flex flex-col gap-ds-3">
               {SKILL_GROUPS.map(([cat, title]) => {
                 const items = p.skills.filter((s) => s.category === cat);

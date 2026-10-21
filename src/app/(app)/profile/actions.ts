@@ -17,7 +17,7 @@ import { getStore } from "@/server/store";
 
 const NO_AI = "AI writing isn't switched on for this site yet, so your Master documents can't be created. The site owner needs to add the AI key.";
 
-export type ProfileState = { error?: string; saved?: boolean; updatedDocuments?: boolean } | undefined;
+export type ProfileState = { error?: string } | undefined;
 
 /**
  * Saves the Master Profile. On first save — or when the user asks — it then (re)generates the
@@ -45,7 +45,8 @@ export async function saveProfile(_: ProfileState, fd: FormData): Promise<Profil
   const firstTime = !existing;
   // Not "is this the first save" but "do the Master documents exist": if the AI failed last time, saving again tries again.
   const needsMasters = !(await store.resumeForJob(user.id, null));
-  if (needsMasters || fd.get("regenerate") === "on") {
+  const refreshDocuments = needsMasters || fd.get("regenerate") === "on";
+  if (refreshDocuments) {
     try {
       await generateMasterDocuments(store, user.id, String(fd.get("requestId") || crypto.randomUUID()));
     } catch (e) {
@@ -55,9 +56,9 @@ export async function saveProfile(_: ProfileState, fd: FormData): Promise<Profil
     }
   }
   revalidatePath("/", "layout");
-  if (firstTime) redirect("/onboarding/done");
-  // The editor confirms with a dialog and then sends the user to the dashboard itself.
-  return { saved: true, updatedDocuments: fd.get("regenerate") === "on" };
+  if (firstTime) redirect(`/onboarding/done?notice=${notice("profile-created")}`);
+  // Updating lands on the profile with a confirmation; the Master documents are read from the Documents tab.
+  redirect(`/profile?notice=${notice(refreshDocuments ? "profile-updated-docs" : "profile-updated")}`);
 }
 
 const RETURN_TO = { onboarding: "/onboarding", edit: "/profile/edit" } as const;

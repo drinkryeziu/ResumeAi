@@ -14,6 +14,9 @@ export const NOTICES = {
   "masters-updated": "Master documents updated.",
   "application-deleted": "Application deleted.",
   "document-deleted": "Document deleted.",
+  "profile-created": "Your profile was created.",
+  "profile-updated": "Your profile was updated.",
+  "profile-updated-docs": "Your profile was updated and your Master documents were refreshed.",
   "profile-deleted": "Your profile was deleted. Create a new one to continue.",
 } as const;
 

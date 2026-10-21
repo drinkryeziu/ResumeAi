@@ -13,6 +13,7 @@ import { ScoreRing } from "@/components/ui/ScoreRing";
 import { CATEGORY_LABELS, MATCH_CATEGORIES, type MatchReport } from "@/server/ai";
 import { requireProfile } from "@/server/auth/session";
 import { jobProgress } from "@/server/queries/jobs";
+import { tailoredResumeIsCurrent } from "@/server/services/job-pipeline";
 import { getStore } from "@/server/store";
 import { createApplication, recheckMatch } from "../../actions";
 
@@ -79,6 +80,8 @@ export default async function MatchPage({ params }: { params: Promise<{ jobId: s
     store.credits.priceOf("JOB_MATCH"),
   ]);
   const created = p.completed.includes("create");
+  // A tailored resume that is already saved (the task stopped before the cover letter) is kept and not paid for again.
+  const resumeSaved = !created && (await tailoredResumeIsCurrent(store, user.id, jobId));
 
   return (
     <>
@@ -113,14 +116,18 @@ export default async function MatchPage({ params }: { params: Promise<{ jobId: s
                 <ActionForm
                   action={createApplication}
                   hidden={{ jobId, requestId: crypto.randomUUID() }}
-                  label="Create application"
+                  label={resumeSaved ? "Write cover letter" : "Create application"}
                   pendingLabel="Writing your documents…"
-                  cost={optCost + letterCost}
+                  cost={resumeSaved ? letterCost : optCost + letterCost}
                   fullWidth
                 />
               )}
               <p className="text-caption text-center">
-                {created ? "Your tailored resume and cover letter are ready to review." : "A resume and cover letter tailored to this job. Your Master Resume stays unchanged."}
+                {created
+                  ? "Your tailored resume and cover letter are ready to review."
+                  : resumeSaved
+                    ? "Your tailored resume is saved. Only the cover letter is left."
+                    : "A resume and cover letter tailored to this job. Your Master Resume stays unchanged."}
               </p>
               {!created && openQuestions > 0 && (
                 <a href="#questions" className="text-body-sm text-center text-blue-700 underline">

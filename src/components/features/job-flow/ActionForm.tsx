@@ -5,6 +5,7 @@ import { useActionState, useEffect, useRef, useState, type ReactNode } from "rea
 import { useFormStatus } from "react-dom";
 import { Loader2 } from "lucide-react";
 import { BusyOverlay } from "@/components/ui/BusyOverlay";
+import { CreditLimitDialog } from "./CreditLimitDialog";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import type { ActionState } from "@/app/(app)/jobs/actions";
@@ -88,6 +89,7 @@ export function ActionForm({
         )}
         <FormMessage state={state} />
       </div>
+      {state?.creditStop && <CreditLimitDialog stop={state.creditStop} />}
     </form>
   );
 }
@@ -127,6 +129,7 @@ function Submit({
 
 export function FormMessage({ state }: { state: ActionState }) {
   if (!state) return null;
+  if (state.creditStop) return null; // the credit-limit window says it
   if (state.ok)
     return (
       <p role="status" className="text-body-sm text-success">

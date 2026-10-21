@@ -1,3 +1,4 @@
+import { ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
@@ -17,7 +18,12 @@ const REASON: Record<string, { label: string; tone: "info" | "success" | "neutra
   ADJUST: { label: "Adjusted", tone: "neutral" },
 };
 
-export default async function CreditsPage() {
+/** Only our own job pages: the saved work the credit-limit window sent the person from. */
+const SAVED_WORK = /^\/(jobs\/[A-Za-z0-9_-]+|dashboard|master)$/;
+
+export default async function CreditsPage({ searchParams }: { searchParams: Promise<{ from?: string }> }) {
+  const { from } = await searchParams;
+  const backTo = from && SAVED_WORK.test(from) ? from : null;
   const { user } = await requireProfile();
   const store = await getStore();
   const [balance, prices, history] = await Promise.all([store.credits.balance(user.id), store.credits.listPrices(), store.credits.history(user.id, 50)]);
@@ -27,6 +33,14 @@ export default async function CreditsPage() {
   return (
     <>
       <PageHeader title="Credits" description="AI actions use credits. You always see the cost on the button before you click, and failed actions are refunded automatically." />
+      {backTo && (
+        <Card tone="green" className="mb-ds-4 flex flex-wrap items-center justify-between gap-ds-3">
+          <p className="text-body-sm">When you have enough credits, go back to where you stopped and continue.</p>
+          <ButtonLink href={backTo} variant="secondary">
+            Back to your work
+          </ButtonLink>
+        </Card>
+      )}
       <div className="grid gap-ds-4 lg:grid-cols-[1fr_1.4fr]">
         <div className="flex flex-col gap-ds-4">
           <Card>

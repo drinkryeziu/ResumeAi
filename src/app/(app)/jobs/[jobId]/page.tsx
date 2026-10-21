@@ -3,6 +3,7 @@ import { AlertTriangle, ExternalLink } from "lucide-react";
 import { ActionForm } from "@/components/features/job-flow/ActionForm";
 import { StepProgress } from "@/components/features/job-flow/StepProgress";
 import { DocumentWorkspace, type DocTab } from "@/components/features/documents/DocumentWorkspace";
+import { ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader, SoftPanel } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ScoreBar } from "@/components/ui/ScoreBar";
@@ -11,7 +12,7 @@ import { ATS_LABELS, TONES } from "@/server/ai";
 import { requireProfile } from "@/server/auth/session";
 import { jobProgress } from "@/server/queries/jobs";
 import { getStore } from "@/server/store";
-import { improveResume, rewriteCoverLetter, runAtsCheck } from "../actions";
+import { continueAnalysis, improveResume, rewriteCoverLetter, runAtsCheck } from "../actions";
 
 export const metadata = { title: "Your application" };
 
@@ -30,7 +31,43 @@ export default async function JobApplicationPage({
   const store = await getStore();
   const p = await jobProgress(store, user.id, jobId);
   if (!p.job) notFound();
-  if (!p.completed.includes("create")) redirect(p.match ? `/jobs/${jobId}/match` : "/dashboard#tailor");
+  if (!p.completed.includes("create")) {
+    if (p.match) redirect(`/jobs/${jobId}/match`);
+    // Saved, but not fully analyzed (for example the credits ran out): pick up from the saved state, paying only for what is left.
+    const todo = { analysis: !p.analysis, match: true };
+    const price = (await Promise.all([todo.analysis ? store.credits.priceOf("ANALYZE_JOB") : 0, store.credits.priceOf("JOB_MATCH")])).reduce<number>((a, b) => a + b, 0);
+    return (
+      <>
+        <PageHeader
+          eyebrow={`${p.job.company}${p.job.location ? ` · ${p.job.location}` : ""}`}
+          title={p.job.title}
+          description="Your job is saved. Pick up where you left off."
+          actions={
+            <ButtonLink href="/dashboard" variant="link">
+              Back to dashboard
+            </ButtonLink>
+          }
+        />
+        <Card aria-labelledby="pickup-h" className="max-w-xl">
+          <CardHeader
+            title={<span id="pickup-h">{p.analysis ? "Next: check your match" : "Next: analyze this job"}</span>}
+            subtitle={
+              p.analysis
+                ? "Your job description and its analysis are saved. We'll compare the job with your profile and give you a Job Match Score."
+                : "Your job description is saved. We'll read it, then compare it with your profile and give you a Job Match Score."
+            }
+          />
+          <ActionForm
+            action={continueAnalysis}
+            hidden={{ jobId, requestId: crypto.randomUUID() }}
+            label={p.analysis ? "Check my match" : "Analyze job"}
+            pendingLabel="Analyzing the job…"
+            cost={price}
+          />
+        </Card>
+      </>
+    );
+  }
 
   const fresh = sp.new === "1";
   const tab: DocTab = sp.doc === "cover-letter" ? "cover-letter" : "resume";

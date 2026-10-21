@@ -18,6 +18,7 @@ import { masterCoverLetter } from "@/server/ai/workflows/cover-letter";
 import { buildCareerAnalysis } from "@/server/ai/experience";
 import { changeNotesOf, masterResume } from "@/server/ai/workflows/resume-optimizer";
 import { assembleResume, resumeFromProfile, type CoverLetterDocument, type ResumeDocument } from "@/server/documents/model";
+import { InsufficientCreditsError } from "@/server/credits/types";
 import type { AppStore } from "@/server/store/types";
 
 /**
@@ -77,13 +78,38 @@ export async function createJob(store: AppStore, userId: string, input: { title:
   });
 }
 
-/** "Analyze Job": read the job, then compare it with the profile + Master Resume. Two metered steps. */
+/**
+ * Stops BEFORE any paid step starts when the balance can't cover everything that is still to do, so a task is never left half
+ * paid for. Throws InsufficientCreditsError with the total needed.
+ */
+export async function ensureCredits(store: AppStore, userId: string, actionKeys: string[]) {
+  if (actionKeys.length === 0) return;
+  const prices = await Promise.all(actionKeys.map((k) => store.credits.priceOf(k)));
+  const required = prices.reduce((a, b) => a + b, 0);
+  const available = await store.credits.balance(userId);
+  if (available < required) throw new InsufficientCreditsError(required, available);
+}
+
+/** What "Analyze Job" still has to do for this job: each step that already finished is skipped, never paid for twice. */
+export async function analyzeSteps(store: AppStore, userId: string, jobId: string) {
+  const [analysis, match] = await Promise.all([store.latestAnalysis(userId, jobId), store.latestMatch(userId, jobId)]);
+  return { analysis: !analysis, match: !match };
+}
+
+/**
+ * "Analyze Job": read the job, then compare it with the profile + Master Resume. Two metered steps. It picks up where it
+ * stopped: a job that is already analyzed only gets its match checked.
+ */
 export async function analyzeJob(store: AppStore, userId: string, jobId: string, requestId: string) {
   const job = await loadJob(store, userId, jobId);
-  const analysis = await runWorkflow(jobAnalyzer, job, ctx(store, userId, jobId, requestId));
-  await store.saveAnalysis(userId, { jobId, result: analysis.output, promptVersion: jobAnalyzer.promptVersion, aiRunId: analysis.run.id });
-  await store.setJobStatus(userId, jobId, "ANALYZED");
-  await checkMatch(store, userId, jobId, requestId);
+  const todo = await analyzeSteps(store, userId, jobId);
+  await ensureCredits(store, userId, [...(todo.analysis ? ["ANALYZE_JOB"] : []), ...(todo.match ? ["JOB_MATCH"] : [])]);
+  if (todo.analysis) {
+    const analysis = await runWorkflow(jobAnalyzer, job, ctx(store, userId, jobId, requestId));
+    await store.saveAnalysis(userId, { jobId, result: analysis.output, promptVersion: jobAnalyzer.promptVersion, aiRunId: analysis.run.id });
+    await store.setJobStatus(userId, jobId, "ANALYZED");
+  }
+  if (todo.match) await checkMatch(store, userId, jobId, requestId);
 }
 
 /** Re-run the comparison (e.g. after answering gap questions). */
@@ -106,9 +132,21 @@ export async function answerGapQuestion(store: AppStore, userId: string, jobId: 
   await store.addApprovedFact(userId, { jobId, topic: q.topic, question: q.question, answer: q.answer === "yes" ? detail! : null, status: q.answer === "yes" ? "APPROVED" : "DECLINED" });
 }
 
-/** "Create Application": tailored resume, then tailored cover letter built on it. */
+/**
+ * Is there already a tailored resume that reflects the latest match (including answers given since)? Then "Create application"
+ * only has the cover letter left to do, and it is not paid for again.
+ */
+export async function tailoredResumeIsCurrent(store: AppStore, userId: string, jobId: string) {
+  const [resume, match] = await Promise.all([store.resumeForJob(userId, jobId), store.latestMatch(userId, jobId)]);
+  const tailored = resume?.versions.filter((v) => v.label === "AI_OPTIMIZED").at(-1);
+  return Boolean(tailored && match && +tailored.createdAt >= +match.createdAt);
+}
+
+/** "Create Application": tailored resume, then tailored cover letter built on it. Picks up where it stopped. */
 export async function createApplication(store: AppStore, userId: string, jobId: string, requestId: string, tone: Tone = "PROFESSIONAL") {
-  await optimizeResume(store, userId, jobId, requestId);
+  const resumeDone = await tailoredResumeIsCurrent(store, userId, jobId);
+  await ensureCredits(store, userId, [...(resumeDone ? [] : ["OPTIMIZE_RESUME"]), "GENERATE_COVER_LETTER"]);
+  if (!resumeDone) await optimizeResume(store, userId, jobId, requestId);
   await writeCoverLetter(store, userId, jobId, requestId, tone, "generate");
 }
 

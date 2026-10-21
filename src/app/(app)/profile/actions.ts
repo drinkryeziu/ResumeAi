@@ -37,28 +37,27 @@ export async function saveProfile(_: ProfileState, fd: FormData): Promise<Profil
 
   const store = await getStore();
   const existing = await store.findProfile(user.id);
-  // The Master documents are written by the AI. Say so before saving anything, instead of leaving a half-finished setup.
-  if ((!existing || fd.get("regenerate") === "on") && !aiAvailable()) return { error: NO_AI };
+  // The Master documents are written by the AI. For a first profile, say so before saving anything, instead of leaving a half-finished setup.
+  if (!existing && !aiAvailable()) return { error: NO_AI };
   await store.saveProfile(user.id, toProfileSnapshot(existing?.id ?? `prof_${user.id}`, parsed.data, existing?.approvedFacts ?? []));
 
   await store.setCvImport(user.id, null); // the reviewed import is now part of the profile
   const firstTime = !existing;
   // Not "is this the first save" but "do the Master documents exist": if the AI failed last time, saving again tries again.
-  const needsMasters = !(await store.resumeForJob(user.id, null));
-  const refreshDocuments = needsMasters || fd.get("regenerate") === "on";
-  if (refreshDocuments) {
-    try {
-      await generateMasterDocuments(store, user.id, String(fd.get("requestId") || crypto.randomUUID()));
-    } catch (e) {
-      if (e instanceof WorkflowOutputError) return { error: "Your profile was saved, but we couldn't create your Master documents. Try “Regenerate” on the dashboard." };
-      if (e instanceof AIProviderError) return { error: `Your profile was saved. ${describeAIError(e, "create your Master documents")} Save again to retry.` };
-      throw e;
-    }
+  // Every save of the profile also rewrites the Master Resume and Cover Letter from it (older versions stay in history).
+  // An update is already saved by now; if the AI is not switched on, say that the documents were not refreshed.
+  if (!aiAvailable()) return { error: `Your profile was saved. ${NO_AI}` };
+  try {
+    await generateMasterDocuments(store, user.id, String(fd.get("requestId") || crypto.randomUUID()));
+  } catch (e) {
+    if (e instanceof WorkflowOutputError) return { error: "Your profile was saved, but we couldn't update your Master documents. Save again to retry." };
+    if (e instanceof AIProviderError) return { error: `Your profile was saved. ${describeAIError(e, "update your Master documents")} Save again to retry.` };
+    throw e;
   }
   revalidatePath("/", "layout");
   if (firstTime) redirect(`/onboarding/done?notice=${notice("profile-created")}`);
   // Updating lands on the profile with a confirmation; the Master documents are read from the Documents tab.
-  redirect(`/profile?notice=${notice(refreshDocuments ? "profile-updated-docs" : "profile-updated")}`);
+  redirect(`/profile?notice=${notice("profile-updated-docs")}`);
 }
 
 const RETURN_TO = { onboarding: "/onboarding", edit: "/profile/edit" } as const;

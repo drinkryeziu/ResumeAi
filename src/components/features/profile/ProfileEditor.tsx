@@ -387,10 +387,7 @@ export function ProfileEditor({
               {wizard ? (
                 step === lastStep && <p className="text-body-sm">Creating your documents is free. We only use what you entered here.</p>
               ) : (
-                <label className="flex items-center gap-ds-2 text-body-sm">
-                  <input type="checkbox" name="regenerate" defaultChecked className="size-4 accent-[var(--blue-600)]" />
-                  Also update my Master Resume and Cover Letter
-                </label>
+                <p className="text-body-sm">Saving also updates your Master Resume and Cover Letter. Resumes you already tailored to jobs keep their saved versions.</p>
               )}
             </div>
             <div className={cn("flex w-full flex-wrap items-center gap-ds-4", wizard && "sm:w-auto sm:justify-end")}>
@@ -441,18 +438,18 @@ function StepPane({ show, children }: { show: boolean; children: ReactNode }) {
   return <div hidden={!show}>{children}</div>;
 }
 
-/** Saving can also write the Master documents with AI; only then is there a long wait worth a window. */
+/** Saving writes the Master documents with AI, which is a long wait worth a window. */
 function SaveBusy({ wizard }: { wizard: boolean }) {
-  const { pending, data } = useFormStatus();
-  if (!pending || (!wizard && data?.get("regenerate") !== "on")) return null;
-  return <BusyOverlay title="Creating your documents…" />;
+  const { pending } = useFormStatus();
+  if (!pending) return null;
+  return <BusyOverlay title={wizard ? "Creating your documents…" : "Updating your documents…"} />;
 }
 
 function SaveButton({ label, disabled, long, describedBy }: { label: string; disabled?: boolean; long?: boolean; describedBy?: string }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending || disabled} aria-describedby={describedBy} className={long ? "min-w-[12rem] flex-1" : "w-full sm:w-auto"}>
-      {pending ? "Saving and creating your documents…" : label}
+      {pending ? (long ? "Saving and updating your documents…" : "Saving and creating your documents…") : label}
     </Button>
   );
 }

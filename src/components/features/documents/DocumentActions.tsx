@@ -4,8 +4,8 @@ import type { DocTab } from "./DocumentWorkspace";
 import { DownloadDialog } from "./DownloadDialog";
 
 /**
- * The buttons at the top of a document page: Close (back to Documents, only when opened from there), Edit (not while the
- * editor is already open) and Download for the document being shown. Pages add their own primary button after these.
+ * The small link buttons beside a document's tabs: Close (back to Documents when opened from there, otherwise to the dashboard),
+ * Edit (not while the editor is already open) and Download for the document being shown. The page keeps its own primary button.
  */
 export function DocumentActions({
   target,
@@ -32,17 +32,17 @@ export function DocumentActions({
   const download = (format: string) => `/api/jobs/${target}/download?doc=${tab}&format=${format}`;
   return (
     <>
-      {fromDocuments && (
-        <ButtonLink href="/documents" variant="secondary" compact icon={<X size={16} aria-hidden="true" />} aria-label="Close and go back to Documents">
-          <span className="sr-only sm:not-sr-only">Close</span>
-        </ButtonLink>
-      )}
+      <ButtonLink href={fromDocuments ? "/documents" : "/dashboard"} variant="link" icon={<X size={16} aria-hidden="true" />} aria-label={fromDocuments ? "Close and go back to Documents" : "Close and go back to the dashboard"}>
+        Close
+      </ButtonLink>
       {hasDocument && !editing && (
-        <ButtonLink href={`${basePath}?doc=${tab}&mode=edit${from}`} variant="secondary" compact icon={<PenLine size={16} aria-hidden="true" />} aria-label={`Edit ${docLabel}`}>
-          <span className="sr-only sm:not-sr-only">Edit</span>
+        <ButtonLink href={`${basePath}?doc=${tab}&mode=edit${from}`} variant="link" icon={<PenLine size={16} aria-hidden="true" />} aria-label={`Edit ${docLabel}`}>
+          Edit
         </ButtonLink>
       )}
-      {hasDocument && <DownloadDialog variant="secondary" docLabel={docLabel} pdfHref={download("pdf")} docxHref={download("docx")} zipHref={bothExist ? `/api/jobs/${target}/download?doc=package` : undefined} />}
+      {hasDocument && (
+        <DownloadDialog variant="link" docLabel={docLabel} pdfHref={download("pdf")} docxHref={download("docx")} zipHref={bothExist ? `/api/jobs/${target}/download?doc=package` : undefined} />
+      )}
     </>
   );
 }

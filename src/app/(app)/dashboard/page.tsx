@@ -161,26 +161,20 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               {masters.map((m) => {
                 const v = m.record?.versions.find((x) => x.id === m.record!.currentVersionId);
                 return (
-                  <li key={m.key} className="flex items-center gap-ds-3 rounded-md bg-gray-100 px-ds-3 py-ds-3">
+                  <li key={m.key} className="relative flex items-center gap-ds-3 rounded-md bg-gray-100 px-ds-3 py-ds-3 transition-shadow hover:shadow-card">
                     <span className="grid size-10 shrink-0 place-items-center rounded-full bg-sky-50 text-blue-600" aria-hidden="true">
                       {m.icon}
                     </span>
                     <span className="flex flex-1 flex-col">
-                      <Link href={`/master?doc=${m.key}`} className="text-label-bold no-underline hover:text-blue-700">
+                      {/* The whole row opens the document; Edit and Download are on its page. */}
+                      <Link
+                        href={`/master?doc=${m.key}`}
+                        className="text-label-bold no-underline after:absolute after:inset-0 after:rounded-md after:content-[''] hover:text-blue-700 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-blue-600"
+                      >
                         {m.title}
                       </Link>
                       <span className="text-caption">{v ? `Version ${v.number}, ${formatDate(v.createdAt)}` : "Not created yet"}</span>
                     </span>
-                    {v && (
-                      <span className="flex gap-ds-3 text-body-sm">
-                        <Link href={`/master?doc=${m.key}&mode=edit`} className="text-blue-700 underline">
-                          Edit
-                        </Link>
-                        <a href={`/api/jobs/master/download?doc=${m.key}&format=pdf`} className="text-blue-700 underline">
-                          PDF
-                        </a>
-                      </span>
-                    )}
                   </li>
                 );
               })}

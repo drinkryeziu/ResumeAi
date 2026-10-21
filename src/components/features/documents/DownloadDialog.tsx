@@ -9,7 +9,7 @@ import { PdfIcon, WordIcon } from "@/components/ui/FileIcons";
  * One "Download" button; it opens a small window where the format is chosen. A native <dialog> gives the focus trap,
  * Escape and focus return. Choosing a format starts the download and closes the window.
  */
-export function DownloadDialog({ docLabel, pdfHref, docxHref, variant = "primary", iconOnly = false, zipHref }: { docLabel: string; pdfHref: string; docxHref: string; variant?: "primary" | "secondary"; iconOnly?: boolean; zipHref?: string }) {
+export function DownloadDialog({ docLabel, pdfHref, docxHref, variant = "primary", iconOnly = false, zipHref }: { docLabel: string; pdfHref: string; docxHref: string; variant?: "primary" | "secondary" | "link"; iconOnly?: boolean; zipHref?: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId(); // several of these can be on one page
   const close = () => dialog.current?.close();

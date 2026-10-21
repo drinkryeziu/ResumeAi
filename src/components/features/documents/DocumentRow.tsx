@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PenLine } from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/Badge";
@@ -25,6 +26,7 @@ export function DocumentRow({
   kindLabel,
   versions,
   currentVersionId,
+  viewHref,
   editHref,
   downloadBase,
   deleteButton,
@@ -35,6 +37,8 @@ export function DocumentRow({
   kindLabel: string;
   versions: DocumentVersion[];
   currentVersionId: string;
+  /** Opens the document for reading (the Documents page with `?view=<id>`). */
+  viewHref: string;
   editHref: string;
   /** Download address without the format, e.g. `/api/jobs/master/download?doc=resume`. */
   downloadBase: string;
@@ -42,10 +46,20 @@ export function DocumentRow({
 }) {
   const current = versions.find((v) => v.id === currentVersionId) ?? versions.at(-1);
   return (
-    <li className="grid items-center gap-x-ds-4 gap-y-ds-2 rounded-md bg-sky-50 px-ds-4 py-ds-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]" aria-label={kindLabel}>
-      <p className="text-label-bold">{title}</p>
+    <li className="relative grid items-center gap-x-ds-4 gap-y-ds-2 rounded-md bg-sky-50 px-ds-4 py-ds-3 transition-shadow hover:shadow-card sm:grid-cols-[minmax(0,1fr)_auto_auto]" aria-label={kindLabel}>
+      {/* The whole row opens the document: this link is stretched over it, and the controls below sit above it. */}
+      <p className="text-label-bold">
+        <Link
+          href={viewHref}
+          scroll={false}
+          aria-label={`Open ${kindLabel}`}
+          className="no-underline after:absolute after:inset-0 after:rounded-md after:content-[''] hover:text-blue-700 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-blue-600"
+        >
+          {title}
+        </Link>
+      </p>
 
-      <details className="text-body-sm sm:text-right">
+      <details className="relative z-10 text-body-sm sm:text-right">
         <summary className="cursor-pointer list-none text-body-sm [&::-webkit-details-marker]:hidden">
           <span className="underline decoration-dotted underline-offset-4">
             Version {current?.number ?? 1} · {current ? formatDate(current.createdAt) : ""}
@@ -65,7 +79,7 @@ export function DocumentRow({
         </ol>
       </details>
 
-      <div className="flex items-center gap-ds-2 sm:justify-end">
+      <div className="relative z-10 flex items-center gap-ds-2 sm:justify-end">
         <IconLink href={editHref} label={`Edit ${kindLabel}`} tone="blue">
           <PenLine size={18} aria-hidden="true" />
         </IconLink>

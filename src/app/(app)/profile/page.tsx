@@ -1,4 +1,5 @@
 import { PenLine } from "lucide-react";
+import { DeleteProfileDialog } from "@/components/features/profile/DeleteProfileDialog";
 import { ButtonLink } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -149,6 +150,10 @@ export default async function ProfilePage() {
           </Card>
         </aside>
       </div>
+      <Card className="mt-ds-4">
+        <CardHeader title="Delete your profile" subtitle="Removes your profile and Master documents so you can start again with a new one. This can't be undone." />
+        <DeleteProfileDialog />
+      </Card>
     </>
   );
 }

@@ -408,6 +408,47 @@ export function storeContract(label: string, open: () => Promise<{ store: AppSto
       await expect(store.createUser({ email: "gone@example.com", name: "New", passwordHash: null })).resolves.toBeTruthy();
     });
 
+    it("deletes a profile with its Master documents, and keeps the account, credits, applications and other people", async () => {
+      const a = await user("reset-a@example.com");
+      const b = await user("reset-b@example.com");
+      const make = async (u: { id: string }, tag: string) => {
+        await pipeline.generateMasterDocuments(store, u.id, `seed-${tag}`);
+        const job = await pipeline.createJob(store, u.id, fixtures.TEST_JOB);
+        await pipeline.analyzeJob(store, u.id, job.id, `an-${tag}`);
+        await pipeline.createApplication(store, u.id, job.id, `app-${tag}`);
+        await store.setCvImport(u.id, { fileName: "cv.pdf", draft: {} as never, createdAt: new Date() });
+        return job;
+      };
+      const jobA = await make(a, "a");
+      await make(b, "b");
+      const balanceA = await store.credits.balance(a.id);
+      const resumesB = (await store.listResumes(b.id)).length;
+
+      await store.deleteProfile(a.id);
+
+      expect(await store.findProfile(a.id)).toBeNull();
+      expect(await store.getCvImport(a.id)).toBeNull();
+      expect(await store.resumeForJob(a.id, null)).toBeNull();
+      expect(await store.coverLetterForJob(a.id, null)).toBeNull();
+      // What is kept: the account, the credits, and the tailored application.
+      expect(await store.getUser(a.id)).not.toBeNull();
+      expect(await store.credits.balance(a.id)).toBe(balanceA);
+      expect(await store.getJob(a.id, jobA.id)).not.toBeNull();
+      expect(await store.resumeForJob(a.id, jobA.id)).not.toBeNull();
+      expect(await store.coverLetterForJob(a.id, jobA.id)).not.toBeNull();
+      // Someone else's profile and documents are untouched.
+      expect(await store.findProfile(b.id)).not.toBeNull();
+      expect((await store.listResumes(b.id)).length).toBe(resumesB);
+      expect(await store.resumeForJob(b.id, null)).not.toBeNull();
+
+      await expect(store.deleteProfile(a.id)).resolves.toBeUndefined(); // doing it twice is harmless
+      // Starting over works: a new profile and new Master documents.
+      await store.saveProfile(a.id, fixtures.TEST_PROFILE);
+      await pipeline.generateMasterDocuments(store, a.id, "again-a");
+      expect(await store.resumeForJob(a.id, null)).not.toBeNull();
+      expect(await store.coverLetterForJob(a.id, null)).not.toBeNull();
+    });
+
     it("grants a promotion once per user, even when asked many times at once", async () => {
       const { grantPromotions, resetPromotionMemory } = await import("@/server/credits/promotions");
       resetPromotionMemory();

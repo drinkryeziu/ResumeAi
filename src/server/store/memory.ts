@@ -57,6 +57,13 @@ export class MemoryAppStore implements AppStore {
     return this.users.find((x) => x.id === userId) ?? null;
   }
 
+  async deleteProfile(userId: string) {
+    this.profiles.delete(userId);
+    this.cvImports.delete(userId);
+    this.resumes = this.resumes.filter((r) => !(r.userId === userId && r.jobId === null));
+    this.letters = this.letters.filter((l) => !(l.userId === userId && l.jobId === null));
+  }
+
   async deleteAccount(userId: string) {
     const jobIds = new Set(this.jobs.filter((j) => j.userId === userId).map((j) => j.id));
     this.jobs = this.jobs.filter((j) => j.userId !== userId);

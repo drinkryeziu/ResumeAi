@@ -6,6 +6,7 @@ import { resumeParser, runWorkflow, WorkflowOutputError } from "@/server/ai";
 import { aiAvailable } from "@/server/ai/providers/registry";
 import { describeAIError } from "@/server/ai/errors";
 import { AIProviderError } from "@/server/ai/providers/types";
+import { notice } from "@/lib/notices";
 import { extractText, UploadError } from "@/server/documents/extract-text";
 import { requireUser } from "@/server/auth/session";
 import { overLimit, RULES } from "@/server/security/rate-limit";
@@ -94,6 +95,14 @@ export async function importCv(_: ProfileState, fd: FormData): Promise<ProfileSt
     throw e;
   }
   redirect(`${back}?imported=1`);
+}
+
+/** "Delete my profile", after the user confirms in the window. They land back in first-time setup. */
+export async function deleteMyProfile() {
+  const user = await requireUser();
+  await (await getStore()).deleteProfile(user.id);
+  revalidatePath("/", "layout");
+  redirect(`/onboarding?notice=${notice("profile-deleted")}`);
 }
 
 export async function discardCvImport(fd: FormData) {

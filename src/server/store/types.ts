@@ -127,6 +127,11 @@ export interface AppStore {
   getProfile(userId: string): Promise<ProfileSnapshot>;
   findProfile(userId: string): Promise<ProfileSnapshot | null>;
   saveProfile(userId: string, profile: ProfileSnapshot): Promise<void>;
+  /**
+   * "Delete my profile": removes the profile (with its answers), a CV import waiting for review, and the Master Resume and
+   * Master Cover Letter built from it. The account, credits and tailored applications stay. Idempotent.
+   */
+  deleteProfile(userId: string): Promise<void>;
   /** A parsed CV waiting for the user to review and save (REVIEW → EDIT → APPROVE → SAVE). */
   getCvImport(userId: string): Promise<CvImport | null>;
   setCvImport(userId: string, value: CvImport | null): Promise<void>;

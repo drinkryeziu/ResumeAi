@@ -118,6 +118,11 @@ export class MongoAppStore implements AppStore {
     return row<UserRecord>(await this.users.findOne({ _id: userId as never }));
   }
 
+  async deleteProfile(userId: string) {
+    await Promise.all([this.resumes.deleteMany({ userId, jobId: null }), this.letters.deleteMany({ userId, jobId: null })]);
+    await Promise.all([this.profiles.deleteOne({ _id: userId as never }), this.cvImports.deleteOne({ _id: userId as never })]); // profile last: if anything above failed it still exists and can be deleted again
+  }
+
   async deleteAccount(userId: string) {
     await Promise.all([this.analyses, this.matches, this.atsReports, this.resumes, this.letters, this.jobs, this.runs, this.resets].map((c) => c.deleteMany({ userId })));
     await Promise.all([this.profiles.deleteOne({ _id: userId as never }), this.cvImports.deleteOne({ _id: userId as never })]);

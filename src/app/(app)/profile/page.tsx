@@ -8,6 +8,7 @@ import { formatMonthYear } from "@/lib/format";
 import { profileStrength } from "@/server/ai";
 import { requireProfile } from "@/server/auth/session";
 import { locationOf } from "@/server/documents/model";
+import { givenAnswers } from "@/server/domain/application-answers";
 
 export const metadata = { title: "Profile" };
 
@@ -23,6 +24,7 @@ const SKILL_GROUPS = [
 export default async function ProfilePage() {
   const { profile: p } = await requireProfile();
   const strength = profileStrength(p);
+  const answers = givenAnswers(p.application);
 
   return (
     <>
@@ -87,6 +89,19 @@ export default async function ProfilePage() {
               })}
             </div>
           </Card>
+          {answers.length > 0 && (
+            <Card>
+              <CardHeader title="Application answers" subtitle="Private. Never in your documents and never sent to the AI. Copy them into forms when you apply." />
+              <dl className="flex flex-col gap-ds-2">
+                {answers.map((a) => (
+                  <div key={a.key} className="flex flex-col gap-0.5 rounded-md bg-gray-100 px-ds-3 py-ds-2 sm:flex-row sm:items-baseline sm:justify-between sm:gap-ds-4">
+                    <dt className="text-body-sm">{a.question}</dt>
+                    <dd className="text-label-bold sm:text-right">{a.answer}</dd>
+                  </div>
+                ))}
+              </dl>
+            </Card>
+          )}
           {p.approvedFacts.length > 0 && (
             <Card>
               <CardHeader title="Your answers" subtitle="From job-match questions. Yes answers can be used in tailored resumes." />

@@ -14,6 +14,7 @@ export default function PrivacyPage() {
           items={[
             "Your account: name, email address and a password (stored only as a one-way hash, so we cannot read it). If you sign in with Google or LinkedIn we receive your name and email from them.",
             "Your profile: the jobs, education, skills, achievements and contact details you type in or import from a CV, plus the CV text we read from files or text you give us.",
+            "Application answers (optional): if you choose to fill in the application questions on your profile, such as work authorization, salary expectation, and voluntary equal-opportunity answers (gender, race or ethnicity, veteran and disability status), we store them with your profile so you can copy them into forms. They are never put in your resume or cover letter and are never sent to the AI. You can leave any of them blank, choose “Prefer not to say”, or clear them at any time.",
             "Jobs you add: the job description, the link and the details you enter.",
             "What we create for you: match reports, resumes and cover letters, and every saved version of them.",
             "Usage records: your credit balance and history, and a log of AI actions (which action, when, how long, and its cost) so credits can be charged and refunded correctly.",

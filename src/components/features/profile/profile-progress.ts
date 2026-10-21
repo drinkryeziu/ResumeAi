@@ -11,6 +11,7 @@ export const SECTIONS = [
   ["certifications", "Certifications"],
   ["projects", "Projects"],
   ["additional", "Languages & more"],
+  ["application", "Application questions"],
 ] as const;
 
 export type SectionId = (typeof SECTIONS)[number][0];
@@ -20,6 +21,7 @@ export const SETUP_STEPS = [
   { key: "details", label: "Your details", sections: ["personal", "links", "summary"] },
   { key: "experience", label: "Experience", sections: ["experience"] },
   { key: "education", label: "Education and skills", sections: ["education", "skills", "certifications", "projects", "additional"] },
+  { key: "application", label: "Application questions", sections: ["application"] },
   { key: "review", label: "Review", sections: [] },
 ] as const satisfies ReadonlyArray<{ key: string; label: string; sections: readonly SectionId[] }>;
 
@@ -54,6 +56,7 @@ function sectionOf(first: string): SectionId {
   if (first === "skills") return "skills";
   if (first === "certifications") return "certifications";
   if (first === "projects") return "projects";
+  if (first === "application") return "application";
   return "additional";
 }
 
@@ -79,6 +82,8 @@ function hasContent(id: SectionId, p: ProfileInput): boolean {
       return p.projects.length > 0;
     case "additional":
       return Object.values(p.extras).some((a) => a.length > 0);
+    case "application":
+      return Object.values(p.application ?? {}).some(hasText);
   }
 }
 

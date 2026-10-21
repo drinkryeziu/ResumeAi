@@ -68,6 +68,8 @@ export interface ApprovedFactItem {
   status: "APPROVED" | "DECLINED";
 }
 
+import type { ApplicationAnswers } from "./application-answers";
+
 export interface ProfileSnapshot {
   id: string;
   firstName: string;
@@ -87,6 +89,8 @@ export interface ProfileSnapshot {
   projects: ProjectItem[];
   extras: ExtraItem[];
   approvedFacts: ApprovedFactItem[];
+  /** Answers to the usual application-form questions. Private: never used in a document and never sent to the AI. Absent on older profiles. */
+  application?: ApplicationAnswers;
 }
 
 export interface JobInput {

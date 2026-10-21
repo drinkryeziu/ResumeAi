@@ -26,7 +26,7 @@ MongoDB (`mongodb` driver), @react-pdf/renderer + docx + jszip for exports, unpd
 - `src/server/credits/` — append-only ledger. Prices live in data (`billing/catalog.ts` seeds), never hard-coded in logic.
   Running out of credits is a pause, not an error: multi-step tasks check the whole remaining cost first (`ensureCredits`), skip steps already done (so a resumed task never pays twice), and the page shows the credit-limit window (`CreditLimitDialog`) with what is really saved, read back from the store (`describeCreditStop`); if that read fails the window warns instead of claiming anything.
 - Promotions: `src/server/billing/promotions.ts` lists credit gifts (e.g. `launch-150`, 150 credits once per user, applied when a signed-in user loads the app). To stop one, set `active: false` and push; a new promotion needs a new `id`.
-- `src/server/domain/` — profile types, Zod schema, form ↔ profile mapping, CV-import merge.
+- `src/server/domain/` — profile types, Zod schema, form ↔ profile mapping, CV-import merge. `application-answers.ts` defines the optional, private application questions (work authorization, visa, relocation, pronouns, gender, race, veteran, disability…): they are stored with the profile, shown on `/profile` and in the setup/edit steps, exported with the account, and must never reach a document, evidence or an AI prompt (tests enforce it).
 
 ## Non-negotiable product rules
 1. **AI never invents candidate facts.** No new employers, titles, schools, certifications, tools, languages, dates, achievements or numbers.

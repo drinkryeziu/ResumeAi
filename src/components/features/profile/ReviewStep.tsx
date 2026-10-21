@@ -15,6 +15,7 @@ export function ReviewStep({ p }: { p: ProfileInput }) {
     ["Education", String(p.education.length)],
     ["Skills", String(skills)],
     ["Summary", hasText(p.summary) ? "Added" : "Not added"],
+    ["Application questions", `${Object.values(p.application ?? {}).filter(hasText).length} answered (private, optional)`],
   ];
   const tips = [
     !hasText(p.summary) && "Write a short summary so your resume opens with who you are.",

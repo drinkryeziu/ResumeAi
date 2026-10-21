@@ -48,6 +48,10 @@ export function Input({ className, ...rest }: ComponentProps<"input">) {
   return <input className={cn(control, className)} {...rest} />;
 }
 
+export function Select({ className, ...rest }: ComponentProps<"select">) {
+  return <select className={cn(control, "appearance-auto", className)} {...rest} />;
+}
+
 export function Textarea({ className, ...rest }: ComponentProps<"textarea">) {
   return <textarea className={cn(control, "min-h-56 resize-y", className)} {...rest} />;
 }

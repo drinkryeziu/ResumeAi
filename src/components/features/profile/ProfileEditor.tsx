@@ -13,6 +13,7 @@ import { MonthField } from "@/components/ui/MonthField";
 import { cn } from "@/lib/cn";
 import type { ProfileInput } from "@/server/domain/profile-schema";
 import { isStartedField, issuesForStep, profileProgress, SECTIONS, SETUP_STEPS, type ProfileIssue, type SectionId, type SectionStatus } from "./profile-progress";
+import { ApplicationQuestions } from "./ApplicationQuestions";
 import { ReviewStep } from "./ReviewStep";
 import { SetupSteps } from "./SetupSteps";
 
@@ -378,6 +379,12 @@ export function ProfileEditor({
                 <TA label="Publications" value={toLines(p.extras.PUBLICATION)} onChange={(v) => set("extras", { ...p.extras, PUBLICATION: fromLines(v) })} />
                 <TA label="Volunteer work" value={toLines(p.extras.VOLUNTEER)} onChange={(v) => set("extras", { ...p.extras, VOLUNTEER: fromLines(v) })} />
               </Grid>
+            </Section>
+          </StepPane>
+
+          <StepPane show={inStep("application")}>
+            <Section id="application" {...sec("application")} title="Application questions" subtitle="Optional. The questions employers usually ask.">
+              <ApplicationQuestions value={p.application ?? {}} onChange={(next) => set("application", next)} />
             </Section>
           </StepPane>
 

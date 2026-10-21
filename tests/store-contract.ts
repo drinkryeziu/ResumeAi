@@ -483,6 +483,15 @@ export function storeContract(label: string, open: () => Promise<{ store: AppSto
       expect((await store.resumeForJob(b.id, null))!.id).toBe(resumeB.id);
     });
 
+    it("keeps the application answers with the profile, and lets them be cleared", async () => {
+      const u = await user("answers@example.com");
+      const profile = { ...structuredClone(fixtures.TEST_PROFILE), id: `prof_${u.id}`, approvedFacts: [] };
+      await store.saveProfile(u.id, { ...profile, application: { authorizedToWork: "yes", gender: "decline" } });
+      expect((await store.findProfile(u.id))!.application).toEqual({ authorizedToWork: "yes", gender: "decline" });
+      await store.saveProfile(u.id, { ...profile, application: {} });
+      expect((await store.findProfile(u.id))!.application ?? {}).toEqual({});
+    });
+
     it("grants a promotion once per user, even when asked many times at once", async () => {
       const { grantPromotions, resetPromotionMemory } = await import("@/server/credits/promotions");
       resetPromotionMemory();

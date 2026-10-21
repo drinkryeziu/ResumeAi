@@ -101,6 +101,7 @@ export const TEST_PROFILE: ProfileSnapshot = {
   ],
   extras: [{ id: "x_es", kind: "LANGUAGE", title: "Spanish", detail: "Professional working proficiency" }],
   approvedFacts: [],
+  application: { authorizedToWork: "yes", needsSponsorship: "no", gender: "decline", salaryExpectation: "$100,000" },
 };
 
 export const TEST_JOB = {

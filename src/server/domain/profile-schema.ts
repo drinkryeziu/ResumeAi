@@ -1,5 +1,6 @@
 import { z } from "zod/v4";
 import { normalizeUrl } from "@/lib/url";
+import { ANSWER_FIELDS, ANSWER_KEYS, optionValues, type AnswerKey } from "./application-answers";
 
 /** Server-side validation for profile saves. Ids are generated client-side but must be safe evidence ids. */
 // Any short id without "#" — "#" is reserved for evidence references like "exp_1#a0". Accepts DB cuids too.
@@ -9,6 +10,13 @@ const text = (max: number) => z.string().trim().max(max);
 const lines = z.array(text(400)).max(30).transform((a) => a.filter(Boolean));
 // "linkedin.com/in/alex" is accepted and saved as a full address.
 const url = z.string().transform(normalizeUrl).pipe(z.union([z.literal(""), z.url().max(500)])).optional();
+
+// Application-form answers: a field with options takes one of them (or nothing); a free-text field is short plain text.
+const answer = (key: AnswerKey) => {
+  const f = ANSWER_FIELDS[key];
+  return "options" in f ? z.enum(["", ...optionValues(key)] as [string, ...string[]]).optional() : text(f.maxLength).optional();
+};
+const ApplicationSchema = z.object(Object.fromEntries(ANSWER_KEYS.map((k) => [k, answer(k)])) as Record<AnswerKey, ReturnType<typeof answer>>);
 
 export const ProfileInputSchema = z.object({
   firstName: text(80).min(1, "Add your first name."),
@@ -44,6 +52,7 @@ export const ProfileInputSchema = z.object({
   certifications: z.array(z.object({ id, name: text(160).min(1, "Each certification needs a name."), issuer: text(160).optional(), issueDate: month, expiryDate: month, credentialId: text(120).optional(), url })).max(20),
   projects: z.array(z.object({ id, name: text(160).min(1, "Each project needs a name."), description: text(1500).optional(), role: text(120).optional(), tools: lines, results: text(1000).optional() })).max(15),
   extras: z.object({ LANGUAGE: lines, AWARD: lines, PUBLICATION: lines, VOLUNTEER: lines }),
+  application: ApplicationSchema.optional(),
 });
 
 export type ProfileInput = z.input<typeof ProfileInputSchema>;

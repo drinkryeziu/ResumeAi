@@ -1,5 +1,6 @@
 import type { z } from "zod/v4";
 import { normalizeUrl } from "@/lib/url";
+import { ANSWER_KEYS, compactAnswers } from "./application-answers";
 import type { ProfileSnapshot, SkillCategory } from "./profile";
 import type { ProfileInput, ProfileInputSchema } from "./profile-schema";
 
@@ -36,6 +37,7 @@ export function toProfileSnapshot(profileId: string, input: z.output<typeof Prof
     projects: input.projects.map((p) => ({ ...p, description: n(p.description), role: n(p.role), results: n(p.results) })),
     extras: EXTRA_KINDS.flatMap((kind) => input.extras[kind].map((title, i) => ({ id: `x_${kind.slice(0, 3).toLowerCase()}${i}`, kind, title, detail: null }))),
     approvedFacts,
+    application: compactAnswers(input.application),
   };
 }
 
@@ -65,6 +67,7 @@ export function toProfileInput(p: ProfileSnapshot | null, fallbackEmail: string,
     certifications: (p?.certifications ?? []).map((c) => ({ id: c.id, name: c.name, issuer: c.issuer ?? "", issueDate: c.issueDate ?? "", expiryDate: c.expiryDate ?? "", credentialId: c.credentialId ?? "", url: c.url ?? "" })),
     projects: (p?.projects ?? []).map((x) => ({ id: x.id, name: x.name, description: x.description ?? "", role: x.role ?? "", tools: x.tools, results: x.results ?? "" })),
     extras: Object.fromEntries(EXTRA_KINDS.map((k) => [k, (p?.extras ?? []).filter((x) => x.kind === k).map((x) => x.title)])) as ProfileInput["extras"],
+    application: Object.fromEntries(ANSWER_KEYS.map((k) => [k, p?.application?.[k] ?? ""])),
   };
 }
 

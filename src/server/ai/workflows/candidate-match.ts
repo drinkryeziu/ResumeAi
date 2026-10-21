@@ -86,7 +86,7 @@ export interface KeywordStrategy {
 
 export const candidateMatch: WorkflowDefinition<MatchInput, MatchModelOutput> = {
   name: "candidate_match",
-  promptVersion: "candidate-match@2",
+  promptVersion: "candidate-match@3",
   actionKey: "JOB_MATCH",
   schema: MatchModelSchema,
 
@@ -101,6 +101,7 @@ Task: judge how well the candidate's evidence supports the job, requirement by r
    - partial: related or transferable experience that does not fully meet it. weak: some evidence, but well below or outside what is asked.
    - none: no reasonable evidence. unknown: not enough information to judge reliably.
    Be strict: a related tool is "partial", not "strong". Cite evidence ids for every label except none and unknown.
+   A skill, tool or technology the candidate lists covers its own standard parts. When a requirement names a core, everyday feature of something the candidate lists (CSS media queries and Flexbox are part of CSS; hooks are part of React; pivot tables are part of Excel), that listed skill is real evidence, even though the feature is not named: label it "partial" at least, and "match" when the candidate lists the skill at the level the job asks for (for example "HTML/CSS (working knowledge)" against "working knowledge of CSS media queries and Flexbox"). Cite the listed skill. Say plainly in the explanation what the candidate lists and that the specific feature is not named ("Your resume lists HTML/CSS (working knowledge). Media queries and Flexbox are part of CSS but aren't named."). Never write "the profile does not mention" a feature when its parent skill is listed. Do not stretch this to unrelated or merely similar skills, or to rare, advanced parts of a skill.
 3. Experience requirements. Say which roles qualify (qualifyingRoleIds) and which only partly qualify (relatedRoleIds). Do NOT add up years: the app does that from the dates, counting overlapping jobs once. For a skill ("5+ years of UX research"), list only the roles whose evidence shows the skill was really used; do not assume a skill mentioned once was used throughout the career, and set yearsDeterminable to false when the resume shows the skill was used but not for how long. For leadership, tell people management apart from project or team leadership.
 4. Mandatory and preferred requirements are judged the same way; do not let many preferred matches excuse a mandatory gap.
 5. Keywords. In supportedKeywords list job keywords the profile does not contain word for word but whose meaning the evidence clearly shows (for example "worked with developers and marketing" supports "cross-functional collaboration"). Never list a keyword just because the job wants it.

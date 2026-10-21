@@ -5,7 +5,7 @@ import { assembleResume, resumeText, skillSections } from "@/server/documents/mo
 import { resumePlainText } from "@/server/documents/plain-text";
 import { buildEvidence } from "@/server/ai/evidence";
 import { sanitizeOptimized, type OptimizedResume } from "@/server/ai/workflows/resume-optimizer";
-import { sanitizeMatch, type MatchModelOutput } from "@/server/ai/workflows/candidate-match";
+import { candidateMatch, sanitizeMatch, type MatchModelOutput } from "@/server/ai/workflows/candidate-match";
 import type { MatchLabel, RequirementAssessment } from "@/server/ai/scoring";
 import { statusOfLabel } from "@/server/ai/scoring";
 import { experienceYears } from "@/server/ai/experience";
@@ -184,3 +184,13 @@ describe("resume extras that miss a rule are corrected, not fatal", () => {
   });
 });
 
+
+describe("the match prompt credits a listed skill for its standard parts", () => {
+  it("tells the model to count CSS working knowledge toward media queries and Flexbox, and not to say 'does not mention'", () => {
+    const { system } = candidateMatch.prompt({ profile: TEST_PROFILE, analysis: analysis(req("r1", "required")) });
+    expect(system).toMatch(/media queries and Flexbox are part of CSS/);
+    expect(system).toMatch(/"partial" at least, and "match"/);
+    expect(system).toMatch(/Never write "the profile does not mention"/);
+    expect(system).toMatch(/Do not stretch this to unrelated/);
+  });
+});

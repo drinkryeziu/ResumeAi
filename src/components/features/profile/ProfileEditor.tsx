@@ -99,6 +99,8 @@ export function ProfileEditor({
   const lastStep = SETUP_STEPS.length - 1;
   const stepIssues = wizard ? issuesForStep(progress, step) : progress.issues;
   const stepFirst = stepIssues[0];
+  // Required fields gate the button: a step can't be left, and the last step can't be saved, while anything is missing.
+  const blocked = wizard && step < lastStep ? !!stepFirst : !!first;
   const inStep = (id: SectionId) => !wizard || (SETUP_STEPS[step]!.sections as readonly SectionId[]).includes(id);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const moved = useRef(false);
@@ -381,38 +383,9 @@ export function ProfileEditor({
             </Section>
           </StepPane>
 
-          <div className={cn("sticky bottom-0 z-10 flex gap-ds-4 rounded-md bg-white p-ds-4 shadow-card", wizard ? "flex-wrap items-center justify-between" : "flex-col")}>
+          {/* Plain row at the end of the form. Continue / Save stay disabled until every required field (*) is filled. */}
+          <div className={cn("flex gap-ds-4", wizard ? "flex-wrap items-center justify-between" : "flex-col")}>
             <div className="flex max-w-md flex-col gap-ds-2">
-              {stepFirst && (
-                <div role={attempted ? "alert" : undefined} className="flex flex-col gap-ds-1 text-body-sm">
-                  <p>
-                    {/* Calm until the person has tried to continue; red only once something actually blocked them. */}
-                    {attempted ? (
-                      <span className="font-bold text-danger">
-                        {stepIssues.length} required {stepIssues.length === 1 ? "item" : "items"} missing:
-                      </span>
-                    ) : (
-                      <span className="font-bold">Still needed:</span>
-                    )}
-                  </p>
-                  <ul className="flex list-disc flex-col gap-0.5 pl-5">
-                    {[...new Map(stepIssues.map((i) => [i.label, i])).values()].slice(0, 3).map((i) => (
-                      <li key={i.label}>{i.label}</li>
-                    ))}
-                    {new Set(stepIssues.map((i) => i.label)).size > 3 && <li className="list-none">…and {new Set(stepIssues.map((i) => i.label)).size - 3} more</li>}
-                  </ul>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAttempted(true);
-                      jumpTo(stepFirst.field, stepFirst.section);
-                    }}
-                    className="self-start text-blue-700 underline"
-                  >
-                    Show me
-                  </button>
-                </div>
-              )}
               {wizard ? (
                 step === lastStep && <p className="text-body-sm">Creating your documents is free. We only use what you entered here.</p>
               ) : (
@@ -430,14 +403,18 @@ export function ProfileEditor({
               )}
               <div className={cn("flex flex-1 flex-col gap-ds-2", wizard ? "sm:flex-none sm:items-end" : "items-stretch")}>
                 {wizard && step < lastStep ? (
-                  <Button type="submit" className="w-full sm:w-auto">
+                  <Button type="submit" className="w-full sm:w-auto" disabled={blocked} aria-describedby={blocked ? "required-hint" : undefined}>
                     Continue
                   </Button>
                 ) : (
-                  <>
-                    <SaveButton label={wizard ? "Create my master documents" : "Save profile"} disabled={!wizard && !changed} long={!wizard} />
-                    {!wizard && !changed && <p className="text-caption text-center">Make a change to save.</p>}
-                  </>
+                  <SaveButton label={wizard ? "Create my master documents" : "Save profile"} disabled={blocked || (!wizard && !changed)} long={!wizard} describedBy={blocked ? "required-hint" : undefined} />
+                )}
+                {blocked ? (
+                  <p id="required-hint" className={cn("text-caption", !wizard && "text-center")}>
+                    Fill in the fields marked * to {wizard && step < lastStep ? "continue" : "save"}.
+                  </p>
+                ) : (
+                  !wizard && !changed && <p className="text-caption text-center">Make a change to save.</p>
                 )}
                 {state?.error && (
                   <p role="alert" className="text-body-sm text-danger">
@@ -465,10 +442,10 @@ function SaveBusy({ wizard }: { wizard: boolean }) {
   return <BusyOverlay title="Creating your documents…" />;
 }
 
-function SaveButton({ label, disabled, long }: { label: string; disabled?: boolean; long?: boolean }) {
+function SaveButton({ label, disabled, long, describedBy }: { label: string; disabled?: boolean; long?: boolean; describedBy?: string }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending || disabled} className={long ? "w-full" : "w-full sm:w-auto"}>
+    <Button type="submit" disabled={pending || disabled} aria-describedby={describedBy} className={long ? "w-full" : "w-full sm:w-auto"}>
       {pending ? "Saving and creating your documents…" : label}
     </Button>
   );

@@ -1,6 +1,6 @@
 import { Document, Link, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { formatMonthYear } from "@/lib/format";
-import { displayUrl, type CoverLetterDocument, type ResumeDocument } from "../../model";
+import { displayUrl, skillSections, type CoverLetterDocument, type ResumeDocument } from "../../model";
 import { classicTheme as t } from "./theme";
 
 const s = StyleSheet.create({
@@ -66,12 +66,12 @@ export function ResumePdf({ doc }: { doc: ResumeDocument }) {
           ))}
         </View>
 
-        {doc.skills.length > 0 && (
-          <View style={s.section} wrap={false}>
-            <Text style={s.sectionTitle}>Skills</Text>
-            <Text>{doc.skills.join(", ")}</Text>
+        {skillSections(doc).map((sec) => (
+          <View key={sec.title} style={s.section} wrap={false}>
+            <Text style={s.sectionTitle}>{sec.title}</Text>
+            <Text>{sec.items.join(", ")}</Text>
           </View>
-        )}
+        ))}
 
         {doc.projects.length > 0 && (
           <View style={s.section} wrap={false}>

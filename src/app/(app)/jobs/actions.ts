@@ -165,29 +165,33 @@ const lines = z
       .filter(Boolean),
   );
 
+const commaList = z
+  .string()
+  .max(3000)
+  .transform((s) =>
+    s
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean),
+  );
+
 const ResumeEdit = z.object({
   headline: z.string().trim().min(1).max(160),
   summary: z.string().trim().max(3000),
-  skills: z
-    .string()
-    .max(3000)
-    .transform((s) =>
-      s
-        .split(",")
-        .map((x) => x.trim())
-        .filter(Boolean),
-    ),
+  skills: commaList,
+  competencies: commaList,
 });
 
 export async function saveResumeEdits(_: ActionState, fd: FormData): Promise<ActionState> {
   const { id } = await requireUser();
   const jobId = targetOf(fd);
-  const parsed = ResumeEdit.safeParse({ headline: fd.get("headline"), summary: fd.get("summary"), skills: fd.get("skills") });
+  const parsed = ResumeEdit.safeParse({ headline: fd.get("headline"), summary: fd.get("summary"), skills: fd.get("skills"), competencies: fd.get("competencies") ?? "" });
   if (!parsed.success) return { error: "Your headline can't be empty." };
   const experience = fd.getAll("expId").map((sid) => ({ sourceId: String(sid), bullets: lines.parse(String(fd.get(`bullets:${sid}`) ?? "")) }));
   const projects = fd.getAll("projId").map((sid) => ({ sourceId: String(sid), description: String(fd.get(`project:${sid}`) ?? "").trim() }));
   try {
-    await pipeline.saveResumeEdits(await getStore(), id, jobId, { ...parsed.data, experience, projects });
+    const { competencies, ...rest } = parsed.data;
+    await pipeline.saveResumeEdits(await getStore(), id, jobId, { ...rest, ...(fd.has("competencies") ? { competencies } : {}), experience, projects });
   } catch (e) {
     return toState(e);
   }

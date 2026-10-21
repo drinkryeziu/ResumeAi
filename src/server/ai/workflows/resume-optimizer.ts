@@ -2,8 +2,8 @@ import { z } from "zod/v4";
 import type { ProfileSnapshot } from "@/server/domain/profile";
 import type { ResumeDraft } from "@/server/documents/model";
 import type { CareerModelOutput } from "../experience";
-import { buildEvidence, evidenceBlock } from "../evidence";
-import { badInferredSkills, badTitleEquivalents, inventedNumbers, overlongYears, unknownEvidence, unknownRows, unsupportedKeywordUse, unsupportedSkills, type CitedText } from "../guard/fabrication-guard";
+import { buildEvidence, claimableTerms, evidenceBlock } from "../evidence";
+import { badInferredSkills, badTitleEquivalents, inventedNumbers, overlongYears, unknownEvidence, unknownRows, unsupportedCompetencies, unsupportedKeywordUse, unsupportedSkills, type CitedText } from "../guard/fabrication-guard";
 import { containsTerm, normalize } from "../text";
 import { GROUNDING_RULES, wrapJob, type WorkflowDefinition } from "../workflow";
 import type { MatchReport } from "./candidate-match";
@@ -31,7 +31,13 @@ export const OptimizedResumeSchema = z.object({
       }),
     )
     .describe("Roles to include, most relevant first. Omit only clearly irrelevant, old roles."),
-  skills: z.array(z.string()).max(25).describe("Skills and tools that are in the profile: competencies first, then tools and technologies, most relevant first"),
+  coreCompetencies: z
+    .array(z.string())
+    .max(12)
+    .describe(
+      "The Core Competencies section, built for this reader (not a copy of the skills list): functional expertise, leadership, collaboration, process and domain strengths. Each must be a skill the candidate listed, or one of your inferredSkills, or a supported term. Most relevant first.",
+    ),
+  skills: z.array(z.string()).max(25).describe("Technical Skills: only the software, platforms, languages, design tools, frameworks, systems and methods that are in the profile, most relevant first"),
   inferredSkills: z
     .array(z.object({ name: z.string().describe("A short competency name, e.g. 'Cross-functional collaboration'"), evidenceIds: z.array(z.string()).min(1), reason: z.string().describe("One short sentence: what in the evidence shows it") }))
     .max(8)
@@ -79,35 +85,44 @@ export type MasterOutput = z.infer<typeof MasterResumeSchema>;
  * Optional extras that fail their own rules are dropped, not repaired and not allowed to fail the whole run:
  * an inferred skill without evidence, or a title equivalent that claims too much.
  */
-export function sanitizeOptimized<T extends OptimizedResume>(profile: ProfileSnapshot, out: T): T {
+export function sanitizeOptimized<T extends OptimizedResume>(profile: ProfileSnapshot, out: T, supportedTerms: string[] = []): T {
   const evidence = buildEvidence(profile);
   const have = new Set(out.skills.map((s) => s.trim().toLowerCase()));
-  return {
-    ...out,
-    inferredSkills: out.inferredSkills.filter((s) => badInferredSkills([s], profile, evidence).length === 0 && !have.has(s.name.trim().toLowerCase())),
-    titleEquivalents: out.titleEquivalents.filter((t) => badTitleEquivalents([t], profile).length === 0),
-  };
+  const inferredSkills = out.inferredSkills.filter((s) => badInferredSkills([s], profile, evidence).length === 0 && !have.has(s.name.trim().toLowerCase()));
+  // A core competency is either something the candidate listed, a competency their work shows (and cites), or a supported job term.
+  const allowed = new Set([...claimableTerms(profile), ...inferredSkills.map((s) => s.name.trim().toLowerCase()), ...supportedTerms.map((t) => t.trim().toLowerCase())]);
+  const coreCompetencies = [...new Set(out.coreCompetencies.map((c) => c.trim()).filter((c) => c && allowed.has(c.toLowerCase())))];
+  return { ...out, inferredSkills, coreCompetencies, titleEquivalents: out.titleEquivalents.filter((t) => badTitleEquivalents([t], profile).length === 0) };
 }
 
 export const resumeOptimizer: WorkflowDefinition<OptimizeInput, OptimizedResume> = {
   name: "resume_optimizer",
-  promptVersion: "resume-optimizer@2",
+  promptVersion: "resume-optimizer@3",
   actionKey: "OPTIMIZE_RESUME",
   schema: OptimizedResumeSchema,
 
   prompt: ({ profile, job, analysis, match, improvementNotes }) => ({
     system: `${GROUNDING_RULES}
 
-Task: write a resume tailored to the job below, using only the candidate's evidence. Strengthen, clarify and professionally present real experience; never invent any.
-You MAY: rewrite the summary; reword bullets to be clearer and lead with impact; reorder roles, bullets and skills so the strongest relevant evidence comes first and irrelevant detail is played down (career continuity stays); translate existing experience into the employer's terminology where it keeps the same meaning (e.g. "worked with developers, marketing and product" → "collaborated cross-functionally with Product, Engineering and Marketing").
-You MUST NOT: add employers, titles, schools, certifications, tools, languages, achievements or numbers that are not in the evidence; change dates (you never write dates — the app copies them); keyword-stuff; use a job keyword the candidate has no evidence for.
-- Skills. Every skill the candidate listed is allowed. A skill they did not list may be added in inferredSkills ONLY when their own responsibilities, achievements or projects clearly demonstrate it (managed designers and worked with Product and Engineering → team leadership, cross-functional collaboration, stakeholder management; reduced processing time by 30% → process improvement; ran interviews and usability sessions → user research, usability testing). Each must cite that evidence. Strongly demonstrated: use it. Weakly supported: leave it out. Never infer tools, languages, certifications or degrees.
-- Bullets. Where the evidence supports it, write Action + what was done + scope or context + result. If no result is given, strengthen the wording without making one up. Keep every metric exactly as written.
-- Job terminology. Use the "supported terms" below freely in wording. Never use the "do not use" terms.
-- Titles. Keep official titles. If a title is vague or company-specific, you may add a plain functional equivalent in titleEquivalents (shown after the official title). Never replace a title to match the job.
-- Each bullet cites the evidence it rephrases. A bullet may only cite evidence from its own role (ids starting with that role's id) or approved answers.
-- Numbers (%, $, counts) may only appear if the cited evidence contains that exact number. Years of experience may not exceed the "experience_total" evidence line.
-- Length. One page for early-career candidates, one to two pages for most experienced professionals; keep bullets under 30 words and drop the weakest first. ATS-friendly plain text: no tables, no symbols as bullets, no first person.`,
+Task: read the whole candidate evidence and the whole job description, then write a new, substantially rewritten resume for this one position. Do not merely edit, paraphrase or rearrange: understand what the candidate actually did, what competencies that work demonstrates, and what the employer is looking for, then say it in the strongest accurate professional language.
+
+Rewriting. You may rewrite every bullet from scratch. You do not have to keep the original sentence structure, wording or bullet layout. You may combine related bullets (cite all the evidence they draw on), split a crowded one, replace task wording with stronger professional wording, turn informal wording into industry-standard terms, put achievements before routine duties, lead with what matters most to this job, play down what does not, clarify scope and ownership, and surface the leadership, collaboration, strategy, execution and problem-solving the work shows. The new bullet may look nothing like the original as long as its factual meaning is supported.
+Bullets: Action + responsibility or initiative + scope or context + impact, whenever the evidence gives those parts. Never invent an impact; with no result given, strengthen the wording without making one up. Keep every metric exactly as written and never create a percentage, amount, team size or result. Under 30 words each, strongest and most relevant first, no generic filler.
+
+Meaning, not exact words. Do not ask whether a skill appears word for word in the resume; ask whether the candidate's actual work gives reasonable evidence for it. "Worked with developers, marketing and product managers on launches" supports "collaborated cross-functionally with Product, Engineering and Marketing stakeholders". "Redesigned onboarding and cut completion time by 30%" may support customer experience, UX optimization, process improvement, workflow optimization and user-centered design, depending on the surrounding evidence. Use the employer's terms when the underlying meaning is shown. Never keyword-stuff, and never use a job term the evidence does not support.
+Strength of evidence: stated outright → use it. Clearly demonstrated by responsibilities or achievements → name and use it. Strongly implied by the whole context → use it only when a careful reader would agree. Weak or only possible → do not state it. Unsupported or unrelated → never add it.
+
+Sections you fill:
+- headline: the candidate's own professional title (their headline or a title they actually held).
+- summary: not generic. Position them for this role with their relevant years of experience (never more than the "experience_total" line), specialization, relevant industry expertise, leadership level, strongest competencies, most relevant achievement and what sets them apart. Every claim must be defensible from the evidence.
+- coreCompetencies: a new section built for this job, not a copy of the skills list. Draw on explicit skills, skills the work demonstrates, competencies behind the achievements, leadership, functional and domain expertise and transferable strengths, plus supported job terms. Each item must be a skill the candidate listed, one of your inferredSkills (each cites the evidence that shows it), or a supported term below.
+- skills (Technical Skills): only verifiable software, platforms, languages, design tools, frameworks, systems, technologies and methods that appear in the profile. Never add a tool because the job names it; if the work supports a competency but not a technology, add the competency, not the technology.
+- inferredSkills: every competency you name that the candidate never wrote down, each with the evidence ids that show it. Competencies only, never tools, languages, certifications or degrees; no management experience without evidence.
+- titleEquivalents: a plain functional equivalent after a vague, company-specific official title. The official title is always kept; never replace a title to match the job.
+
+Facts stay fixed: employers, dates, schools, certifications and real metrics are copied by the app. You never write dates, employers, projects, clients, industries, awards, revenue, budgets, team sizes, percentages or years of experience that the evidence does not give. Create new language, not new history.
+Citations: each bullet cites the evidence it draws on, and may only cite evidence from its own role (ids starting with that role's id) or approved answers. Numbers (%, $, counts) appear only if the cited evidence has that exact number.
+Length: one page for early-career candidates, one to two pages for most experienced professionals; drop the weakest bullets first. ATS-friendly plain text: no tables, no symbols as bullets, no first person.`,
     user: `${wrapJob(job.title, job.company, job.description)}
 
 <job_priorities>
@@ -132,7 +147,7 @@ ${evidenceBlock(buildEvidence(profile))}`,
 
   mock: (input) => heuristicOptimize(input),
 
-  sanitize: ({ profile }, out) => sanitizeOptimized(profile, out),
+  sanitize: ({ profile, match }, out) => sanitizeOptimized(profile, out, match.keywordStrategy?.supported.map((k) => k.term)),
 
   check: ({ profile, match }, out) => checkOptimizedResume(profile, out, match),
 };
@@ -142,6 +157,7 @@ export function allowedHeadlines(profile: ProfileSnapshot): string[] {
 }
 
 export function checkOptimizedResume(profile: ProfileSnapshot, out: OptimizedResume, match?: MatchReport): string[] {
+  const supportedTerms = match?.keywordStrategy?.supported.map((k) => k.term) ?? [];
   const evidence = buildEvidence(profile);
   const cited: CitedText[] = [
     { ...out.summary, where: "summary" },
@@ -159,6 +175,7 @@ export function checkOptimizedResume(profile: ProfileSnapshot, out: OptimizedRes
     ...unsupportedSkills(out.skills, profile),
     ...badInferredSkills(out.inferredSkills, profile, evidence),
     ...badTitleEquivalents(out.titleEquivalents, profile),
+    ...unsupportedCompetencies(out.coreCompetencies, out.inferredSkills, profile, supportedTerms),
   ];
   // Job keywords with no evidence behind them never appear, even if an answer elsewhere mentions them.
   const answered = normalize(profile.approvedFacts.filter((f) => f.status === "APPROVED").map((f) => `${f.topic} ${f.answer ?? ""}`).join(" "));
@@ -166,7 +183,7 @@ export function checkOptimizedResume(profile: ProfileSnapshot, out: OptimizedRes
   if (avoid.length) {
     v.push(
       ...unsupportedKeywordUse(
-        [...cited.map((c) => ({ text: c.text, where: c.where })), ...out.skills.map((s) => ({ text: s, where: "skills" })), ...out.inferredSkills.map((s) => ({ text: s.name, where: "inferred skills" }))],
+        [...cited.map((c) => ({ text: c.text, where: c.where })), ...out.skills.map((s) => ({ text: s, where: "skills" })), ...out.coreCompetencies.map((s) => ({ text: s, where: "core competencies" })), ...out.inferredSkills.map((s) => ({ text: s.name, where: "inferred skills" }))],
         avoid,
       ),
     );
@@ -185,12 +202,20 @@ export function checkOptimizedResume(profile: ProfileSnapshot, out: OptimizedRes
   return v;
 }
 
+/** The model's notes, plus a plain line naming every skill the candidate never wrote down, so nothing is added silently. */
+export function changeNotesOf(out: OptimizedResume): string[] {
+  const named = out.inferredSkills.map((s) => s.name.trim());
+  return [...out.changeNotes, ...(named.length ? [`Named skills your work shows: ${named.join(", ")}. Remove any that don't fit when you edit.`] : [])];
+}
+
 export function toResumeDraft(out: OptimizedResume): ResumeDraft {
   return {
     headline: out.headline,
     summary: out.summary.text,
     experiences: out.experiences.map((e) => ({ experienceId: e.experienceId, bullets: e.bullets.map((b) => b.text) })),
-    skills: [...out.skills, ...out.inferredSkills.map((s) => s.name.trim()).filter((n) => !out.skills.some((x) => x.trim().toLowerCase() === n.toLowerCase()))],
+    // Competencies the work shows are competencies, whether or not the model repeated them in the core list.
+    competencies: [...out.coreCompetencies, ...out.inferredSkills.map((s) => s.name.trim()).filter((n) => !out.coreCompetencies.some((x) => x.trim().toLowerCase() === n.toLowerCase()))],
+    skills: out.skills,
     titleEquivalents: Object.fromEntries(out.titleEquivalents.map((t) => [t.experienceId, t.equivalent.trim()])),
     educationIds: out.educationIds,
     certificationIds: out.certificationIds,
@@ -218,12 +243,15 @@ function heuristicOptimize({ profile, analysis, match }: OptimizeInput): Optimiz
   if (approved.length && experiences[0]) {
     experiences[0].bullets = [...approved.map((f) => ({ text: f.answer!.replace(/\.?$/, "."), evidenceIds: [f.id] })), ...experiences[0].bullets].slice(0, 6);
   }
-  const allSkills = [...new Set([...profile.skills.map((s) => s.name), ...profile.experiences.flatMap((e) => e.tools)])];
+  const isTool = (c: string) => c === "TOOL" || c === "TECHNICAL";
+  const competencies = [...new Set(profile.skills.filter((s) => !isTool(s.category)).map((s) => s.name))].sort((a, b) => relevance(b) - relevance(a)).slice(0, 10);
+  const allSkills = [...new Set([...profile.skills.filter((s) => isTool(s.category)).map((s) => s.name), ...profile.experiences.flatMap((e) => e.tools)])];
   const skills = allSkills.sort((a, b) => relevance(b) - relevance(a)).slice(0, 20);
   return {
     headline: profile.headline,
     summary: { text: profile.summary ?? `${profile.headline}.`, evidenceIds: profile.summary ? ["summary"] : [profile.experiences[0]?.id ?? "summary"] },
     experiences,
+    coreCompetencies: competencies,
     skills,
     educationIds: profile.education.map((e) => e.id),
     certificationIds: profile.certifications.map((c) => c.id),
@@ -244,16 +272,18 @@ function heuristicOptimize({ profile, analysis, match }: OptimizeInput): Optimiz
 
 export const masterResume: WorkflowDefinition<{ profile: ProfileSnapshot }, MasterOutput> = {
   name: "master_resume",
-  promptVersion: "master-resume@2",
+  promptVersion: "master-resume@3",
   actionKey: "MASTER_RESUME",
   schema: MasterResumeSchema,
 
   prompt: ({ profile }) => ({
     system: `${GROUNDING_RULES}
 
-Task: write the candidate's Master Resume — a strong, general resume for their professional title (${profile.headline || "their field"}), not targeted at any employer. There is no job description: do not imagine one or use keywords from an imaginary employer; use widely recognized terminology for the profession the work shows.
-You MAY: write a clear 3–4 sentence summary; reword bullets to be concise and lead with impact (action + what was done + scope + result, only where the evidence gives it); order bullets strongest first; order skills by importance for their title; add competencies the candidate's own responsibilities and achievements clearly demonstrate in inferredSkills (each cites that evidence; never tools, languages, certifications or degrees); add a plain functional equivalent after a vague, company-specific official title in titleEquivalents (the official title is always kept).
-You MUST NOT add anything that is not in the evidence, or write dates. Same citation rules: each bullet cites evidence from its own role or approved answers; numbers only if the cited evidence has them; keep every metric exactly as written; years of experience may not exceed the "experience_total" evidence line.
+Task: write the candidate's Master Resume from scratch: a strong, general resume for their professional title (${profile.headline || "their field"}), not targeted at any employer. There is no job description, so do not imagine one or use keywords from an imaginary employer; use widely recognized terminology for the profession the work shows. Understand what the candidate actually did and what it demonstrates, then say it in the strongest accurate professional language. Do not merely paraphrase or rearrange.
+Rewriting: you may rewrite every bullet from scratch, combine related bullets (cite all the evidence they draw on), split crowded ones, replace task wording with professional wording, put achievements before routine duties, and clarify scope and ownership. Bullets: action + responsibility + scope + impact, only where the evidence gives those parts; never invent an impact; keep every metric exactly as written and never create a number. Summary: specific, with their specialization, leadership level, strongest competencies, best achievement and years of experience (never more than the "experience_total" line).
+Meaning, not exact words: if the candidate's work clearly demonstrates a competency they never wrote down, you may name and use it (each such skill goes in inferredSkills with the evidence that shows it; competencies only, never tools, languages, certifications, degrees or management experience without evidence). Weak or only possible → do not state it.
+coreCompetencies: a section built for this candidate, not a copy of the skills list: functional expertise, leadership, collaboration, process and domain strengths; each a skill they listed or one of your inferredSkills. skills (Technical Skills): only software, platforms, languages, design tools, frameworks, systems and methods in the profile. titleEquivalents: a plain functional equivalent after a vague, company-specific official title; the official title is always kept.
+You MUST NOT add anything not in the evidence, or write dates, employers, projects, clients, awards, revenue, budgets, team sizes or percentages the evidence does not give. Each bullet cites evidence from its own role or approved answers; numbers only if the cited evidence has them. Create new language, not new history.
 Include every role, education entry and certification. Leave "questions" empty unless something essential is unclear.
 
 Also read the career as a whole into "career". Profession and industry are separate: a designer in banking and one in healthcare are the same profession in two industries. Judge each role by the work done, not the title's wording; group different titles only when responsibilities, tools and scope show the same profession, and say why. Do not add up years: the app does that from the dates. Strengths, differentiators and progression use only facts in the evidence; "gaps" lists what the candidate could add to be stronger and never states it as fact.`,

@@ -1,6 +1,6 @@
 import { AlignmentType, BorderStyle, Document, ExternalHyperlink, LevelFormat, Packer, Paragraph, TabStopType, TextRun } from "docx";
 import { formatMonthYear } from "@/lib/format";
-import { displayUrl, type CoverLetterDocument, type ResumeDocument } from "../../model";
+import { displayUrl, skillSections, type CoverLetterDocument, type ResumeDocument } from "../../model";
 import { classicTheme as t } from "./theme";
 
 /**
@@ -62,7 +62,7 @@ export async function resumeDocx(doc: ResumeDocument): Promise<Buffer> {
     for (const b of e.bullets) children.push(new Paragraph({ numbering: { reference: "bullets", level: 0 }, children: [run(b)] }));
   }
 
-  if (doc.skills.length) children.push(sectionTitle("Skills"), new Paragraph({ children: [run(doc.skills.join(", "))] }));
+  for (const s of skillSections(doc)) children.push(sectionTitle(s.title), new Paragraph({ children: [run(s.items.join(", "))] }));
 
   if (doc.projects.length) {
     children.push(sectionTitle("Projects"));

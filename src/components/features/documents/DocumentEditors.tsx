@@ -72,7 +72,12 @@ export function ResumeEditor({ doc, target, cancelHref }: { doc: ResumeDocument;
           </div>
         ))}
       </fieldset>
-      <Field label="Skills (separate with commas)" htmlFor={`${uid}-sk`}>
+      {doc.competencies !== undefined && (
+        <Field label="Core competencies (separate with commas)" htmlFor={`${uid}-cc`}>
+          <Textarea id={`${uid}-cc`} name="competencies" defaultValue={doc.competencies.join(", ")} className="min-h-20" />
+        </Field>
+      )}
+      <Field label={doc.competencies?.length ? "Technical skills (separate with commas)" : "Skills (separate with commas)"} htmlFor={`${uid}-sk`}>
         <Textarea id={`${uid}-sk`} name="skills" defaultValue={doc.skills.join(", ")} className="min-h-20" />
       </Field>
       {doc.projects.map((p) => (

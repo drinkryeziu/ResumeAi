@@ -1,5 +1,5 @@
 import { formatMonthYear } from "@/lib/format";
-import { displayUrl, type CoverLetterDocument, type ResumeDocument } from "@/server/documents/model";
+import { displayUrl, skillSections, type CoverLetterDocument, type ResumeDocument } from "@/server/documents/model";
 
 /** On-screen rendering of the same ResumeDocument the PDF/DOCX exporters use. */
 export function ResumePreview({ doc }: { doc: ResumeDocument }) {
@@ -35,12 +35,12 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
           </ul>
         </section>
       ))}
-      {doc.skills.length > 0 && (
-        <>
-          {h("Skills")}
-          <p>{doc.skills.join(", ")}</p>
-        </>
-      )}
+      {skillSections(doc).map((sec) => (
+        <div key={sec.title}>
+          {h(sec.title)}
+          <p>{sec.items.join(", ")}</p>
+        </div>
+      ))}
       {doc.projects.length > 0 && (
         <>
           {h("Projects")}

@@ -16,7 +16,7 @@ import {
 import type { CoverLetterMode } from "@/server/ai/workflows/cover-letter";
 import { masterCoverLetter } from "@/server/ai/workflows/cover-letter";
 import { buildCareerAnalysis } from "@/server/ai/experience";
-import { masterResume } from "@/server/ai/workflows/resume-optimizer";
+import { changeNotesOf, masterResume } from "@/server/ai/workflows/resume-optimizer";
 import { assembleResume, resumeFromProfile, type CoverLetterDocument, type ResumeDocument } from "@/server/documents/model";
 import type { AppStore } from "@/server/store/types";
 
@@ -58,7 +58,7 @@ export async function generateMasterDocuments(store: AppStore, userId: string, r
   const name = `${profile.firstName} ${profile.lastName}`.trim();
   const { output } = await runWorkflow(masterResume, { profile }, ctx(store, userId, null, `${requestId}:resume`));
   const resume = { ...assembleResume(profile, toResumeDraft(output)), analysis: buildCareerAnalysis(profile, output.career) };
-  await store.addResumeVersion(userId, null, { label: "AI_OPTIMIZED", content: resume, changeNotes: output.changeNotes, name: `${name} — Master Resume` });
+  await store.addResumeVersion(userId, null, { label: "AI_OPTIMIZED", content: resume, changeNotes: changeNotesOf(output), name: `${name} — Master Resume` });
 
   const input = { profile, resume, job: null, analysis: null, tone: "PROFESSIONAL" as Tone, mode: "generate" as const };
   const letter = await runWorkflow(masterCoverLetter, input, ctx(store, userId, null, `${requestId}:letter`));
@@ -132,7 +132,7 @@ export async function optimizeResume(store: AppStore, userId: string, jobId: str
     });
   }
   const { output } = await runWorkflow(resumeOptimizer, { profile, job, analysis: analysis.result, match: match.result, improvementNotes }, ctx(store, userId, jobId, `${requestId}:resume`));
-  await store.addResumeVersion(userId, jobId, { label: "AI_OPTIMIZED", content: assembleResume(profile, toResumeDraft(output)), changeNotes: output.changeNotes, name });
+  await store.addResumeVersion(userId, jobId, { label: "AI_OPTIMIZED", content: assembleResume(profile, toResumeDraft(output)), changeNotes: changeNotesOf(output), name });
   await store.setJobStatus(userId, jobId, "OPTIMIZED");
 }
 
@@ -168,6 +168,8 @@ export interface ResumeEdits {
   summary: string;
   experience: Array<{ sourceId: string; bullets: string[] }>;
   skills: string[];
+  /** Absent when the form did not offer the field (older resumes keep theirs untouched). */
+  competencies?: string[];
   projects: Array<{ sourceId: string; description: string }>;
 }
 
@@ -187,6 +189,7 @@ export async function saveResumeEdits(store: AppStore, userId: string, jobId: st
     summary: edits.summary,
     experience: version.content.experience.map((e) => ({ ...e, bullets: bullets.get(e.sourceId) ?? e.bullets })),
     skills: edits.skills,
+    ...(edits.competencies ? { competencies: edits.competencies } : {}),
     projects: version.content.projects.map((p) => ({ ...p, description: projects.get(p.sourceId) ?? p.description })),
   };
   await store.addResumeVersion(userId, jobId, { label: "USER_EDITED", content, changeNotes: ["Your edits"], name: record.name });

@@ -86,6 +86,14 @@ export function badInferredSkills(items: Array<{ name: string; evidenceIds: stri
   return out;
 }
 
+/** A core competency is a skill the candidate listed, a competency their work shows (and cites), or a supported job term. */
+export function unsupportedCompetencies(competencies: string[], inferred: Array<{ name: string }>, profile: ProfileSnapshot, supportedTerms: string[] = []): string[] {
+  const allowed = new Set([...claimableTerms(profile), ...inferred.map((s) => s.name.trim().toLowerCase()), ...supportedTerms.map((t) => t.trim().toLowerCase())]);
+  return competencies
+    .filter((c) => !allowed.has(c.trim().toLowerCase()))
+    .map((c) => `core competencies: "${c}" is not in the profile, not an inferred skill with evidence, and not a supported term. Remove it or add it to inferredSkills with the evidence that shows it.`);
+}
+
 const SENIOR_TITLE_WORDS = /\b(director|head of|vice president|vp|chief|cto|ceo|cfo|coo|founder|president|executive|manager)\b/i;
 
 /**

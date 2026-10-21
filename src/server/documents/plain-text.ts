@@ -1,5 +1,5 @@
 import { formatMonthYear } from "@/lib/format";
-import { displayUrl, type CoverLetterDocument, type ResumeDocument } from "./model";
+import { displayUrl, skillSections, type CoverLetterDocument, type ResumeDocument } from "./model";
 
 /**
  * Readable plain text for pasting into an application form ("Copy as text").
@@ -17,7 +17,7 @@ export function resumePlainText(doc: ResumeDocument): string {
     lines.push(`${e.title}, ${e.company}${e.location ? `, ${e.location}` : ""} (${formatMonthYear(e.startDate)} - ${formatMonthYear(e.endDate)})`);
     e.bullets.forEach((b) => lines.push(`- ${b}`));
   });
-  if (doc.skills.length) lines.push(heading("Skills"), doc.skills.join(", "));
+  for (const s of skillSections(doc)) lines.push(heading(s.title), s.items.join(", "));
   if (doc.projects.length) lines.push(heading("Projects"), ...doc.projects.map((p) => `${p.name}. ${p.description}`));
   if (doc.education.length) {
     lines.push(heading("Education"));

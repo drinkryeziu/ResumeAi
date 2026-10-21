@@ -26,6 +26,9 @@ export interface ResumeDocument {
     endDate: string | null; // null = present
     bullets: string[];
   }>;
+  /** Core competencies tailored to the job: skills the profile lists or the candidate's own work clearly demonstrates. Absent on older resumes. */
+  competencies?: string[];
+  /** Technical skills (tools, platforms, methods). Titled just "Skills" on a resume that has no competencies. */
   skills: string[];
   education: Array<{ sourceId: string; school: string; degree?: string | null; field?: string | null; endDate?: string | null }>;
   certifications: Array<{ sourceId: string; name: string; issuer?: string | null; issueDate?: string | null }>;
@@ -51,6 +54,7 @@ export interface ResumeDraft {
   summary: string;
   experiences: Array<{ experienceId: string; bullets: string[] }>;
   skills: string[];
+  competencies?: string[];
   educationIds: string[];
   certificationIds: string[];
   projects: Array<{ projectId: string; description: string }>;
@@ -104,6 +108,7 @@ export function assembleResume(profile: ProfileSnapshot, draft: ResumeDraft, tem
       const equivalent = draft.titleEquivalents?.[e.id]?.trim();
       return [{ sourceId: e.id, company: e.company, title: equivalent ? `${e.title} (${equivalent})` : e.title, location: e.location, startDate: e.startDate, endDate: e.isCurrent ? null : e.endDate ?? null, bullets }];
     }),
+    ...(draft.competencies?.length ? { competencies: draft.competencies } : {}),
     skills: draft.skills,
     education: draft.educationIds.flatMap((id) => {
       const e = edus.get(id);
@@ -145,12 +150,22 @@ export function resumeFromProfile(profile: ProfileSnapshot): ResumeDocument {
   });
 }
 
+/** The skill sections of a resume, in print order, titled the way an ATS expects. */
+export function skillSections(doc: Pick<ResumeDocument, "competencies" | "skills">): Array<{ title: string; items: string[] }> {
+  const competencies = doc.competencies ?? [];
+  return [
+    ...(competencies.length ? [{ title: "Core competencies", items: competencies }] : []),
+    ...(doc.skills.length ? [{ title: competencies.length ? "Technical skills" : "Skills", items: doc.skills }] : []),
+  ];
+}
+
 /** Flat text of a resume, for keyword coverage and ATS checks. */
 export function resumeText(doc: ResumeDocument): string {
   return [
     doc.header.headline,
     doc.summary,
     ...doc.experience.flatMap((e) => [e.title, e.company, ...e.bullets]),
+    (doc.competencies ?? []).join(", "),
     doc.skills.join(", "),
     ...doc.education.map((e) => [e.degree, e.field, e.school].filter(Boolean).join(" ")),
     ...doc.certifications.map((c) => c.name),

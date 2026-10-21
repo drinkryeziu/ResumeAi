@@ -30,7 +30,7 @@ export function structureChecks(doc: ResumeDocument): StructureFinding[] {
     { id: "bullets", ok: doc.experience.every((e) => e.bullets.length >= 2), label: "At least 2 bullets per role", fix: "Describe each role with 2–5 bullets." },
     { id: "bullet-length", ok: bullets.every((b) => b.split(/\s+/).length <= 35), label: "Bullets under 35 words", fix: "Split or shorten long bullets." },
     { id: "first-person", ok: !bullets.some((b) => /\b(I|my|me)\b/.test(b)), label: "No first-person pronouns in bullets", fix: 'Start bullets with a verb instead of "I".' },
-    { id: "skills", ok: doc.skills.length >= 5, label: "Skills section with 5+ items", fix: "List at least five relevant skills." },
+    { id: "skills", ok: doc.skills.length + (doc.competencies?.length ?? 0) >= 5, label: "Skills section with 5+ items", fix: "List at least five relevant skills." },
     { id: "education", ok: doc.education.length > 0, label: "Education section", fix: "Add your education." },
     { id: "length", ok: words >= 300 && words <= 1100, label: "Length about 1–2 pages", fix: words < 300 ? "Add more detail to your roles." : "Trim older or less relevant detail." },
   ];

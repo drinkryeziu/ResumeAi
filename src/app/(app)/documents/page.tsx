@@ -10,7 +10,7 @@ export const metadata = { title: "Documents" };
 /** A row's worth of empty state: what is missing and the one way to make it. */
 function MissingRow({ children, href, action }: { children: React.ReactNode; href: string; action: string }) {
   return (
-    <li className="flex flex-wrap items-center justify-between gap-ds-3 rounded-md bg-white px-ds-4 py-ds-3 text-body-sm shadow-card">
+    <li className="flex flex-wrap items-center justify-between gap-ds-3 rounded-md bg-sky-50 px-ds-4 py-ds-3 text-body-sm">
       <span>{children}</span>
       <ButtonLink href={href} variant="secondary" compact>
         {action}

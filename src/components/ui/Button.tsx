@@ -92,18 +92,19 @@ export function ButtonAnchor({
 }
 
 /**
- * 40px gray-100 circle with shadow-card — carousel arrows and icon-only actions. The icon is ink at rest and takes the
- * action's color on hover, focus and press: blue for ordinary actions, red for ones that delete.
+ * 40px round icon button. Plain: a gray-100 circle with shadow-card (carousel arrows). With a `tone` it is a white pill whose
+ * icon keeps its color at rest, on hover and when pressed — blue for ordinary actions, red for ones that delete — made to sit on
+ * a sky-50 row.
  */
 type IconTone = "blue" | "danger";
 const ICON_TONE: Record<IconTone, string> = {
-  blue: "hover:bg-sky-50 hover:text-blue-600 focus-visible:text-blue-600 active:bg-sky-50 active:text-blue-700",
-  danger: "hover:bg-danger-tint hover:text-danger focus-visible:text-danger active:bg-danger-tint active:text-danger",
+  blue: "text-blue-600 active:text-blue-700",
+  danger: "text-danger active:text-danger",
 };
 const iconClass = (tone?: IconTone, className?: string) =>
   cn(
-    "inline-grid size-10 shrink-0 place-items-center rounded-full bg-gray-100 text-navy-900 shadow-card no-underline transition-colors focus-visible:outline-2 focus-visible:outline-blue-600",
-    tone && ICON_TONE[tone],
+    "grid h-10 shrink-0 place-items-center no-underline transition-shadow focus-visible:outline-2 focus-visible:outline-blue-600",
+    tone ? cn("w-12 rounded-pill bg-white hover:shadow-card active:bg-gray-100", ICON_TONE[tone]) : "size-10 rounded-full bg-gray-100 text-navy-900 shadow-card",
     className,
   );
 

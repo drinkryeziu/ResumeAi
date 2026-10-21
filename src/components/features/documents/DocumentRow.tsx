@@ -42,7 +42,7 @@ export function DocumentRow({
 }) {
   const current = versions.find((v) => v.id === currentVersionId) ?? versions.at(-1);
   return (
-    <li className="grid items-center gap-x-ds-4 gap-y-ds-2 rounded-md bg-white px-ds-4 py-ds-3 shadow-card sm:grid-cols-[minmax(0,1fr)_auto_auto]" aria-label={kindLabel}>
+    <li className="grid items-center gap-x-ds-4 gap-y-ds-2 rounded-md bg-sky-50 px-ds-4 py-ds-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]" aria-label={kindLabel}>
       <p className="text-label-bold">{title}</p>
 
       <details className="text-body-sm sm:text-right">
@@ -54,7 +54,7 @@ export function DocumentRow({
         </summary>
         <ol className="mt-ds-2 flex flex-col gap-1 text-left">
           {[...versions].reverse().map((v) => (
-            <li key={v.id} className={cn("flex items-center justify-between gap-ds-3 rounded-sm px-ds-2 py-1", v.id === currentVersionId && "bg-sky-50")}>
+            <li key={v.id} className={cn("flex items-center justify-between gap-ds-3 rounded-sm px-ds-2 py-1", v.id === currentVersionId && "bg-white")}>
               <span>
                 <span className="text-label-bold">V{v.number}</span> · {LABEL[v.label]}
                 <span className="text-caption"> · {formatDate(v.createdAt)}</span>

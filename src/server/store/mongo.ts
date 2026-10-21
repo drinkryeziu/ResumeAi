@@ -235,6 +235,13 @@ export class MongoAppStore implements AppStore {
     return true;
   }
 
+  async deleteResume(userId: string, resumeId: string) {
+    return Boolean((await this.resumes.deleteOne({ _id: resumeId as never, userId })).deletedCount);
+  }
+  async deleteCoverLetter(userId: string, letterId: string) {
+    return Boolean((await this.letters.deleteOne({ _id: letterId as never, userId })).deletedCount);
+  }
+
   private async requireJob(userId: string, jobId: string) {
     if (!(await this.jobs.countDocuments({ _id: jobId as never, userId }, { limit: 1 }))) throw new Error("Job not found");
   }

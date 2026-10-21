@@ -142,12 +142,33 @@ export async function tailoredResumeIsCurrent(store: AppStore, userId: string, j
   return Boolean(tailored && match && +tailored.createdAt >= +match.createdAt);
 }
 
-/** "Create Application": tailored resume, then tailored cover letter built on it. Picks up where it stopped. */
+/** "Create Application": tailored resume, then tailored cover letter built on it. Picks up where it stopped: nothing already saved is written (or paid for) again. */
 export async function createApplication(store: AppStore, userId: string, jobId: string, requestId: string, tone: Tone = "PROFESSIONAL") {
   const resumeDone = await tailoredResumeIsCurrent(store, userId, jobId);
-  await ensureCredits(store, userId, [...(resumeDone ? [] : ["OPTIMIZE_RESUME"]), "GENERATE_COVER_LETTER"]);
+  const letterDone = Boolean(await store.coverLetterForJob(userId, jobId));
+  await ensureCredits(store, userId, [...(resumeDone ? [] : ["OPTIMIZE_RESUME"]), ...(letterDone ? [] : ["GENERATE_COVER_LETTER"])]);
   if (!resumeDone) await optimizeResume(store, userId, jobId, requestId);
-  await writeCoverLetter(store, userId, jobId, requestId, tone, "generate");
+  if (!letterDone) await writeCoverLetter(store, userId, jobId, requestId, tone, "generate");
+}
+
+/**
+ * "Delete" on a document in the Documents tab: removes that one resume or cover letter with all its versions, and nothing else.
+ * An application keeps its job, analysis and match, so what is left of it can be finished again; its status is brought back in line.
+ */
+export async function deleteDocument(store: AppStore, userId: string, kind: "resume" | "cover-letter", id: string) {
+  const rec = kind === "resume" ? (await store.listResumes(userId)).find((r) => r.id === id) : (await store.listCoverLetters(userId)).find((l) => l.id === id);
+  if (!rec) throw new PipelineError("We couldn't find that document.");
+  const deleted = kind === "resume" ? await store.deleteResume(userId, id) : await store.deleteCoverLetter(userId, id);
+  if (!deleted) throw new PipelineError("We couldn't find that document.");
+  if (rec.jobId) await refreshJobStatus(store, userId, rec.jobId);
+}
+
+/** The job's status from what actually exists for it. */
+export async function refreshJobStatus(store: AppStore, userId: string, jobId: string) {
+  const [analysis, match, resume, letter] = await Promise.all([store.latestAnalysis(userId, jobId), store.latestMatch(userId, jobId), store.resumeForJob(userId, jobId), store.coverLetterForJob(userId, jobId)]);
+  const tailored = Boolean(resume?.versions.some((v) => v.label === "AI_OPTIMIZED"));
+  const status = tailored && letter ? "READY" : tailored ? "OPTIMIZED" : match ? "MATCHED" : analysis ? "ANALYZED" : "DRAFT";
+  await store.setJobStatus(userId, jobId, status);
 }
 
 export async function optimizeResume(store: AppStore, userId: string, jobId: string, requestId: string, improvementNotes?: string[]) {

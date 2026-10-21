@@ -31,7 +31,9 @@ export default async function JobApplicationPage({
   const store = await getStore();
   const p = await jobProgress(store, user.id, jobId);
   if (!p.job) notFound();
-  if (!p.completed.includes("create")) {
+  const unfinished = !p.completed.includes("create");
+  // With a resume or cover letter saved the page opens, so each can be edited or downloaded from the Documents tab even if the other was deleted.
+  if (unfinished && !p.resume && !p.letter) {
     if (p.match) redirect(`/jobs/${jobId}/match`);
     // Saved, but not fully analyzed (for example the credits ran out): pick up from the saved state, paying only for what is left.
     const todo = { analysis: !p.analysis, match: true };
@@ -81,7 +83,7 @@ export default async function JobApplicationPage({
   const fixes = new Set(ats?.result.scores.findings.filter((f) => !f.ok).map((f) => f.fix) ?? []);
   const suggestions = (ats?.result.advice.suggestions ?? []).filter((s) => !fixes.has(s)); // don't repeat the issues list
 
-  const resumeSide = (
+  const resumeSide = !currentResume ? undefined : (
     <Card id="ats" className="scroll-mt-[84px]">
       <CardHeader title="ATS compatibility" subtitle="Optional: check how this version's structure and keywords line up with the job." />
       {ats ? (
@@ -190,6 +192,16 @@ export default async function JobApplicationPage({
         title={`${p.job.title} — ${p.job.company}`}
         description="Review and edit your tailored resume and cover letter, then download them and apply on the company's site or job board."
       />
+      {unfinished && (
+        <SoftPanel className="mb-ds-4 flex flex-wrap items-center justify-between gap-ds-3">
+          <p className="text-body-sm max-w-xl">
+            <strong>This application isn&apos;t finished.</strong> {currentResume ? "Its cover letter is missing." : "Its resume is missing."} What is saved stays as it is.
+          </p>
+          <ButtonLink href={`/jobs/${jobId}/match`} variant="secondary" compact>
+            Finish the application
+          </ButtonLink>
+        </SoftPanel>
+      )}
       <DocumentWorkspace
         target={jobId}
         basePath={`/jobs/${jobId}`}

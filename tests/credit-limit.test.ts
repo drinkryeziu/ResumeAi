@@ -103,3 +103,37 @@ describe("running out of credits is a pause, not a loss", () => {
     expect(await describeCreditStop(store, U, null, new InsufficientCreditsError(5, 2))).toEqual({ required: 5, available: 2, saved: [], resumeHref: "/dashboard" });
   });
 });
+
+describe("deleting one document of an application", () => {
+  it("keeps the rest, brings the status back in line, and lets the application be finished again without paying twice", async () => {
+    const store = new MemoryAppStore();
+    const U = await seedTestUser(store);
+    await pipeline.generateMasterDocuments(store, U, "seed");
+    const job = await pipeline.createJob(store, U, TEST_JOB);
+    await pipeline.analyzeJob(store, U, job.id, "a");
+    await pipeline.createApplication(store, U, job.id, "b");
+    expect((await store.getJob(U, job.id))!.status).toBe("READY");
+
+    // Delete the cover letter: the resume stays and the application is "Resume ready" again.
+    await pipeline.deleteDocument(store, U, "cover-letter", (await store.coverLetterForJob(U, job.id))!.id);
+    expect((await store.getJob(U, job.id))!.status).toBe("OPTIMIZED");
+    expect(await store.resumeForJob(U, job.id)).not.toBeNull();
+    const before = await store.credits.balance(U);
+    await pipeline.createApplication(store, U, job.id, "c"); // only the missing letter is written, and paid for
+    expect(await store.credits.balance(U)).toBe(before - 10);
+    expect((await store.getJob(U, job.id))!.status).toBe("READY");
+
+    // Delete the resume instead: the letter stays; only the resume is made again.
+    await pipeline.deleteDocument(store, U, "resume", (await store.resumeForJob(U, job.id))!.id);
+    expect((await store.getJob(U, job.id))!.status).toBe("MATCHED");
+    const letterVersions = (await store.coverLetterForJob(U, job.id))!.versions.length;
+    const before2 = await store.credits.balance(U);
+    await pipeline.createApplication(store, U, job.id, "d");
+    expect(await store.credits.balance(U)).toBe(before2 - 15);
+    expect((await store.coverLetterForJob(U, job.id))!.versions).toHaveLength(letterVersions);
+
+    // Nothing else is touched: the Master documents stay, and an unknown id is refused.
+    expect(await store.resumeForJob(U, null)).not.toBeNull();
+    await expect(pipeline.deleteDocument(store, U, "resume", "res_nope")).rejects.toThrow(/couldn't find/);
+  });
+});

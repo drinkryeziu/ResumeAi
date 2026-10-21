@@ -162,6 +162,11 @@ export interface AppStore {
   addResumeVersion(userId: string, jobId: string | null, v: { label: VersionLabel; content: ResumeDocument; changeNotes: string[]; name: string }): Promise<ResumeRecord>;
   restoreResumeVersion(userId: string, resumeId: string, versionId: string): Promise<ResumeRecord>;
 
+  /** Deletes one resume with all its versions (a Master Resume or an application's resume). Never touches the job or anything else. False when it isn't the user's. */
+  deleteResume(userId: string, resumeId: string): Promise<boolean>;
+  /** Same for one cover letter. */
+  deleteCoverLetter(userId: string, letterId: string): Promise<boolean>;
+
   coverLetterForJob(userId: string, jobId: string | null): Promise<CoverLetterRecord | null>;
   listCoverLetters(userId: string): Promise<CoverLetterRecord[]>;
   addCoverLetterVersion(userId: string, jobId: string | null, v: { label: VersionLabel; content: CoverLetterDocument; tone: Tone; name: string }): Promise<CoverLetterRecord>;

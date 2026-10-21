@@ -45,7 +45,7 @@ MongoDB (`mongodb` driver), @react-pdf/renderer + docx + jszip for exports, unpd
   `sand-300` is one warm accent per page at most, never text or buttons; `gray-100` for input wells.
 - Buttons are pills, uppercase `text-button`. **One primary button per view**; second action = secondary (outline) or link.
 - Cards `rounded-md` + `shadow-card`, no hard borders. Use named type utilities (`text-heading-section`, `text-body`, `text-body-sm`, `text-label-bold`, `text-caption`…), not raw px.
-- Header: text links only, no filled button in the bar. Nav = Dashboard, Profile (jobs, applications and master documents are all opened from the Dashboard); credits/settings in the account menu; "Sign out" is a text link at the right of the bar (inside the Menu on mobile). While first-time setup is unfinished the header is just the wordmark and Sign out.
+- Header: text links only, no filled button in the bar. Nav = Dashboard, Documents, Profile (jobs and applications open from the Dashboard; every resume and cover letter, master or per application, is listed under Documents with Edit, Download and Delete); credits/settings in the account menu; "Sign out" is a text link at the right of the bar (inside the Menu on mobile). While first-time setup is unfinished the header is just the wordmark and Sign out.
 - Plain language in the UI: "Optimize resume", "5 credits" — never "LLM", "tokens", "agent".
 - Sentence case everywhere except button labels. No emoji. Line icons from `lucide-react`.
 - Quality floor: responsive to 375px, visible focus, labels on every input, AA contrast.
@@ -62,7 +62,7 @@ MongoDB (`mongodb` driver), @react-pdf/renderer + docx + jszip for exports, unpd
 - Don't add dependencies without saying why. Don't weaken the fabrication guard to make a test pass.
 
 ## Roadmap (next)
-1. UI: rename/duplicate applications and documents (there is no Documents tab; they live on the Dashboard). Job Match screen and profile-editor section progress are done.
+1. UI: rename/duplicate applications and documents (the Documents tab lists them; renaming and duplicating are not built). Job Match screen and profile-editor section progress are done.
 2. File storage for uploads (only extracted text is used today); decide whether to remove the unused Prisma schema.
 3. Stripe plans + credit packs (webhook → ledger GRANT/PURCHASE), admin pricing page.
 4. Rate limits, prompt-evaluation set with real job descriptions, more resume templates.

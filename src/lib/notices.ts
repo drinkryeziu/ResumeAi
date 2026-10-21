@@ -13,6 +13,7 @@ export const NOTICES = {
   "version-restored": "Version restored as a new version.",
   "masters-updated": "Master documents updated.",
   "application-deleted": "Application deleted.",
+  "document-deleted": "Document deleted.",
   "profile-deleted": "Your profile was deleted. Create a new one to continue.",
 } as const;
 

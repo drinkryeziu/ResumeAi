@@ -254,6 +254,21 @@ export async function restoreVersion(fd: FormData) {
   redirect(`${pathOf(jobId)}?doc=resume&notice=${notice("version-restored")}`);
 }
 
+/** "Delete" on a document in the Documents tab, after the person confirms. */
+export async function deleteDocument(fd: FormData) {
+  const { id: userId } = await requireUser();
+  const parsed = z.object({ kind: z.enum(["resume", "cover-letter"]), id: z.string().min(1).max(80) }).safeParse({ kind: fd.get("kind"), id: fd.get("id") });
+  if (parsed.success) {
+    try {
+      await pipeline.deleteDocument(await getStore(), userId, parsed.data.kind, parsed.data.id);
+    } catch (e) {
+      if (!(e instanceof pipeline.PipelineError)) throw e; // already gone: just show the list again
+    }
+  }
+  revalidatePath("/", "layout");
+  redirect(`/documents?notice=${notice("document-deleted")}`);
+}
+
 /** The dashboard's "X" on an application, after the user confirms. Already deleted (or not theirs) just refreshes the list. */
 export async function deleteApplication(fd: FormData) {
   const { id } = await requireUser();

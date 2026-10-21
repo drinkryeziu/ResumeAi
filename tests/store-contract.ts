@@ -449,6 +449,40 @@ export function storeContract(label: string, open: () => Promise<{ store: AppSto
       expect(await store.coverLetterForJob(a.id, null)).not.toBeNull();
     });
 
+    it("deletes one resume or cover letter on its own, owner-scoped, and leaves the job and everything else", async () => {
+      const a = await user("docs-a@example.com");
+      const b = await user("docs-b@example.com");
+      const make = async (u: { id: string }, tag: string) => {
+        await pipeline.generateMasterDocuments(store, u.id, `seed-${tag}`);
+        const job = await pipeline.createJob(store, u.id, fixtures.TEST_JOB);
+        await pipeline.analyzeJob(store, u.id, job.id, `an-${tag}`);
+        await pipeline.createApplication(store, u.id, job.id, `app-${tag}`);
+        return job;
+      };
+      const jobA = await make(a, "a");
+      await make(b, "b");
+      const resumeA = (await store.resumeForJob(a.id, jobA.id))!;
+      const letterA = (await store.coverLetterForJob(a.id, jobA.id))!;
+      const masterA = (await store.resumeForJob(a.id, null))!;
+      const resumeB = (await store.resumeForJob(b.id, null))!;
+
+      expect(await store.deleteResume(b.id, resumeA.id)).toBe(false); // someone else's id does nothing
+      expect(await store.deleteCoverLetter(b.id, letterA.id)).toBe(false);
+      expect(await store.resumeForJob(a.id, jobA.id)).not.toBeNull();
+
+      expect(await store.deleteCoverLetter(a.id, letterA.id)).toBe(true);
+      expect(await store.coverLetterForJob(a.id, jobA.id)).toBeNull();
+      expect(await store.resumeForJob(a.id, jobA.id)).not.toBeNull(); // the other document stays
+      expect(await store.getJob(a.id, jobA.id)).not.toBeNull(); // and so does the job, with its analysis and match
+      expect(await store.latestMatch(a.id, jobA.id)).not.toBeNull();
+
+      expect(await store.deleteResume(a.id, masterA.id)).toBe(true);
+      expect(await store.resumeForJob(a.id, null)).toBeNull();
+      expect(await store.resumeForJob(a.id, jobA.id)).not.toBeNull(); // the application's resume is not the master
+      expect(await store.deleteResume(a.id, masterA.id)).toBe(false); // twice is harmless
+      expect((await store.resumeForJob(b.id, null))!.id).toBe(resumeB.id);
+    });
+
     it("grants a promotion once per user, even when asked many times at once", async () => {
       const { grantPromotions, resetPromotionMemory } = await import("@/server/credits/promotions");
       resetPromotionMemory();

@@ -18,4 +18,6 @@ export const PROMOTIONS: readonly Promotion[] = [
   { id: "launch-150", credits: 150, active: true, label: "Launch credits" },
   // A one-time gift to a single account (granted the next time that person opens the app).
   { id: "gift-2026-10-21-drin", credits: 100, active: true, label: "Gift credits", emails: ["drinkryeziu@gmail.com"] },
+  // For testing: so many credits that the owner's account never runs out. Not a bypass, the credit rules still apply. Set `active: false` to end it.
+  { id: "testing-2026-10-21-drin", credits: 1_000_000, active: true, label: "Testing credits", emails: ["drinkryeziu@gmail.com"] },
 ];

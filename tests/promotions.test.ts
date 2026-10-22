@@ -106,8 +106,8 @@ describe("a gift to one account", () => {
     expect((await store.credits.history(drin, 10)).some((h) => h.note === "Gift credits" && h.delta === 100)).toBe(true);
   });
 
-  it("is in the shipped list for the owner's address", () => {
-    const g = PROMOTIONS.find((p) => p.emails);
-    expect(g).toMatchObject({ credits: 100, active: true, emails: ["drinkryeziu@gmail.com"] });
+  it("is in the shipped list for the owner's address, with the testing credits beside it", () => {
+    expect(PROMOTIONS.find((p) => p.id === "gift-2026-10-21-drin")).toMatchObject({ credits: 100, active: true, emails: ["drinkryeziu@gmail.com"] });
+    expect(PROMOTIONS.find((p) => p.id === "testing-2026-10-21-drin")).toMatchObject({ credits: 1_000_000, active: true, emails: ["drinkryeziu@gmail.com"] });
   });
 });

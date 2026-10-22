@@ -24,7 +24,7 @@ export interface ModelRoute {
  * stronger tier. Change a line here (or, later, from the admin page) to switch models or vendors.
  */
 export const MODEL_ROUTES: Record<WorkflowName, ModelRoute> = {
-  resume_parser: { provider: "anthropic", model: "claude-haiku-5-5", maxTokens: 4000, temperature: 0 },
+  resume_parser: { provider: "anthropic", model: "claude-haiku-5-5", maxTokens: 12000, temperature: 0 }, // a full CV written out item by item is long; cut off, it cannot be read at all
   job_analyzer: { provider: "anthropic", model: "claude-haiku-5-5", maxTokens: 6000, temperature: 0 },
   candidate_match: { provider: "anthropic", model: "claude-haiku-5-5", maxTokens: 10000, temperature: 0 },
   master_resume: { provider: "anthropic", model: "claude-sonnet-5-5", maxTokens: 10000, temperature: 0.3 },

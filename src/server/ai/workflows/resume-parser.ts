@@ -1,5 +1,4 @@
 import { z } from "zod/v4";
-import { normalize } from "../text";
 import { GROUNDING_RULES, type WorkflowDefinition } from "../workflow";
 
 /**
@@ -55,17 +54,54 @@ Task: read the candidate's CV text into the structure, so it can pre-fill their 
     user: `<resume_text>\n${text.slice(0, 40_000)}\n</resume_text>`,
   }),
   mock: ({ text }) => heuristicParse(text),
+  sanitize: ({ text }, out) => sanitizeDraft(text, out),
   check: ({ text }, out) => {
-    const hay = normalize(text);
+    const hay = squash(text);
     const v: string[] = [];
     for (const it of [...out.experiences, ...out.education, ...out.certifications, ...out.projects]) {
-      if (!hay.includes(normalize(it.source).slice(0, 60))) v.push(`"${it.source.slice(0, 60)}" is not in the CV text.`);
+      if (!quoted(hay, it.source)) v.push(`"${it.source.slice(0, 60)}" is not in the CV text.`);
     }
-    for (const s of out.skills) if (!hay.includes(normalize(s.name))) v.push(`skill "${s.name}" is not written in the CV.`);
-    for (const l of out.languages) if (!hay.includes(normalize(l))) v.push(`language "${l}" is not written in the CV.`);
+    for (const s of out.skills) if (!hay.includes(squash(s.name))) v.push(`skill "${s.name}" is not written in the CV.`);
+    for (const l of out.languages) if (!hay.includes(squash(l))) v.push(`language "${l}" is not written in the CV.`);
     return v;
   },
 };
+
+/**
+ * Text from a PDF is not the text a person sees: ligatures come out as one character ("ﬁ"), words are spaced or hyphenated
+ * differently, and bullets turn into odd symbols. So a quote is compared as letters and digits only, with ligatures
+ * and accents folded, and with capitals ignored.
+ */
+const squash = (s: string) => s.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]/g, "");
+const quoted = (hay: string, source: string) => {
+  const q = squash(source).slice(0, 40);
+  return q.length > 0 && hay.includes(q);
+};
+
+/**
+ * Keeps what the CV really says and drops what it can't back up: an item whose quoted line isn't in the text, or a skill or
+ * language that isn't written there. One uncheckable item no longer throws away the whole reading: the person reviews
+ * everything before it is saved, and what was dropped is simply not pre-filled.
+ */
+export function sanitizeDraft(text: string, out: ProfileDraft): ProfileDraft {
+  const hay = squash(text);
+  const real = <T extends { source: string }>(rows: T[]) => rows.filter((r) => quoted(hay, r.source));
+  const seen = new Set<string>();
+  return {
+    ...out,
+    experiences: real(out.experiences),
+    education: real(out.education),
+    certifications: real(out.certifications),
+    projects: real(out.projects),
+    skills: out.skills.filter((s) => {
+      const key = squash(s.name);
+      if (!key || !hay.includes(key) || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }),
+    languages: out.languages.filter((l) => squash(l) && hay.includes(squash(l))),
+  };
+}
 
 // ───────────── Rule-based reader (no API key): handles common single-column CV layouts ─────────────
 

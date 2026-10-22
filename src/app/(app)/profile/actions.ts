@@ -96,7 +96,7 @@ export async function importCv(_: ProfileState, fd: FormData): Promise<ProfileSt
     await store.setCvImport(user.id, { fileName: file.name, draft: output, createdAt: new Date() });
   } catch (e) {
     if (e instanceof UploadError) return { error: e.message };
-    if (e instanceof WorkflowOutputError) return { error: "We couldn't read your CV reliably. Please fill in the form below instead." };
+    if (e instanceof WorkflowOutputError) return { error: `We couldn't read your CV reliably. Please fill in the form below instead.${e.violations.length ? ` (Reason: ${e.violations.slice(0, 2).map((v) => v.slice(0, 180)).join(" · ")})` : ""}` };
     if (e instanceof AIProviderError) return { error: `${describeAIError(e, "read your CV")} You can also fill in the form by hand.` };
     throw e;
   }

@@ -3,7 +3,8 @@ import type { AIRunRecord } from "@/server/ai/runner";
 import { MemoryCreditStore } from "@/server/credits/memory-store";
 import { CreditService } from "@/server/credits/service";
 import type { ProfileSnapshot } from "@/server/domain/profile";
-import type { AnalysisRecord, AppStore, AtsRecord, CoverLetterRecord, CvImport, JobRecord, MatchRecord, ResumeRecord, UserRecord } from "./types";
+import type { AdminSnapshot, SecurityEvent, SecuritySummary } from "@/server/admin/overview";
+import type { AdminRecord, AnalysisRecord, AppStore, AtsRecord, CoverLetterRecord, CvImport, JobRecord, MatchRecord, ResumeRecord, UserRecord } from "./types";
 
 const id = (prefix: string) => `${prefix}_${randomUUID().slice(0, 8)}`;
 const latest = <T extends { createdAt: Date }>(rows: T[]) => rows.sort((a, b) => +b.createdAt - +a.createdAt)[0] ?? null;
@@ -25,6 +26,8 @@ export class MemoryAppStore implements AppStore {
   private resumes: ResumeRecord[] = [];
   private letters: CoverLetterRecord[] = [];
   private runs: AIRunRecord[] = [];
+  private admins: Array<{ userId: string; addedBy: string; addedAt: Date }> = [];
+  private events: SecurityEvent[] = [];
 
   aiRuns = {
     record: async (run: Omit<AIRunRecord, "id" | "createdAt">) => {
@@ -34,6 +37,51 @@ export class MemoryAppStore implements AppStore {
     },
     listForUser: async (userId: string) => this.runs.filter((r) => r.userId === userId),
   };
+
+  async adminSnapshot(): Promise<AdminSnapshot> {
+    const owner = new Map(this.jobs.map((j) => [j.id, j.userId]));
+    return {
+      users: this.users.map((u) => ({ id: u.id, name: u.name, email: u.email, createdAt: u.createdAt })),
+      profileUserIds: [...this.profiles.keys()],
+      jobs: this.jobs.map((j) => ({ id: j.id, userId: j.userId, appliedAt: j.appliedAt ?? null, updatedAt: j.updatedAt })),
+      documents: [...this.resumes, ...this.letters].flatMap((d) => (d.jobId ? [{ userId: d.userId, jobId: d.jobId, updatedAt: d.updatedAt }] : [])),
+      matches: this.matches.flatMap((x) => (owner.has(x.jobId) ? [{ userId: owner.get(x.jobId)!, jobId: x.jobId, overallScore: x.overallScore, createdAt: x.createdAt }] : [])),
+    };
+  }
+  async aiRunStats(since: Date) {
+    const runs = this.runs.filter((r) => +r.createdAt >= +since);
+    return { total: runs.length, failed: runs.filter((r) => r.status === "FAILED").length };
+  }
+  async recordSecurityEvent(event: SecurityEvent) {
+    this.events.push({ ...event });
+    this.events = this.events.filter((e) => +event.at - +e.at <= 30 * 86_400_000);
+  }
+  async securitySummary(since: Date, recentLimit = 10): Promise<SecuritySummary> {
+    const rows = this.events.filter((e) => +e.at >= +since).sort((a, b) => +b.at - +a.at);
+    return {
+      counts: { sign_in_failed: rows.filter((e) => e.type === "sign_in_failed").length, rate_limited: rows.filter((e) => e.type === "rate_limited").length },
+      recent: rows.slice(0, recentLimit).map((e) => ({ ...e })),
+    };
+  }
+  async listAdmins(): Promise<AdminRecord[]> {
+    return this.admins
+      .flatMap((a) => {
+        const u = this.users.find((x) => x.id === a.userId);
+        return u ? [{ userId: u.id, name: u.name, email: u.email, addedAt: a.addedAt }] : [];
+      })
+      .sort((a, b) => +b.addedAt - +a.addedAt);
+  }
+  async isAdminUser(userId: string) {
+    return this.admins.some((a) => a.userId === userId);
+  }
+  async addAdminUser(userId: string, addedBy: string) {
+    if (!this.admins.some((a) => a.userId === userId)) this.admins.push({ userId, addedBy, addedAt: new Date() });
+  }
+  async removeAdminUser(userId: string) {
+    const before = this.admins.length;
+    this.admins = this.admins.filter((a) => a.userId !== userId);
+    return this.admins.length < before;
+  }
 
   async getCvImport(userId: string) {
     return this.cvImports.get(userId) ?? null;
@@ -73,6 +121,7 @@ export class MemoryAppStore implements AppStore {
     this.resumes = this.resumes.filter((r) => r.userId !== userId);
     this.letters = this.letters.filter((l) => l.userId !== userId);
     this.runs = this.runs.filter((r) => r.userId !== userId);
+    this.admins = this.admins.filter((a) => a.userId !== userId);
     this.profiles.delete(userId);
     this.cvImports.delete(userId);
     for (const [k, v] of this.resets) if (v.userId === userId) this.resets.delete(k);

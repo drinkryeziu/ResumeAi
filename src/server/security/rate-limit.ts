@@ -2,6 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { getStore } from "@/server/store";
+import { recordSecurityEvent } from "./events";
 import type { AppStore } from "@/server/store/types";
 
 /** How many tries each kind of request gets in a time window. Fixed windows: simple, cheap, and good enough to stop floods and guessing. */
@@ -19,6 +20,8 @@ export const RULES = {
   deleteUser: { name: "delete-user", limit: 8, windowMs: 60 * 60_000 },
   /** AI actions cost real money; credits already limit them, this stops a runaway loop. */
   aiUser: { name: "ai-user", limit: 40, windowMs: 10 * 60_000 },
+  /** Adding or removing people who can open the admin dashboard. */
+  adminUser: { name: "admin-user", limit: 30, windowMs: 60 * 60_000 },
 } as const;
 
 export type Rule = (typeof RULES)[keyof typeof RULES];
@@ -29,7 +32,10 @@ export const subjectOf = (value: string) => createHash("sha256").update(value.tr
 /** Counts this attempt and says whether it is over the limit. Fails open: a counter problem must never lock people out. */
 export async function overLimit(store: AppStore, rule: Rule, subject: string, now = new Date()): Promise<boolean> {
   try {
-    return (await store.hitRateLimit(`${rule.name}:${subjectOf(subject)}`, rule.windowMs, now)) > rule.limit;
+    const count = await store.hitRateLimit(`${rule.name}:${subjectOf(subject)}`, rule.windowMs, now);
+    // The admin dashboard hears about it once per counter and window, when the first request is turned away (not for every one after it).
+    if (count === rule.limit + 1) await recordSecurityEvent(store, "rate_limited", rule.name, now);
+    return count > rule.limit;
   } catch (e) {
     console.error("[rate-limit] could not count:", (e as Error).message);
     return false;

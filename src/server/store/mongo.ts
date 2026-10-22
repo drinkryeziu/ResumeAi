@@ -3,7 +3,8 @@ import type { AIRunRecord } from "@/server/ai/runner";
 import { MongoCreditStore } from "@/server/credits/mongo-store";
 import { CreditService } from "@/server/credits/service";
 import type { ProfileSnapshot } from "@/server/domain/profile";
-import type { AnalysisRecord, AppStore, AtsRecord, CoverLetterRecord, CvImport, JobRecord, MatchRecord, ResumeRecord, UserRecord } from "./types";
+import type { AdminSnapshot, SecurityEvent, SecuritySummary } from "@/server/admin/overview";
+import type { AdminRecord, AnalysisRecord, AppStore, AtsRecord, CoverLetterRecord, CvImport, JobRecord, MatchRecord, ResumeRecord, UserRecord } from "./types";
 
 type Doc = Document;
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
@@ -43,6 +44,8 @@ export class MongoAppStore implements AppStore {
   private resumes: Collection<Doc>;
   private letters: Collection<Doc>;
   private runs: Collection<Doc>;
+  private admins: Collection<Doc>;
+  private events: Collection<Doc>;
 
   constructor(
     client: MongoClient,
@@ -62,6 +65,8 @@ export class MongoAppStore implements AppStore {
     this.resumes = db.collection("resumes");
     this.letters = db.collection("cover_letters");
     this.runs = db.collection("ai_runs");
+    this.admins = db.collection("admins");
+    this.events = db.collection("security_events");
   }
 
   /** Idempotent: safe to run on every cold start. */
@@ -81,6 +86,8 @@ export class MongoAppStore implements AppStore {
       this.letters.createIndex({ userId: 1, jobId: 1 }, { unique: true }),
       this.letters.createIndex({ userId: 1, updatedAt: -1 }),
       this.runs.createIndex({ userId: 1, createdAt: -1 }),
+      this.runs.createIndex({ createdAt: -1 }),
+      this.events.createIndex({ at: 1 }, { expireAfterSeconds: 30 * 86_400 }), // security events are kept for 30 days
       this.creditStore.ensureIndexes(),
     ]);
   }
@@ -118,6 +125,59 @@ export class MongoAppStore implements AppStore {
     return row<UserRecord>(await this.users.findOne({ _id: userId as never }));
   }
 
+  // ───────────── Operator (admin dashboard) ─────────────
+
+  async adminSnapshot(): Promise<AdminSnapshot> {
+    const [users, profiles, jobs, resumes, letters, matches] = await Promise.all([
+      this.users.find({}, { projection: { name: 1, email: 1, createdAt: 1 } }).toArray(),
+      this.profiles.find({}, { projection: { _id: 1 } }).toArray(),
+      this.jobs.find({}, { projection: { userId: 1, appliedAt: 1, updatedAt: 1 } }).toArray(),
+      this.resumes.find({ jobId: { $ne: null } }, { projection: { userId: 1, jobId: 1, updatedAt: 1 } }).toArray(),
+      this.letters.find({ jobId: { $ne: null } }, { projection: { userId: 1, jobId: 1, updatedAt: 1 } }).toArray(),
+      this.matches.find({}, { projection: { userId: 1, jobId: 1, overallScore: 1, createdAt: 1 } }).toArray(),
+    ]);
+    return {
+      users: users.map((u) => ({ id: String(u._id), name: u.name, email: u.email, createdAt: u.createdAt })),
+      profileUserIds: profiles.map((p) => String(p._id)),
+      jobs: jobs.map((j) => ({ id: String(j._id), userId: j.userId, appliedAt: j.appliedAt ?? null, updatedAt: j.updatedAt })),
+      documents: [...resumes, ...letters].map((d) => ({ userId: d.userId, jobId: d.jobId, updatedAt: d.updatedAt })),
+      matches: matches.map((x) => ({ userId: x.userId, jobId: x.jobId, overallScore: x.overallScore, createdAt: x.createdAt })),
+    };
+  }
+  async aiRunStats(since: Date) {
+    const [total, failed] = await Promise.all([this.runs.countDocuments({ createdAt: { $gte: since } }), this.runs.countDocuments({ createdAt: { $gte: since }, status: "FAILED" })]);
+    return { total, failed };
+  }
+  async recordSecurityEvent(event: SecurityEvent) {
+    await this.events.insertOne({ type: event.type, ...(event.rule ? { rule: event.rule } : {}), at: event.at });
+  }
+  async securitySummary(since: Date, recentLimit = 10): Promise<SecuritySummary> {
+    const [failed, limited, recent] = await Promise.all([
+      this.events.countDocuments({ type: "sign_in_failed", at: { $gte: since } }),
+      this.events.countDocuments({ type: "rate_limited", at: { $gte: since } }),
+      this.events.find({ at: { $gte: since } }).sort({ at: -1 }).limit(recentLimit).toArray(),
+    ]);
+    return { counts: { sign_in_failed: failed, rate_limited: limited }, recent: recent.map((e) => ({ type: e.type, ...(e.rule ? { rule: e.rule } : {}), at: e.at })) };
+  }
+  async listAdmins(): Promise<AdminRecord[]> {
+    const rows = await this.admins.find({}).sort({ addedAt: -1 }).toArray();
+    const users = rows.length ? await this.users.find({ _id: { $in: rows.map((r) => r._id) } }, { projection: { name: 1, email: 1 } }).toArray() : [];
+    const byId = new Map(users.map((u) => [String(u._id), u]));
+    return rows.flatMap((r) => {
+      const u = byId.get(String(r._id));
+      return u ? [{ userId: String(r._id), name: u.name, email: u.email, addedAt: r.addedAt }] : [];
+    });
+  }
+  async isAdminUser(userId: string) {
+    return (await this.admins.countDocuments({ _id: userId as never }, { limit: 1 })) > 0;
+  }
+  async addAdminUser(userId: string, addedBy: string) {
+    await this.admins.updateOne({ _id: userId as never }, { $setOnInsert: { addedBy, addedAt: new Date() } }, { upsert: true });
+  }
+  async removeAdminUser(userId: string) {
+    return (await this.admins.deleteOne({ _id: userId as never })).deletedCount > 0;
+  }
+
   async deleteProfile(userId: string) {
     await Promise.all([this.resumes.deleteMany({ userId, jobId: null }), this.letters.deleteMany({ userId, jobId: null })]);
     await Promise.all([this.profiles.deleteOne({ _id: userId as never }), this.cvImports.deleteOne({ _id: userId as never })]); // profile last: if anything above failed it still exists and can be deleted again
@@ -127,6 +187,7 @@ export class MongoAppStore implements AppStore {
     await Promise.all([this.analyses, this.matches, this.atsReports, this.resumes, this.letters, this.jobs, this.runs, this.resets].map((c) => c.deleteMany({ userId })));
     await Promise.all([this.profiles.deleteOne({ _id: userId as never }), this.cvImports.deleteOne({ _id: userId as never })]);
     await this.creditStore.deleteForUser(userId);
+    await this.admins.deleteOne({ _id: userId as never });
     await this.users.deleteOne({ _id: userId as never }); // last: if anything above failed, the account still exists and the user can try again
   }
 

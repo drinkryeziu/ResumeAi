@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { ChevronDown, Coins, LogOut, Settings } from "lucide-react";
+import { ChevronDown, Coins, LogOut, Settings, ShieldCheck } from "lucide-react";
 import { signOutAction } from "@/app/(auth)/actions";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
@@ -27,7 +27,7 @@ const isActive = (pathname: string, match: readonly string[], fromDocuments = fa
  * `setup` (first-time users who have no profile yet) drops the nav, since every page just sends them back to setup:
  * only the wordmark and Sign out remain.
  */
-export function SiteHeader({ creditBalance, name, email, setup = false }: { creditBalance: number; name: string; email: string; setup?: boolean }) {
+export function SiteHeader({ creditBalance, name, email, setup = false, admin = false }: { creditBalance: number; name: string; email: string; setup?: boolean; admin?: boolean }) {
   const pathname = usePathname();
   const fromDocuments = useSearchParams().get("from") === "documents";
   if (setup) {
@@ -66,10 +66,10 @@ export function SiteHeader({ creditBalance, name, email, setup = false }: { cred
               </Link>
             );
           })}
-          <AccountMenu creditBalance={creditBalance} name={name} email={email} />
+          <AccountMenu creditBalance={creditBalance} name={name} email={email} admin={admin} />
           <SignOutLink />
         </nav>
-        <MobileNav creditBalance={creditBalance} pathname={pathname} fromDocuments={fromDocuments} />
+        <MobileNav creditBalance={creditBalance} pathname={pathname} fromDocuments={fromDocuments} admin={admin} />
       </div>
     </header>
   );
@@ -118,7 +118,7 @@ function useDismissible() {
   return ref;
 }
 
-function AccountMenu({ creditBalance, name, email }: { creditBalance: number; name: string; email: string }) {
+function AccountMenu({ creditBalance, name, email, admin }: { creditBalance: number; name: string; email: string; admin: boolean }) {
   const ref = useDismissible();
   return (
     <details ref={ref} className="group relative">
@@ -147,13 +147,18 @@ function AccountMenu({ creditBalance, name, email }: { creditBalance: number; na
         <Link href="/settings" className="flex items-center gap-ds-2 rounded-sm px-ds-3 py-ds-2 text-body-sm no-underline hover:bg-white">
           <Settings size={16} aria-hidden="true" className="text-blue-600" /> Settings
         </Link>
+        {admin && (
+          <Link href="/admin" className="flex items-center gap-ds-2 rounded-sm px-ds-3 py-ds-2 text-body-sm no-underline hover:bg-white">
+            <ShieldCheck size={16} aria-hidden="true" className="text-blue-600" /> Admin dashboard
+          </Link>
+        )}
       </div>
     </details>
   );
 }
 
 /** Below md: logo + menu; the open menu is a sky-50 panel, per the design system. */
-function MobileNav({ creditBalance, pathname, fromDocuments }: { creditBalance: number; pathname: string; fromDocuments: boolean }) {
+function MobileNav({ creditBalance, pathname, fromDocuments, admin }: { creditBalance: number; pathname: string; fromDocuments: boolean; admin: boolean }) {
   const ref = useDismissible();
   return (
     <details ref={ref} className="relative md:hidden">
@@ -176,6 +181,11 @@ function MobileNav({ creditBalance, pathname, fromDocuments }: { creditBalance: 
         <Link href="/settings" className="rounded-sm px-ds-3 py-ds-2 text-body-sm no-underline hover:bg-white">
           Settings
         </Link>
+        {admin && (
+          <Link href="/admin" className="rounded-sm px-ds-3 py-ds-2 text-body-sm no-underline hover:bg-white">
+            Admin dashboard
+          </Link>
+        )}
         <form action={signOutAction}>
           <button type="submit" className="w-full rounded-sm px-ds-3 py-ds-2 text-left text-body-sm hover:bg-white">
             Sign out

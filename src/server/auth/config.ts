@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import LinkedIn from "next-auth/providers/linkedin";
 import { z } from "zod/v4";
+import { recordSecurityEvent } from "@/server/security/events";
 import { ipFrom, overLimit, RULES } from "@/server/security/rate-limit";
 import { getStore } from "@/server/store";
 import { verifyPassword } from "./password";
@@ -47,7 +48,10 @@ const config: NextAuthConfig = {
         const [byIp, byEmail] = await Promise.all([overLimit(store, RULES.signInIp, ipFrom(request.headers)), overLimit(store, RULES.signInEmail, parsed.data.email)]);
         if (byIp || byEmail) throw new RateLimitedSignIn();
         const user = await store.findUserByEmail(parsed.data.email);
-        if (!user || !(await verifyPassword(parsed.data.password, user.passwordHash))) return null;
+        if (!user || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
+          await recordSecurityEvent(store, "sign_in_failed");
+          return null;
+        }
         return { id: user.id, email: user.email, name: user.name };
       },
     }),

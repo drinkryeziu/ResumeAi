@@ -2,6 +2,7 @@ import type { AtsAdvice, AtsScores, JobAnalysis, MatchReport, ProfileDraft, Tone
 import type { AIRunStore } from "@/server/ai/runner";
 import type { CreditService } from "@/server/credits/service";
 import type { CoverLetterDocument, ResumeDocument } from "@/server/documents/model";
+import type { AdminSnapshot, SecurityEvent, SecuritySummary } from "@/server/admin/overview";
 import type { ApprovedFactItem, JobInput, ProfileSnapshot } from "@/server/domain/profile";
 
 export type JobStatus = "DRAFT" | "ANALYZED" | "MATCHED" | "OPTIMIZED" | "READY";
@@ -19,6 +20,13 @@ export interface UserRecord {
   name: string;
   passwordHash: string | null; // null for Google / LinkedIn accounts
   createdAt: Date;
+}
+
+export interface AdminRecord {
+  userId: string;
+  name: string;
+  email: string;
+  addedAt: Date;
 }
 
 export interface JobRecord extends JobInput {
@@ -98,6 +106,23 @@ export interface CoverLetterRecord {
 export interface AppStore {
   credits: CreditService;
   aiRuns: AIRunStore & { listForUser(userId: string): Promise<Array<{ workflow: string; costUsd: number; model: string; createdAt: Date }>> };
+
+  /**
+   * The operator's view across people. These are the only methods that are not scoped to one user, and nothing a signed-in
+   * user can reach calls them: only the admin dashboard, after `requireAdmin`.
+   */
+  adminSnapshot(): Promise<AdminSnapshot>;
+  /** How many AI runs there were since `since`, and how many of them failed or were turned down. */
+  aiRunStats(since: Date): Promise<{ total: number; failed: number }>;
+  /** Notes one security event (a wrong password, a request turned away). Holds no personal data; old ones expire after 30 days. */
+  recordSecurityEvent(event: SecurityEvent): Promise<void>;
+  securitySummary(since: Date, recentLimit?: number): Promise<SecuritySummary>;
+  /** People (besides the owner) who may open the admin dashboard. Newest first. */
+  listAdmins(): Promise<AdminRecord[]>;
+  isAdminUser(userId: string): Promise<boolean>;
+  /** Idempotent. */
+  addAdminUser(userId: string, addedBy: string): Promise<void>;
+  removeAdminUser(userId: string): Promise<boolean>;
 
   createUser(u: { email: string; name: string; passwordHash: string | null }): Promise<UserRecord>;
   findUserByEmail(email: string): Promise<UserRecord | null>;

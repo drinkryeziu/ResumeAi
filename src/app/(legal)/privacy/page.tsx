@@ -47,7 +47,13 @@ export default function PrivacyPage() {
       <Section title="Protecting the site">
         <P>
           To stop password guessing, mass sign-ups and runaway use, we count requests from the same network address and the same email. These counters store only a scrambled
-          (hashed) value and disappear on their own within an hour or less.
+          (hashed) value and disappear on their own within an hour or less. We also keep a short log of security events (a wrong password, a request turned away
+          because of too many tries) with the kind of event and the time, and nothing that identifies you. It is deleted after 30 days.
+        </P>
+        <P>
+          To run the service, the site owner, and people the owner allows, can open an admin page. It shows each account&apos;s name and email, how many applications
+          they created and ticked as applied, their average Job Match Score and when they were last active, together with system health. It does not show the
+          content of your profile, resumes or cover letters.
         </P>
       </Section>
       <Section title="How long we keep it">

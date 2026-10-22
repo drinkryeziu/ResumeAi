@@ -106,6 +106,67 @@ export function storeContract(label: string, open: () => Promise<{ store: AppSto
       expect(await store.setJobApplied(a.id, "job_missing", true)).toBe(false);
     });
 
+    it("gives the operator view: people with their jobs, tailored documents and scores, and nobody else's mixed in", async () => {
+      const a = await user("snap-a@example.com"); // has a profile
+      const b = await store.createUser({ email: "snap-b@example.com", name: "No Profile", passwordHash: null }); // signed up, nothing else
+      const job = await store.createJob(a.id, { title: "Designer", company: "Northwind", description: "d" });
+      await store.createJob(b.id, { title: "Other", company: "Elsewhere", description: "d" });
+      await store.setJobApplied(a.id, job.id, true);
+      const snap = await store.adminSnapshot();
+      expect(snap.users.map((u) => u.email)).toEqual(expect.arrayContaining(["snap-a@example.com", "snap-b@example.com"]));
+      expect(snap.profileUserIds).toContain(a.id);
+      expect(snap.profileUserIds).not.toContain(b.id);
+      const mine = snap.jobs.find((j) => j.id === job.id)!;
+      expect(mine.userId).toBe(a.id);
+      expect(mine.appliedAt).not.toBeNull();
+      expect(snap.jobs.filter((j) => j.userId === b.id)).toHaveLength(1);
+      expect(snap.jobs.find((j) => j.userId === b.id)!.appliedAt ?? null).toBeNull();
+    });
+
+    it("counts security events and AI runs for the dashboard, and lets old ones fall out of the window", async () => {
+      const now = new Date();
+      const hourAgo = new Date(+now - 3_600_000);
+      const dayAgo = new Date(+now - 2 * 86_400_000);
+      const before = await store.securitySummary(dayAgo, 1000);
+      await store.recordSecurityEvent({ type: "sign_in_failed", at: now });
+      await store.recordSecurityEvent({ type: "sign_in_failed", at: hourAgo });
+      await store.recordSecurityEvent({ type: "rate_limited", rule: "signin-ip", at: now });
+      const sum = await store.securitySummary(new Date(+now - 86_400_000), 2);
+      expect(sum.counts.sign_in_failed - before.counts.sign_in_failed).toBe(2);
+      expect(sum.counts.rate_limited - before.counts.rate_limited).toBe(1);
+      expect(sum.recent).toHaveLength(2); // limited to the newest two
+      expect(sum.recent.every((e) => +e.at >= +hourAgo)).toBe(true);
+      expect(JSON.stringify(sum.recent)).not.toMatch(/@|usr_/); // nothing personal is kept
+
+      const u = await user("runs@example.com");
+      const stats0 = await store.aiRunStats(new Date(+now - 60_000));
+      const run = { userId: u.id, workflow: "w", provider: "mock", model: "m", promptVersion: "p", inputTokens: 1, outputTokens: 1, costUsd: 0, latencyMs: 1, error: null };
+      await store.aiRuns.record({ ...run, status: "SUCCEEDED" });
+      await store.aiRuns.record({ ...run, status: "FAILED" });
+      const stats1 = await store.aiRunStats(new Date(+now - 60_000));
+      expect(stats1.total - stats0.total).toBe(2);
+      expect(stats1.failed - stats0.failed).toBe(1);
+    });
+
+    it("keeps the list of people who may open the admin dashboard, and drops a person when their account goes", async () => {
+      const a = await user("viewer-a@example.com");
+      const b = await user("viewer-b@example.com");
+      expect(await store.isAdminUser(a.id)).toBe(false);
+      await store.addAdminUser(a.id, "owner");
+      await store.addAdminUser(a.id, "owner"); // twice: still once
+      await store.addAdminUser(b.id, "owner");
+      expect(await store.isAdminUser(a.id)).toBe(true);
+      const list = await store.listAdmins();
+      expect(list.filter((x) => x.userId === a.id)).toHaveLength(1);
+      expect(list.find((x) => x.userId === a.id)).toMatchObject({ email: "viewer-a@example.com", name: expect.any(String) });
+      expect(await store.removeAdminUser(b.id)).toBe(true);
+      expect(await store.removeAdminUser(b.id)).toBe(false);
+      expect(await store.isAdminUser(b.id)).toBe(false);
+      await store.deleteAccount(a.id);
+      expect(await store.isAdminUser(a.id)).toBe(false);
+      expect((await store.listAdmins()).some((x) => x.userId === a.id)).toBe(false);
+    });
+
     it("keeps one answer per topic: a later answer replaces the earlier one", async () => {
       const u = await user("facts@example.com");
       await store.addApprovedFact(u.id, { topic: "WCAG", question: "q", answer: "first", status: "APPROVED", jobId: "j1" });

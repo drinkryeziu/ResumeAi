@@ -28,7 +28,7 @@ export default async function OnboardingDonePage({ searchParams }: { searchParam
       <PageHeader
         eyebrow="All set"
         title="Your Master Resume and Cover Letter are ready"
-        description="Both were written only from the details you entered. Read them through. You can edit your profile any time and refresh them."
+        description="Written only from your details. Read them through, and edit your profile any time to refresh them."
       />
       <div role="tablist" aria-label="Master documents" className="mb-ds-4 flex flex-wrap gap-ds-2">
         {(

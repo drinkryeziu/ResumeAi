@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { resumeParser, runWorkflow, WorkflowOutputError } from "@/server/ai";
 import { aiAvailable } from "@/server/ai/providers/registry";
 import { describeAIError } from "@/server/ai/errors";
-import { AIProviderError } from "@/server/ai/providers/types";
+import { AINotConfiguredError, AIProviderError } from "@/server/ai/providers/types";
+import { guideFor, type CvProblem } from "@/lib/cv-problems";
 import { notice } from "@/lib/notices";
 import { extractText, UploadError } from "@/server/documents/extract-text";
 import { requireUser } from "@/server/auth/session";
@@ -18,7 +19,10 @@ import { getStore } from "@/server/store";
 
 const NO_AI = "AI writing isn't switched on for this site yet, so your Master documents can't be created. The site owner needs to add the AI key.";
 
-export type ProfileState = { error?: string } | undefined;
+/** `problem` (CV upload only) names what went wrong so the page can explain how to fix it; `detail` is for the curious. */
+export type ProfileState = { error?: string; problem?: CvProblem; detail?: string } | undefined;
+
+const fail = (problem: CvProblem, detail?: string, sizeMb?: number): ProfileState => ({ error: guideFor(problem, { sizeMb }).reason, problem, ...(detail ? { detail } : {}) });
 
 /**
  * Saves the Master Profile. On first save — or when the user asks — it then (re)generates the
@@ -75,13 +79,13 @@ const RETURN_TO = { onboarding: "/onboarding", edit: "/profile/edit" } as const;
  */
 export async function importCv(_: ProfileState, fd: FormData): Promise<ProfileState> {
   const user = await requireUser();
-  if (await overLimit(await getStore(), RULES.aiUser, user.id)) return { error: "You're going fast. Please wait a few minutes before reading another CV." };
+  if (await overLimit(await getStore(), RULES.aiUser, user.id)) return fail("too_fast");
   const back = RETURN_TO[fd.get("returnTo") === "edit" ? "edit" : "onboarding"];
   // Either an uploaded file or pasted text; pasted text goes through the same reader as a .txt file.
   const pasted = String(fd.get("cvText") ?? "").trim();
-  if (fd.has("cvText") && pasted.length < 100) return { error: "Paste your whole CV (at least a few lines) so we have enough to read." };
+  if (fd.has("cvText") && pasted.length < 100) return fail("too_short");
   const file = pasted ? new File([pasted], "Pasted CV.txt", { type: "text/plain" }) : fd.get("cv");
-  if (!(file instanceof File) || file.size === 0) return { error: "Choose your CV file first (PDF or Word)." };
+  if (!(file instanceof File) || file.size === 0) return fail(file instanceof File ? "empty" : "no_file");
   const store = await getStore();
   try {
     const text = await extractText(file);
@@ -90,14 +94,15 @@ export async function importCv(_: ProfileState, fd: FormData): Promise<ProfileSt
       { text },
       { userId: user.id, requestId: String(fd.get("requestId") || crypto.randomUUID()), credits: store.credits, runs: store.aiRuns },
     );
-    if (!output.experiences.length && !output.education.length && !output.skills.length) {
-      return { error: "We couldn't find jobs, education or skills in that file. Check it's your CV, or fill in the form below." };
-    }
+    if (!output.experiences.length && !output.education.length && !output.skills.length) return fail("no_content");
     await store.setCvImport(user.id, { fileName: file.name, draft: output, createdAt: new Date() });
   } catch (e) {
-    if (e instanceof UploadError) return { error: e.message };
-    if (e instanceof WorkflowOutputError) return { error: `We couldn't read your CV reliably. Please fill in the form below instead.${e.violations.length ? ` (Reason: ${e.violations.slice(0, 2).map((v) => v.slice(0, 180)).join(" · ")})` : ""}` };
-    if (e instanceof AIProviderError) return { error: `${describeAIError(e, "read your CV")} You can also fill in the form by hand.` };
+    if (e instanceof UploadError) return fail(e.code ?? "unsupported", e.code ? undefined : e.message, file.size / 1_048_576);
+    if (e instanceof WorkflowOutputError) return fail("unreadable", e.violations.slice(0, 2).map((v) => v.slice(0, 180)).join(" · "));
+    if (e instanceof AIProviderError) {
+      const off = e instanceof AINotConfiguredError || e.reason === "no_credit";
+      return fail(off ? "ai_off" : "ai_busy", describeAIError(e, "read your CV"));
+    }
     throw e;
   }
   redirect(`${back}?imported=1`);

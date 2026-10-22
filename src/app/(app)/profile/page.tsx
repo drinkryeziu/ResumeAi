@@ -36,7 +36,6 @@ export default async function ProfilePage() {
     "strength",
     "education",
     "certifications",
-    "delete",
   ];
 
   return (
@@ -165,14 +164,9 @@ export default async function ProfilePage() {
             </ProfileSection>
           </aside>
         </div>
-        <ProfileSection
-          id="delete"
-          title="Delete your profile"
-          subtitle="Removes your profile and Master documents so you can start again with a new one. This can't be undone."
-          className="mt-ds-4"
-        >
+        <div className="mt-ds-5">
           <DeleteProfileDialog />
-        </ProfileSection>
+        </div>
       </ProfileSections>
     </>
   );

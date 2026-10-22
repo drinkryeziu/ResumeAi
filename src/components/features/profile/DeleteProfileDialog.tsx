@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 function ConfirmButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending} icon={pending ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : undefined}>
+    <Button type="submit" variant="danger" disabled={pending} icon={pending ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : undefined}>
       {pending ? "Deleting…" : "Yes, delete my profile"}
     </Button>
   );
@@ -24,7 +24,7 @@ export function DeleteProfileDialog() {
   const close = () => dialog.current?.close();
   return (
     <>
-      <Button type="button" variant="secondary" onClick={() => dialog.current?.showModal()} aria-haspopup="dialog">
+      <Button type="button" variant="danger" onClick={() => dialog.current?.showModal()} aria-haspopup="dialog">
         Delete my profile
       </Button>
       <dialog

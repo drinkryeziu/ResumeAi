@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
  * - link: blue-700 underlined body-sm — tertiary actions.
  * `cost` appends the credit price so users always see what an AI action costs before clicking.
  */
-type Variant = "primary" | "secondary" | "link";
+type Variant = "primary" | "secondary" | "link" | "danger";
 
 const base =
   "inline-flex items-center justify-center gap-2 rounded-pill transition-colors disabled:cursor-not-allowed";
@@ -20,6 +20,8 @@ const variants: Record<Variant, string> = {
   secondary:
     "text-button py-ds-3 bg-white text-blue-600 shadow-[inset_0_0_0_2px_var(--blue-600)] hover:text-blue-700 hover:shadow-[inset_0_0_0_2px_var(--blue-700)] disabled:shadow-none disabled:bg-gray-100 disabled:text-gray-400",
   link: "text-body-sm text-blue-700 underline px-0 py-0",
+  // Only for a destructive action (delete): red, never the blue action color.
+  danger: "text-button py-ds-3 bg-danger text-white hover:brightness-90 disabled:bg-gray-100 disabled:text-gray-400 disabled:brightness-100",
 };
 
 type CommonProps = { variant?: Variant; cost?: number; icon?: ReactNode; compact?: boolean; className?: string; "aria-label"?: string; children: ReactNode };

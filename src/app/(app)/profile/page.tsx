@@ -30,6 +30,7 @@ export default async function ProfilePage() {
   const ids = [
     "summary",
     "experience",
+    ...(p.projects.length ? ["projects"] : []),
     "skills",
     ...(answers.length ? ["application"] : []),
     ...(p.approvedFacts.length ? ["answers"] : []),
@@ -80,6 +81,26 @@ export default async function ProfilePage() {
                 ))}
               </ol>
             </ProfileSection>
+            {p.projects.length > 0 && (
+              <ProfileSection id="projects" title="Projects">
+                <ol className="flex flex-col gap-ds-4">
+                  {p.projects.map((x) => (
+                    <li key={x.id}>
+                      <span className="text-label-bold">{x.name}</span>
+                      {x.role && <span className="text-body-sm"> · {x.role}</span>}
+                      {x.description && <p className="mt-ds-1 text-body-sm">{x.description}</p>}
+                      {x.results && (
+                        <p className="mt-ds-1 text-body-sm">
+                          <span className="text-label-bold">Results: </span>
+                          {x.results}
+                        </p>
+                      )}
+                      {x.tools.length > 0 && <p className="mt-ds-1 text-caption">Tools: {x.tools.join(", ")}</p>}
+                    </li>
+                  ))}
+                </ol>
+              </ProfileSection>
+            )}
             <ProfileSection id="skills" title="Skills">
               <div className="flex flex-col gap-ds-3">
                 {SKILL_GROUPS.map(([cat, title]) => {
@@ -102,7 +123,7 @@ export default async function ProfilePage() {
             {answers.length > 0 && (
               <ProfileSection
                 id="application"
-                title="Application answers"
+                title="Voluntary self-identification"
                 subtitle="Private. Never in your documents and never sent to the AI. Copy them into forms when you apply."
               >
                 <dl className="flex flex-col gap-ds-2">

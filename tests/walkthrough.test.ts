@@ -10,8 +10,14 @@ describe("the first-page tour", () => {
     }
   });
 
+  it("opens with what the app is and how to start, and tells people to sign up first", () => {
+    expect(SCENES[0]!.lines[0]!.text).toBe("What is this app about?");
+    expect(SCENES[1]!.lines[0]!.text).toBe("How do I use it?");
+    expect(SCENES[1]!.lines[1]!.text).toMatch(/sign up/i);
+  });
+
   it("covers the whole journey, in order", () => {
-    expect(SCENES.map((s) => s.id)).toEqual(["profile", "masters", "job", "match", "questions", "documents", "download"]);
+    expect(SCENES.map((s) => s.id)).toEqual(["about", "signup", "profile", "masters", "job", "match", "questions", "documents", "download"]);
   });
 
   it("uses plain words: no jargon and no emoji", () => {
@@ -51,13 +57,13 @@ describe("the first-page tour", () => {
   });
 
   it("fills a scene's progress bar from the lines played and the time into the current one", () => {
-    const i = firstStepOf(2);
-    expect(sceneProgress(1, i, 0)).toBe(1);
-    expect(sceneProgress(3, i, 0)).toBe(0);
-    expect(sceneProgress(2, i, 0)).toBe(0);
-    const half = sceneProgress(2, i, STEPS[i]!.ms);
+    const i = firstStepOf(4);
+    expect(sceneProgress(3, i, 0)).toBe(1);
+    expect(sceneProgress(5, i, 0)).toBe(0);
+    expect(sceneProgress(4, i, 0)).toBe(0);
+    const half = sceneProgress(4, i, STEPS[i]!.ms);
     expect(half).toBeGreaterThan(0);
     expect(half).toBeLessThan(1);
-    expect(sceneProgress(2, i + 1, STEPS[i + 1]!.ms)).toBe(1);
+    expect(sceneProgress(4, i + 1, STEPS[i + 1]!.ms)).toBe(1);
   });
 });

@@ -4,7 +4,7 @@
  * Keep it true to the app: plain words, no promises the product doesn't keep.
  */
 export type Speaker = "asks" | "explains";
-export type SceneId = "profile" | "masters" | "job" | "match" | "questions" | "documents" | "download";
+export type SceneId = "about" | "signup" | "profile" | "masters" | "job" | "match" | "questions" | "documents" | "download";
 
 export interface Line {
   speaker: Speaker;
@@ -18,11 +18,30 @@ export interface Scene {
 
 export const SCENES: readonly Scene[] = [
   {
+    id: "about",
+    title: "What ResumeAi is",
+    lines: [
+      { speaker: "asks", text: "What is this app about?" },
+      {
+        speaker: "explains",
+        text: "ResumeAi writes a resume and a cover letter for each job you apply to, using only what's true about you. It also shows you how well you match the job before you apply.",
+      },
+    ],
+  },
+  {
+    id: "signup",
+    title: "Sign up",
+    lines: [
+      { speaker: "asks", text: "How do I use it?" },
+      { speaker: "explains", text: "First, sign up for a free account. From there it works in a few simple steps, and I'll walk you through them." },
+    ],
+  },
+  {
     id: "profile",
     title: "Create your profile once",
     lines: [
-      { speaker: "asks", text: "Do I have to rewrite my resume for every job?" },
-      { speaker: "explains", text: "No. You create your professional profile once, by typing it in or uploading your CV. It stays your single source of truth." },
+      { speaker: "asks", text: "What do I do once I'm signed up?" },
+      { speaker: "explains", text: "You create your professional profile once, by typing it in or uploading your CV. It stays your single source of truth, so you never rewrite it for every job." },
     ],
   },
   {

@@ -175,7 +175,7 @@ export function TourVideo() {
       </div>
 
       {/* Steps: each one jumps to its scene and shows how far the tour has got. */}
-      <ol aria-label="Steps of the tour" className="mt-ds-4 grid grid-cols-7 gap-1.5">
+      <ol aria-label="Steps of the tour" className="mt-ds-4 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${SCENES.length}, minmax(0, 1fr))` }}>
         {SCENES.map((s, n) => (
           <li key={s.id}>
             <button

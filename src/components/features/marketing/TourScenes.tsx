@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { AlertTriangle, Check, FileText, FileUp, Mail, Pencil } from "lucide-react";
+import { AlertTriangle, ArrowRight, Check, FileText, FileUp, Mail, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { PdfIcon, WordIcon } from "@/components/ui/FileIcons";
 import { ScoreRing } from "@/components/ui/ScoreRing";
@@ -25,6 +25,56 @@ const Card = ({ children, className }: { children: ReactNode; className?: string
 const Pill = ({ children, className }: { children: ReactNode; className?: string }) => (
   <span className={cn("inline-flex items-center justify-center gap-1 rounded-pill px-ds-4 py-1.5 text-[11px] font-bold tracking-[0.4px] uppercase", className)}>{children}</span>
 );
+
+function About() {
+  return (
+    <div className="flex w-full max-w-lg flex-wrap items-center justify-center gap-ds-3 sm:flex-nowrap">
+      <Pop className="w-[42%] min-w-[130px]">
+        <Card className="flex flex-col gap-1.5">
+          <span className="text-label-bold">The job</span>
+          {["90%", "75%", "85%", "55%"].map((w, i) => (
+            <Bar key={w + i} w={w} delay={200 + i * 200} />
+          ))}
+        </Card>
+      </Pop>
+      <Pop delay={900}>
+        <ArrowRight size={22} className="text-blue-600" aria-hidden="true" />
+      </Pop>
+      <Pop delay={1300} className="w-[42%] min-w-[130px]">
+        <Card className="flex flex-col gap-1.5">
+          <span className="flex items-center justify-between gap-1">
+            <span className="text-label-bold">Your resume</span>
+            <Badge tone="success">82% match</Badge>
+          </span>
+          {["88%", "70%", "80%", "60%"].map((w, i) => (
+            <Bar key={w + i} w={w} delay={1500 + i * 200} tone={i === 1 ? "blue" : "gray"} />
+          ))}
+          <span className="text-caption">Only what&apos;s true about you</span>
+        </Card>
+      </Pop>
+    </div>
+  );
+}
+
+function Signup() {
+  return (
+    <Card className="flex w-full max-w-sm flex-col gap-ds-3">
+      <Pop className="flex items-center justify-between gap-ds-2">
+        <span className="text-label-bold">Create your account</span>
+        <Badge tone="success">Free to start</Badge>
+      </Pop>
+      {["Full name", "Email", "Password"].map((l, i) => (
+        <Pop key={l} delay={300 + i * 350} className="flex flex-col gap-1">
+          <span className="text-caption">{l}</span>
+          <span className="block rounded-sm bg-gray-100 p-2">
+            <Bar w={["60%", "75%", "40%"][i]!} delay={600 + i * 350} />
+          </span>
+        </Pop>
+      ))}
+      <Pill className="wt-pulse bg-blue-600 py-2.5 text-white">Get started free</Pill>
+    </Card>
+  );
+}
 
 function Profile() {
   return (
@@ -203,7 +253,7 @@ function Download() {
   );
 }
 
-const SCENE_ART: Record<SceneId, () => React.JSX.Element> = { profile: Profile, masters: Masters, job: Job, match: Match, questions: Questions, documents: Documents, download: Download };
+const SCENE_ART: Record<SceneId, () => React.JSX.Element> = { about: About, signup: Signup, profile: Profile, masters: Masters, job: Job, match: Match, questions: Questions, documents: Documents, download: Download };
 
 export function TourScene({ id }: { id: SceneId }) {
   const Art = SCENE_ART[id];

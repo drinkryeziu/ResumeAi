@@ -96,7 +96,7 @@ export function totalsOf(rows: UserRow[]): UsageTotals {
 
 // ───────────── security and AI health ─────────────
 
-export type SecurityEventType = "sign_in_failed" | "rate_limited";
+export type SecurityEventType = "sign_in_failed" | "rate_limited" | "account_removed";
 export interface SecurityEvent {
   type: SecurityEventType;
   /** Which limit was hit (for rate_limited), e.g. "signin-ip". Never an address, email or name. */
@@ -124,7 +124,7 @@ export const RULE_LABELS: Record<string, string> = {
 export type Level = "normal" | "elevated" | "high";
 
 /** How the last 24 hours look: a handful of wrong passwords is normal; floods are not. */
-export function threatLevel(c: SecuritySummary["counts"]): Level {
+export function threatLevel(c: Pick<SecuritySummary["counts"], "sign_in_failed" | "rate_limited">): Level {
   if (c.sign_in_failed >= 50 || c.rate_limited >= 20) return "high";
   if (c.sign_in_failed >= 15 || c.rate_limited >= 5) return "elevated";
   return "normal";

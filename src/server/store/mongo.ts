@@ -152,12 +152,13 @@ export class MongoAppStore implements AppStore {
     await this.events.insertOne({ type: event.type, ...(event.rule ? { rule: event.rule } : {}), at: event.at });
   }
   async securitySummary(since: Date, recentLimit = 10): Promise<SecuritySummary> {
-    const [failed, limited, recent] = await Promise.all([
+    const [failed, limited, removed, recent] = await Promise.all([
       this.events.countDocuments({ type: "sign_in_failed", at: { $gte: since } }),
       this.events.countDocuments({ type: "rate_limited", at: { $gte: since } }),
+      this.events.countDocuments({ type: "account_removed", at: { $gte: since } }),
       this.events.find({ at: { $gte: since } }).sort({ at: -1 }).limit(recentLimit).toArray(),
     ]);
-    return { counts: { sign_in_failed: failed, rate_limited: limited }, recent: recent.map((e) => ({ type: e.type, ...(e.rule ? { rule: e.rule } : {}), at: e.at })) };
+    return { counts: { sign_in_failed: failed, rate_limited: limited, account_removed: removed }, recent: recent.map((e) => ({ type: e.type, ...(e.rule ? { rule: e.rule } : {}), at: e.at })) };
   }
   async listAdmins(): Promise<AdminRecord[]> {
     const rows = await this.admins.find({}).sort({ addedAt: -1 }).toArray();

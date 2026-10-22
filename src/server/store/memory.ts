@@ -59,7 +59,11 @@ export class MemoryAppStore implements AppStore {
   async securitySummary(since: Date, recentLimit = 10): Promise<SecuritySummary> {
     const rows = this.events.filter((e) => +e.at >= +since).sort((a, b) => +b.at - +a.at);
     return {
-      counts: { sign_in_failed: rows.filter((e) => e.type === "sign_in_failed").length, rate_limited: rows.filter((e) => e.type === "rate_limited").length },
+      counts: {
+        sign_in_failed: rows.filter((e) => e.type === "sign_in_failed").length,
+        rate_limited: rows.filter((e) => e.type === "rate_limited").length,
+        account_removed: rows.filter((e) => e.type === "account_removed").length,
+      },
       recent: rows.slice(0, recentLimit).map((e) => ({ ...e })),
     };
   }

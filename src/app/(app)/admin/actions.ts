@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod/v4";
 import { ownerEmail } from "@/server/admin/access";
+import { removeUserAsOwner } from "@/server/admin/remove-user";
 import { requireOwner } from "@/server/auth/admin";
+import { recordSecurityEvent } from "@/server/security/events";
 import { overLimit, RULES, TOO_MANY } from "@/server/security/rate-limit";
 
 export type AdminState = { error?: string; ok?: string } | undefined;
@@ -28,4 +30,22 @@ export async function removeViewer(fd: FormData) {
   const userId = z.string().min(1).max(80).safeParse(fd.get("userId"));
   if (userId.success) await store.removeAdminUser(userId.data);
   revalidatePath("/admin");
+}
+
+/** The owner removes a person's account, after typing that person's email. Nothing of theirs is kept. */
+export async function removeUser(_: AdminState, fd: FormData): Promise<AdminState> {
+  const { user, store } = await requireOwner();
+  if (await overLimit(store, RULES.adminUser, user.id)) return { error: TOO_MANY };
+  const parsed = z.object({ userId: z.string().min(1).max(80), email: z.string().max(320) }).safeParse({ userId: fd.get("userId"), email: fd.get("email") });
+  if (!parsed.success) return { error: "Something was missing. Nothing was deleted." };
+  const result = await removeUserAsOwner(store, { ownerId: user.id, ownerEmail: ownerEmail(), targetId: parsed.data.userId, typedEmail: parsed.data.email });
+  if (result === "mismatch") return { error: "That isn't this account's email address. Nothing was deleted." };
+  if (result === "protected") return { error: "The owner's account can't be removed here." };
+  if (result === "not_found") {
+    revalidatePath("/admin");
+    return { ok: "That account was already gone." };
+  }
+  await recordSecurityEvent(store, "account_removed");
+  revalidatePath("/admin");
+  return { ok: "The account and everything in it was deleted." };
 }

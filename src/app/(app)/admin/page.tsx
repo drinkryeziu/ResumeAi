@@ -7,6 +7,8 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { formatDate, formatNumber } from "@/lib/format";
 import { ACTIVE_DAYS, aiHealth, buildUserRows, RULE_LABELS, threatLevel, totalsOf, type Level, type UserRow } from "@/server/admin/overview";
+import { RemoveUserDialog } from "@/components/features/admin/RemoveUserDialog";
+import { ownerEmail } from "@/server/admin/access";
 import { requireAdmin } from "@/server/auth/admin";
 import { setupStatus } from "@/server/store/setup-check";
 import { removeViewer } from "./actions";
@@ -16,7 +18,7 @@ export const metadata = { title: "Admin dashboard", robots: { index: false, foll
 const DAY = 86_400_000;
 const LEVEL_TEXT: Record<Level, string> = { normal: "Normal", elevated: "Elevated", high: "High" };
 const LEVEL_TONE = { normal: "ok", elevated: "warn", high: "bad" } as const;
-const EVENT_TEXT = { sign_in_failed: "Wrong password at sign-in", rate_limited: "Request turned away, too many tries" } as const;
+const EVENT_TEXT = { sign_in_failed: "Wrong password at sign-in", rate_limited: "Request turned away, too many tries", account_removed: "Account deleted by the owner" } as const;
 
 const count = (n: number, noun: string) => `${formatNumber(n)} ${noun}${n === 1 ? "" : "s"}`;
 const score = (n: number | null) => (n === null ? "—" : `${n}%`);
@@ -135,7 +137,7 @@ export default async function AdminPage() {
             title={<span id="people-h">People using ResumeAi</span>}
             subtitle={`Most recently active first. Active means any activity in the last ${ACTIVE_DAYS} days. Application counts only include jobs with a tailored resume or cover letter.`}
           />
-          {rows.length === 0 ? <p className="text-body-sm">Nobody has signed up yet.</p> : <UsersTable rows={rows} />}
+          {rows.length === 0 ? <p className="text-body-sm">Nobody has signed up yet.</p> : <UsersTable rows={rows} canRemove={role === "owner"} ownerEmail={ownerEmail()} />}
         </Card>
 
         {role === "owner" && (
@@ -176,7 +178,9 @@ export default async function AdminPage() {
   );
 }
 
-function UsersTable({ rows }: { rows: UserRow[] }) {
+function UsersTable({ rows, canRemove, ownerEmail: owner }: { rows: UserRow[]; canRemove: boolean; ownerEmail: string }) {
+  // The owner can delete anyone but themselves.
+  const remove = (r: UserRow) => (canRemove && r.email !== owner ? <RemoveUserDialog userId={r.id} name={r.name} email={r.email} /> : null);
   const status = (r: UserRow) => (
     <Badge tone={r.active ? "success" : "neutral"}>{r.active ? "Active" : "Inactive"}</Badge>
   );
@@ -207,7 +211,10 @@ function UsersTable({ rows }: { rows: UserRow[] }) {
                 <dd className="text-label-bold">{score(r.averageScore)}</dd>
               </div>
             </dl>
-            <p className="text-caption">Last active {formatDate(r.lastActiveAt)}</p>
+            <div className="flex items-center justify-between gap-ds-3">
+              <p className="text-caption">Last active {formatDate(r.lastActiveAt)}</p>
+              {remove(r)}
+            </div>
           </li>
         ))}
       </ul>
@@ -235,6 +242,11 @@ function UsersTable({ rows }: { rows: UserRow[] }) {
               <th scope="col" className="py-ds-2 pl-ds-3 font-semibold">
                 Status
               </th>
+              {canRemove && (
+                <th scope="col" className="py-ds-2 pl-ds-3 text-right font-semibold">
+                  <span className="sr-only">Actions</span>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -249,6 +261,7 @@ function UsersTable({ rows }: { rows: UserRow[] }) {
                 <td className="px-ds-3 py-ds-3 text-right tabular-nums">{score(r.averageScore)}</td>
                 <td className="px-ds-3 py-ds-3">{formatDate(r.lastActiveAt)}</td>
                 <td className="py-ds-3 pl-ds-3">{status(r)}</td>
+                {canRemove && <td className="py-ds-3 pl-ds-3 text-right">{remove(r)}</td>}
               </tr>
             ))}
           </tbody>

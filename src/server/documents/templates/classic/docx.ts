@@ -1,6 +1,6 @@
 import { AlignmentType, BorderStyle, Document, ExternalHyperlink, LevelFormat, Packer, Paragraph, TabStopType, TextRun } from "docx";
 import { formatMonthYear } from "@/lib/format";
-import { displayUrl, skillSections, type CoverLetterDocument, type ResumeDocument } from "../../model";
+import { displayUrl, senderContact, skillSections, type CoverLetterDocument, type ResumeDocument } from "../../model";
 import { classicTheme as t } from "./theme";
 
 /**
@@ -114,7 +114,7 @@ export async function coverLetterDocx(doc: CoverLetterDocument): Promise<Buffer>
         properties: { page: { margin: { top: 1080, bottom: 1080, left: 1080, right: 1080 } } },
         children: [
           new Paragraph({ children: [run(doc.sender.name, { bold: true, size: t.size.name })] }),
-          new Paragraph({ spacing: { after: 360 }, children: [run([doc.sender.email, doc.sender.phone, doc.sender.location].filter(Boolean).join("  ·  "), { color: t.muted, size: t.size.small })] }),
+          new Paragraph({ spacing: { after: 360 }, children: [run(senderContact(doc.sender).join("  ·  "), { color: t.muted, size: t.size.small })] }),
           p(date, 280),
           p(doc.greeting),
           ...doc.paragraphs.map((x) => p(x)),

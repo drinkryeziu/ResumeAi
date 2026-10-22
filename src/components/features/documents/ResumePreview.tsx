@@ -1,5 +1,5 @@
 import { formatMonthYear } from "@/lib/format";
-import { displayUrl, skillSections, type CoverLetterDocument, type ResumeDocument } from "@/server/documents/model";
+import { displayUrl, senderContact, skillSections, type CoverLetterDocument, type ResumeDocument } from "@/server/documents/model";
 
 /** On-screen rendering of the same ResumeDocument the PDF/DOCX exporters use. */
 export function ResumePreview({ doc }: { doc: ResumeDocument }) {
@@ -89,7 +89,7 @@ export function CoverLetterPreview({ doc }: { doc: CoverLetterDocument }) {
     <article aria-label="Cover letter preview" className="flex flex-col gap-ds-3 rounded-md bg-white p-ds-5 text-[14px] leading-[1.6] shadow-card">
       <div>
         <h2 className="text-[20px] font-bold">{doc.sender.name}</h2>
-        <p className="text-[12px]">{[doc.sender.email, doc.sender.phone, doc.sender.location].filter(Boolean).join("  ·  ")}</p>
+        <p className="text-[12px]">{senderContact(doc.sender).join("  ·  ")}</p>
       </div>
       <p>{new Date(`${doc.date}T12:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>
       <p>{doc.greeting}</p>

@@ -40,7 +40,8 @@ export interface ResumeDocument {
 }
 
 export interface CoverLetterDocument {
-  sender: { name: string; email: string; phone?: string | null; location?: string | null };
+  /** `links`: readable LinkedIn / portfolio addresses, when the profile has them. */
+  sender: { name: string; email: string; phone?: string | null; location?: string | null; links?: string[] };
   recipient: { company: string; jobTitle: string };
   date: string; // ISO date
   greeting: string;
@@ -76,6 +77,9 @@ const LINK_LABELS: Record<string, string> = {
  * visible text and usually ignores the hyperlink behind it.
  */
 export const displayUrl = (url: string) => url.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "");
+
+/** The sender's contact line on a cover letter: email, phone, location, then LinkedIn and portfolio. Nothing missing is invented. */
+export const senderContact = (s: CoverLetterDocument["sender"]) => [s.email, s.phone, s.location, ...(s.links ?? [])].filter(Boolean) as string[];
 
 export function locationOf(p: Pick<ProfileSnapshot, "city" | "state" | "country">) {
   return [p.city, p.state, p.country].filter(Boolean).join(", ") || null;

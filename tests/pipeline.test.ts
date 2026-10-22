@@ -59,7 +59,7 @@ describe("application flow (mock provider)", () => {
     expect(resume.versions[0]!.content).toEqual(masterDoc); // …V1 of a job is a copy of the Master Resume without it
     expect(resume.versions[1]!.content.experience[0]).toMatchObject({ company: "Harbor Credit Union", startDate: "2021-03", endDate: null });
     const letter = (await store.coverLetterForJob(U, job.id))!;
-    expect(letter.versions[0]!.content.greeting).toBe("Dear Northwind Financial hiring team,");
+    expect(letter.versions[0]!.content.greeting).toBe("Dear Hiring Manager,");
     expect(await store.credits.balance(U)).toBe(1840 - 10 - 25);
     expect((await store.getJob(U, job.id))!.status).toBe("READY");
 

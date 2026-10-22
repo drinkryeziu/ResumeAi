@@ -1,6 +1,6 @@
 import { Document, Link, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { formatMonthYear } from "@/lib/format";
-import { displayUrl, skillSections, type CoverLetterDocument, type ResumeDocument } from "../../model";
+import { displayUrl, senderContact, skillSections, type CoverLetterDocument, type ResumeDocument } from "../../model";
 import { classicTheme as t } from "./theme";
 
 const s = StyleSheet.create({
@@ -125,7 +125,7 @@ export function ResumePdf({ doc }: { doc: ResumeDocument }) {
 }
 
 export function CoverLetterPdf({ doc }: { doc: CoverLetterDocument }) {
-  const contact = [doc.sender.email, doc.sender.phone, doc.sender.location].filter(Boolean).join("  ·  ");
+  const contact = senderContact(doc.sender).join("  ·  ");
   return (
     <Document title={`${doc.sender.name} — Cover letter`} author={doc.sender.name}>
       <Page size="LETTER" style={{ ...s.page, lineHeight: 1.5 }}>

@@ -1,5 +1,5 @@
 import { formatMonthYear } from "@/lib/format";
-import { displayUrl, skillSections, type CoverLetterDocument, type ResumeDocument } from "./model";
+import { displayUrl, senderContact, skillSections, type CoverLetterDocument, type ResumeDocument } from "./model";
 
 /**
  * Readable plain text for pasting into an application form ("Copy as text").
@@ -30,7 +30,7 @@ export function resumePlainText(doc: ResumeDocument): string {
 
 export function coverLetterPlainText(doc: CoverLetterDocument): string {
   const date = new Date(`${doc.date}T12:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  return [doc.sender.name, [doc.sender.email, doc.sender.phone, doc.sender.location].filter(Boolean).join(" | "), "", date, "", doc.greeting, "", doc.paragraphs.join("\n\n"), "", doc.closing, doc.signature]
+  return [doc.sender.name, senderContact(doc.sender).join(" | "), "", date, "", doc.greeting, "", doc.paragraphs.join("\n\n"), "", doc.closing, doc.signature]
     .join("\n")
     .replace(/\n{3,}/g, "\n\n");
 }

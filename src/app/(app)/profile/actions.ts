@@ -10,6 +10,7 @@ import { notice } from "@/lib/notices";
 import { extractText, UploadError } from "@/server/documents/extract-text";
 import { requireUser } from "@/server/auth/session";
 import { overLimit, RULES } from "@/server/security/rate-limit";
+import { factAnswerProblem, factEdits } from "@/server/domain/fact-answers";
 import { toProfileSnapshot } from "@/server/domain/profile-mapping";
 import { ProfileInputSchema } from "@/server/domain/profile-schema";
 import { generateMasterDocuments } from "@/server/services/job-pipeline";
@@ -35,11 +36,16 @@ export async function saveProfile(_: ProfileState, fd: FormData): Promise<Profil
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the highlighted fields." };
   if (parsed.data.experiences.length === 0) return { error: "Add at least one job (or internship, volunteer role or project work) so we can build your resume." };
 
+  const problem = factAnswerProblem(parsed.data.answers);
+  if (problem) return { error: problem.message };
+
   const store = await getStore();
   const existing = await store.findProfile(user.id);
   // The Master documents are written by the AI. For a first profile, say so before saving anything, instead of leaving a half-finished setup.
   if (!existing && !aiAvailable()) return { error: NO_AI };
   await store.saveProfile(user.id, toProfileSnapshot(existing?.id ?? `prof_${user.id}`, parsed.data, existing?.approvedFacts ?? []));
+  // Corrected "Your answers": only the answers shown in the form change; any answered since the page opened stay as they are.
+  if (existing) await store.updateApprovedFacts(user.id, factEdits(parsed.data.answers));
 
   await store.setCvImport(user.id, null); // the reviewed import is now part of the profile
   const firstTime = !existing;

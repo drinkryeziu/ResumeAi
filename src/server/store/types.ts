@@ -136,6 +136,8 @@ export interface AppStore {
   getCvImport(userId: string): Promise<CvImport | null>;
   setCvImport(userId: string, value: CvImport | null): Promise<void>;
   addApprovedFact(userId: string, fact: Omit<ApprovedFactItem, "id"> & { jobId: string }): Promise<ApprovedFactItem>;
+  /** Corrects saved answers by id (their topic and question never change). Answers that are not there are skipped, others are left as they are. */
+  updateApprovedFacts(userId: string, edits: Array<Pick<ApprovedFactItem, "id" | "status" | "answer">>): Promise<void>;
 
   createJob(userId: string, job: Omit<JobInput, "id">): Promise<JobRecord>;
   getJob(userId: string, jobId: string): Promise<JobRecord | null>;

@@ -57,6 +57,34 @@ export function storeContract(label: string, open: () => Promise<{ store: AppSto
       expect(after.approvedFacts).toEqual([{ id: fact.id, topic: "WCAG", question: "Do you?", answer: "I saved $5,000 a month on audits", status: "APPROVED" }]);
     });
 
+    it("corrects saved answers by id, keeps their topic, and leaves the others and other people's alone", async () => {
+      const u = await user("facts-edit@example.com");
+      const other = await user("facts-other@example.com");
+      const base = (id: string) => ({ ...structuredClone(fixtures.TEST_PROFILE), id: `prof_${id}`, approvedFacts: [] });
+      await store.saveProfile(u.id, base(u.id));
+      await store.saveProfile(other.id, base(other.id));
+      const a = await store.addApprovedFact(u.id, { topic: "WCAG", question: "Do you?", answer: "old", status: "APPROVED", jobId: "j1" });
+      const b = await store.addApprovedFact(u.id, { topic: "Python", question: "Do you?", answer: null, status: "DECLINED", jobId: "j1" });
+      const theirs = await store.addApprovedFact(other.id, { topic: "WCAG", question: "Do you?", answer: "theirs", status: "APPROVED", jobId: "j9" });
+
+      await store.updateApprovedFacts(u.id, [
+        { id: a.id, status: "APPROVED", answer: "I saved $5,000 a month" },
+        { id: b.id, status: "APPROVED", answer: "Two years of scripting" },
+        { id: theirs.id, status: "DECLINED", answer: null }, // somebody else's answer: not touched
+        { id: "fact_missing", status: "DECLINED", answer: null }, // gone: skipped
+      ]);
+      const facts = (await store.getProfile(u.id)).approvedFacts;
+      expect(facts.map((f) => [f.topic, f.question, f.status, f.answer]).sort()).toEqual([
+        ["Python", "Do you?", "APPROVED", "Two years of scripting"],
+        ["WCAG", "Do you?", "APPROVED", "I saved $5,000 a month"],
+      ]);
+      expect((await store.getProfile(other.id)).approvedFacts).toEqual([theirs]);
+
+      await store.updateApprovedFacts(u.id, [{ id: a.id, status: "DECLINED", answer: null }]);
+      expect((await store.getProfile(u.id)).approvedFacts.find((f) => f.id === a.id)).toMatchObject({ status: "DECLINED", answer: null });
+      await expect(store.updateApprovedFacts("nobody", [])).rejects.toThrow(/not found/i);
+    });
+
     it("keeps one answer per topic: a later answer replaces the earlier one", async () => {
       const u = await user("facts@example.com");
       await store.addApprovedFact(u.id, { topic: "WCAG", question: "q", answer: "first", status: "APPROVED", jobId: "j1" });

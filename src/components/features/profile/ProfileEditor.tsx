@@ -14,6 +14,8 @@ import { cn } from "@/lib/cn";
 import type { ProfileInput } from "@/server/domain/profile-schema";
 import { isStartedField, issuesForStep, profileProgress, SECTIONS, SETUP_STEPS, type ProfileIssue, type SectionId, type SectionStatus } from "./profile-progress";
 import { ApplicationQuestions } from "./ApplicationQuestions";
+import { YourAnswers } from "./YourAnswers";
+import { factAnswerProblem } from "@/server/domain/fact-answers";
 import { ReviewStep } from "./ReviewStep";
 import { SetupSteps } from "./SetupSteps";
 
@@ -100,7 +102,9 @@ export function ProfileEditor({
   const stepIssues = wizard ? issuesForStep(progress, step) : progress.issues;
   const stepFirst = stepIssues[0];
   // Required fields gate the button: a step can't be left, and the last step can't be saved, while anything is missing.
-  const blocked = wizard && step < lastStep ? !!stepFirst : !!first;
+  // A "Yes" in "Your answers" needs its sentence, like every required field.
+  const answerProblem = useMemo(() => (wizard ? null : factAnswerProblem(p.answers)), [wizard, p.answers]);
+  const blocked = wizard && step < lastStep ? !!stepFirst : !!first || !!answerProblem;
   const inStep = (id: SectionId) => !wizard || (SETUP_STEPS[step]!.sections as readonly SectionId[]).includes(id);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const moved = useRef(false);
@@ -125,10 +129,11 @@ export function ProfileEditor({
       } else go(step + 1);
       return;
     }
-    if (!first) return;
+    if (!first && !answerProblem) return;
     e.preventDefault();
     setAttempted(true);
-    jumpTo(first.field, first.section);
+    if (first) jumpTo(first.field, first.section);
+    else if (answerProblem) document.getElementById(`answer-${answerProblem.id}`)?.scrollIntoView({ block: "center" });
   };
   const set = <K extends keyof ProfileInput>(k: K, v: ProfileInput[K]) => setP((x) => ({ ...x, [k]: v }));
   const setItem = <K extends "experiences" | "education" | "certifications" | "projects">(k: K, i: number, patch: Partial<ProfileInput[K][number]>) =>
@@ -178,6 +183,14 @@ export function ProfileEditor({
                     </a>
                   </li>
                 ))}
+                {(p.answers?.length ?? 0) > 0 && (
+                  <li>
+                    <a href="#answers" className="flex items-start gap-ds-2 rounded-sm px-ds-2 py-1 text-body-sm no-underline hover:bg-sky-50 hover:text-blue-700">
+                      <span className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                      <span>Your answers</span>
+                    </a>
+                  </li>
+                )}
               </ol>
             </div>
           </nav>
@@ -388,6 +401,16 @@ export function ProfileEditor({
             </Section>
           </StepPane>
 
+          {!wizard && (p.answers?.length ?? 0) > 0 && (
+            <Card id="answers" tabIndex={-1} aria-labelledby="answers-h" className="scroll-mt-[84px] outline-none">
+              <CardHeader
+                title={<span id="answers-h">Your answers</span>}
+                subtitle="From job-match questions. Correct an answer here; Yes answers can be used in tailored resumes."
+              />
+              <YourAnswers value={p.answers ?? []} onChange={(next) => set("answers", next)} showErrors={attempted} />
+            </Card>
+          )}
+
           {/* Plain row at the end of the form. Continue / Save stay disabled until every required field (*) is filled. */}
           <div className={cn("flex gap-ds-4", wizard ? "flex-wrap items-center justify-between" : "flex-col")}>
             <div className="flex max-w-md flex-col gap-ds-2">
@@ -411,10 +434,10 @@ export function ProfileEditor({
                 ) : (
                   <div className="flex flex-wrap items-center gap-x-ds-4 gap-y-ds-2">
                     <SaveButton label={wizard ? "Create my master documents" : "Save profile"} disabled={blocked || (!wizard && !changed)} long={!wizard} describedBy={blocked ? "required-hint" : undefined} />
-                    {/* Nothing changed: there is nothing to save, so the way out is right beside the button. */}
-                    {!wizard && !changed && (
+                    {/* The way out is always beside Save. Leaving drops any unsaved change; the saved profile is untouched. */}
+                    {!wizard && (
                       <ButtonLink href="/profile" variant="link" icon={<X size={16} aria-hidden="true" />}>
-                        Close without saving
+                        {changed ? "Cancel and discard changes" : "Close without saving"}
                       </ButtonLink>
                     )}
                   </div>

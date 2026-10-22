@@ -1,5 +1,6 @@
 import { z } from "zod/v4";
 import { normalizeUrl } from "@/lib/url";
+import { FACT_ANSWER_MAX } from "./fact-answers";
 import { ANSWER_FIELDS, ANSWER_KEYS, optionValues, type AnswerKey } from "./application-answers";
 
 /** Server-side validation for profile saves. Ids are generated client-side but must be safe evidence ids. */
@@ -53,6 +54,8 @@ export const ProfileInputSchema = z.object({
   projects: z.array(z.object({ id, name: text(160).min(1, "Each project needs a name."), description: text(1500).optional(), role: text(120).optional(), tools: lines, results: text(1000).optional() })).max(15),
   extras: z.object({ LANGUAGE: lines, AWARD: lines, PUBLICATION: lines, VOLUNTEER: lines }),
   application: ApplicationSchema.optional(),
+  // Corrections to the "Your answers" rows (topic and question are only there so the editor can label them).
+  answers: z.array(z.object({ id, status: z.enum(["APPROVED", "DECLINED"]), answer: text(FACT_ANSWER_MAX).optional(), topic: text(300).optional(), question: text(600).optional() })).max(300).optional(),
 });
 
 export type ProfileInput = z.input<typeof ProfileInputSchema>;

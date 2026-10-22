@@ -210,6 +210,13 @@ export class MongoAppStore implements AppStore {
     return rec;
   }
 
+  async updateApprovedFacts(userId: string, edits: Parameters<AppStore["updateApprovedFacts"]>[1]) {
+    if (!(await this.profiles.countDocuments({ _id: userId as never }, { limit: 1 }))) throw new Error("Profile not found");
+    for (const e of edits) {
+      await this.profiles.updateOne({ _id: userId as never, "approvedFacts.id": e.id }, { $set: { "approvedFacts.$.status": e.status, "approvedFacts.$.answer": e.answer } });
+    }
+  }
+
   // ───────────── Jobs ─────────────
 
   async createJob(userId: string, job: Parameters<AppStore["createJob"]>[1]) {

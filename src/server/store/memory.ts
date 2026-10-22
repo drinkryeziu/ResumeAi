@@ -143,6 +143,15 @@ export class MemoryAppStore implements AppStore {
     return rec;
   }
 
+  async updateApprovedFacts(userId: string, edits: Parameters<AppStore["updateApprovedFacts"]>[1]) {
+    const p = this.profiles.get(userId);
+    if (!p) throw new Error("Profile not found");
+    for (const e of edits) {
+      const f = p.approvedFacts.find((x) => x.id === e.id);
+      if (f) Object.assign(f, { status: e.status, answer: e.answer });
+    }
+  }
+
   async createJob(userId: string, job: Parameters<AppStore["createJob"]>[1]) {
     const now = new Date();
     const rec: JobRecord = { ...job, id: id("job"), userId, status: "DRAFT", createdAt: now, updatedAt: now };

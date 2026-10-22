@@ -18,7 +18,7 @@ MongoDB (`mongodb` driver), @react-pdf/renderer + docx + jszip for exports, unpd
 
 ## Where things are
 - `src/app/` — routes only. Pages compose components; server actions (`actions.ts`) stay thin and call services.
-- `src/components/ui/` — design-system kit (Button, Card, Field, Badge, ScoreRing, ScoreBar…). `features/` — feature components.
+- `src/components/ui/` — design-system kit (Button, Card, Field, Badge, ScoreRing, ScoreBar…). `features/` — feature components. The /profile page's sections are `ProfileSection`s (`features/profile/CollapsibleSections.tsx`): the first starts open, the rest closed, with Expand all / Collapse all above.
 - `src/server/ai/` — Career AI Agent: `workflows/` (one file per capability), `runner.ts` (credits → model → validate → guard → settle),
   `guard/fabrication-guard.ts`, `scoring.ts`, `routing.ts` (model per workflow), `providers/` (anthropic, openai, mock).
 - `src/server/services/job-pipeline.ts` — business logic for every step. `src/server/store/` — `AppStore` interface + memory and MongoDB impls (`getStore()` picks by env).
@@ -26,7 +26,7 @@ MongoDB (`mongodb` driver), @react-pdf/renderer + docx + jszip for exports, unpd
 - `src/server/credits/` — append-only ledger. Prices live in data (`billing/catalog.ts` seeds), never hard-coded in logic.
   Running out of credits is a pause, not an error: multi-step tasks check the whole remaining cost first (`ensureCredits`), skip steps already done (so a resumed task never pays twice), and the page shows the credit-limit window (`CreditLimitDialog`) with what is really saved, read back from the store (`describeCreditStop`); if that read fails the window warns instead of claiming anything.
 - Promotions: `src/server/billing/promotions.ts` lists credit gifts (e.g. `launch-150`, 150 credits once per user, applied when a signed-in user loads the app). To stop one, set `active: false` and push; a new promotion needs a new `id`.
-- `src/server/domain/` — profile types, Zod schema, form ↔ profile mapping, CV-import merge. `application-answers.ts` defines the optional, private application questions (work authorization, visa, relocation, pronouns, gender, race, veteran, disability…): they are stored with the profile, shown on `/profile` and in the setup/edit steps, exported with the account, and must never reach a document, evidence or an AI prompt (tests enforce it).
+- `src/server/domain/` — profile types, Zod schema, form ↔ profile mapping, CV-import merge. `application-answers.ts` defines the optional, private application questions (work authorization, visa, relocation, pronouns, gender, race, veteran, disability…): they are stored with the profile, shown on `/profile` and in the setup/edit steps, exported with the account, and must never reach a document, evidence or an AI prompt (tests enforce it). `fact-answers.ts` covers "Your answers" (answers given to job-match questions): editable in the profile editor (Yes/No and the person's own sentence; the topic never changes) through `store.updateApprovedFacts`, which only touches the rows shown, so answers added meanwhile survive.
 
 ## Non-negotiable product rules
 1. **AI never invents candidate facts.** No new employers, titles, schools, certifications, tools, languages, dates, achievements or numbers.

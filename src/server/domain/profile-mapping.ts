@@ -1,6 +1,7 @@
 import type { z } from "zod/v4";
 import { normalizeUrl } from "@/lib/url";
 import { ANSWER_KEYS, compactAnswers } from "./application-answers";
+import { factsToInput } from "./fact-answers";
 import type { ProfileSnapshot, SkillCategory } from "./profile";
 import type { ProfileInput, ProfileInputSchema } from "./profile-schema";
 
@@ -68,6 +69,7 @@ export function toProfileInput(p: ProfileSnapshot | null, fallbackEmail: string,
     projects: (p?.projects ?? []).map((x) => ({ id: x.id, name: x.name, description: x.description ?? "", role: x.role ?? "", tools: x.tools, results: x.results ?? "" })),
     extras: Object.fromEntries(EXTRA_KINDS.map((k) => [k, (p?.extras ?? []).filter((x) => x.kind === k).map((x) => x.title)])) as ProfileInput["extras"],
     application: Object.fromEntries(ANSWER_KEYS.map((k) => [k, p?.application?.[k] ?? ""])),
+    answers: factsToInput(p?.approvedFacts),
   };
 }
 

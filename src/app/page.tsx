@@ -120,6 +120,11 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
               </li>
             ))}
           </ul>
+          <div className="mt-ds-5">
+            <ButtonLink href="/pricing" variant="secondary">
+              See details
+            </ButtonLink>
+          </div>
         </section>
 
         <section className="px-ds-4 pb-ds-6 text-center">

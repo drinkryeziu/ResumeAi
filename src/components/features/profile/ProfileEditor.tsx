@@ -119,6 +119,23 @@ export function ProfileEditor({
     setStep(to);
   };
 
+  // What is holding the button back, in order, so it can say so (and take the person to each one).
+  const blockers: ProfileIssue[] = useMemo(() => {
+    const own = wizard && step < lastStep ? stepIssues : progress.issues;
+    return !wizard && answerProblem ? [...own, { section: "additional", field: `answers.${answerProblem.id}`, message: answerProblem.message, label: "Your answers" }] : own;
+  }, [wizard, step, lastStep, stepIssues, progress.issues, answerProblem]);
+  /** Goes to the step that holds the problem (during setup), then to the field itself. */
+  const fixBlocker = (b: ProfileIssue) => {
+    if (b.field.startsWith("answers.")) {
+      document.getElementById(`answer-${b.field.slice(8)}`)?.scrollIntoView({ block: "center" });
+      return;
+    }
+    const target = wizard ? SETUP_STEPS.findIndex((s) => (s.sections as readonly SectionId[]).includes(b.section)) : step;
+    if (wizard && target >= 0 && target !== step) go(target);
+    setAttempted(true);
+    setTimeout(() => jumpTo(b.field, b.section), target !== step ? 120 : 0);
+  };
+
   // Saving with required items missing would only bounce back from the server one error at a time: show them all instead.
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     if (wizard && step < lastStep) {
@@ -443,9 +460,21 @@ export function ProfileEditor({
                   </div>
                 )}
                 {blocked ? (
-                  <p id="required-hint" className={cn("text-caption", !wizard && "text-center")}>
-                    Fill in the fields marked * to {wizard && step < lastStep ? "continue" : "save"}.
-                  </p>
+                  <div id="required-hint" className={cn("flex flex-col gap-1 text-caption", wizard ? "sm:items-end sm:text-right" : "items-center text-center")}>
+                    <p className="font-semibold">
+                      {blockers.length === 1 ? "One thing to fix" : `${blockers.length} things to fix`} to {wizard && step < lastStep ? "continue" : "save"}:
+                    </p>
+                    <ul className="flex flex-col gap-0.5">
+                      {blockers.slice(0, 5).map((b) => (
+                        <li key={b.field}>
+                          <button type="button" onClick={() => fixBlocker(b)} className="text-blue-700 underline">
+                            {b.label}: {b.message}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    {blockers.length > 5 && <p>…and {blockers.length - 5} more.</p>}
+                  </div>
                 ) : (
                   !wizard && !changed && <p className="text-caption text-center">Make a change to save.</p>
                 )}

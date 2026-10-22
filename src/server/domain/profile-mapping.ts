@@ -2,6 +2,7 @@ import type { z } from "zod/v4";
 import { normalizeUrl } from "@/lib/url";
 import { ANSWER_KEYS, compactAnswers } from "./application-answers";
 import { factsToInput } from "./fact-answers";
+import { cleanImported } from "./import-clean";
 import type { ProfileSnapshot, SkillCategory } from "./profile";
 import type { ProfileInput, ProfileInputSchema } from "./profile-schema";
 
@@ -10,9 +11,17 @@ import type { ProfileInput, ProfileInputSchema } from "./profile-schema";
 const SKILL_CATS: SkillCategory[] = ["PROFESSIONAL", "TECHNICAL", "TOOL", "DOMAIN", "SOFT"];
 const EXTRA_KINDS = ["LANGUAGE", "AWARD", "PUBLICATION", "VOLUNTEER"] as const;
 const n = (s?: string | null) => (s && s.trim() ? s.trim() : null);
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 16) || "x";
+const slug = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, 16) || "x";
 
-export function toProfileSnapshot(profileId: string, input: z.output<typeof ProfileInputSchema>, approvedFacts: ProfileSnapshot["approvedFacts"]): ProfileSnapshot {
+export function toProfileSnapshot(
+  profileId: string,
+  input: z.output<typeof ProfileInputSchema>,
+  approvedFacts: ProfileSnapshot["approvedFacts"],
+): ProfileSnapshot {
   const seen = new Set<string>();
   return {
     id: profileId,
@@ -27,14 +36,28 @@ export function toProfileSnapshot(profileId: string, input: z.output<typeof Prof
     summary: n(input.summary),
     links: Object.fromEntries(Object.entries(input.links).filter(([, v]) => v)) as ProfileSnapshot["links"],
     experiences: input.experiences.map((e) => ({ ...e, location: n(e.location), endDate: e.isCurrent ? null : n(e.endDate) })),
-    education: input.education.map((e) => ({ ...e, degree: n(e.degree), field: n(e.field), startDate: n(e.startDate), endDate: n(e.endDate), description: n(e.description) })),
+    education: input.education.map((e) => ({
+      ...e,
+      degree: n(e.degree),
+      field: n(e.field),
+      startDate: n(e.startDate),
+      endDate: n(e.endDate),
+      description: n(e.description),
+    })),
     // Skill ids are derived from the name, so the same skill keeps the same evidence id across saves.
     skills: SKILL_CATS.flatMap((category) =>
       input.skills[category]
         .filter((name) => !seen.has(name.toLowerCase()) && seen.add(name.toLowerCase()))
         .map((name) => ({ id: `sk_${slug(name)}${category.slice(0, 2).toLowerCase()}`, name, category })),
     ),
-    certifications: input.certifications.map((c) => ({ ...c, issuer: n(c.issuer), issueDate: n(c.issueDate), expiryDate: n(c.expiryDate), credentialId: n(c.credentialId), url: n(c.url) })),
+    certifications: input.certifications.map((c) => ({
+      ...c,
+      issuer: n(c.issuer),
+      issueDate: n(c.issueDate),
+      expiryDate: n(c.expiryDate),
+      credentialId: n(c.credentialId),
+      url: n(c.url),
+    })),
     projects: input.projects.map((p) => ({ ...p, description: n(p.description), role: n(p.role), results: n(p.results) })),
     extras: EXTRA_KINDS.flatMap((kind) => input.extras[kind].map((title, i) => ({ id: `x_${kind.slice(0, 3).toLowerCase()}${i}`, kind, title, detail: null }))),
     approvedFacts,
@@ -63,10 +86,33 @@ export function toProfileInput(p: ProfileSnapshot | null, fallbackEmail: string,
       website: p?.links.website ?? "",
     },
     experiences: (p?.experiences ?? []).map((e) => ({ ...e, location: e.location ?? "", endDate: e.endDate ?? "" })),
-    education: (p?.education ?? []).map((e) => ({ id: e.id, school: e.school, degree: e.degree ?? "", field: e.field ?? "", startDate: e.startDate ?? "", endDate: e.endDate ?? "", description: e.description ?? "" })),
+    education: (p?.education ?? []).map((e) => ({
+      id: e.id,
+      school: e.school,
+      degree: e.degree ?? "",
+      field: e.field ?? "",
+      startDate: e.startDate ?? "",
+      endDate: e.endDate ?? "",
+      description: e.description ?? "",
+    })),
     skills: Object.fromEntries(SKILL_CATS.map((c) => [c, (p?.skills ?? []).filter((s) => s.category === c).map((s) => s.name)])) as ProfileInput["skills"],
-    certifications: (p?.certifications ?? []).map((c) => ({ id: c.id, name: c.name, issuer: c.issuer ?? "", issueDate: c.issueDate ?? "", expiryDate: c.expiryDate ?? "", credentialId: c.credentialId ?? "", url: c.url ?? "" })),
-    projects: (p?.projects ?? []).map((x) => ({ id: x.id, name: x.name, description: x.description ?? "", role: x.role ?? "", tools: x.tools, results: x.results ?? "" })),
+    certifications: (p?.certifications ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      issuer: c.issuer ?? "",
+      issueDate: c.issueDate ?? "",
+      expiryDate: c.expiryDate ?? "",
+      credentialId: c.credentialId ?? "",
+      url: c.url ?? "",
+    })),
+    projects: (p?.projects ?? []).map((x) => ({
+      id: x.id,
+      name: x.name,
+      description: x.description ?? "",
+      role: x.role ?? "",
+      tools: x.tools,
+      results: x.results ?? "",
+    })),
     extras: Object.fromEntries(EXTRA_KINDS.map((k) => [k, (p?.extras ?? []).filter((x) => x.kind === k).map((x) => x.title)])) as ProfileInput["extras"],
     application: Object.fromEntries(ANSWER_KEYS.map((k) => [k, p?.application?.[k] ?? ""])),
     answers: factsToInput(p?.approvedFacts),
@@ -97,7 +143,18 @@ export interface ImportSummary {
 export function mergeDraftIntoInput(base: ProfileInput, d: Draft): { input: ProfileInput; added: ImportSummary } {
   const fill = (cur: string | undefined, v: string | null) => (cur && cur.trim() ? cur : (v ?? ""));
   const [city = "", state = "", country = ""] = (d.location ?? "").split(/\s*,\s*/);
-  const linkKey = (label: string, url: string) => (/linkedin/i.test(url) ? "linkedin" : /github/i.test(url) ? "github" : /behance/i.test(url) ? "behance" : /dribbble/i.test(url) ? "dribbble" : /portfolio/i.test(label) ? "portfolio" : "website");
+  const linkKey = (label: string, url: string) =>
+    /linkedin/i.test(url)
+      ? "linkedin"
+      : /github/i.test(url)
+        ? "github"
+        : /behance/i.test(url)
+          ? "behance"
+          : /dribbble/i.test(url)
+            ? "dribbble"
+            : /portfolio/i.test(label)
+              ? "portfolio"
+              : "website";
   const links = { ...base.links };
   for (const l of d.links) {
     const k = linkKey(l.label, l.url) as keyof typeof links;
@@ -128,8 +185,19 @@ export function mergeDraftIntoInput(base: ProfileInput, d: Draft): { input: Prof
     .filter((p) => !base.projects.some((x) => same(x.name, p.name)))
     .map((p) => ({ id: rid("proj"), name: p.name, description: p.description ?? "", role: "", tools: [], results: "" }));
 
-  const skills = { ...base.skills, PROFESSIONAL: [...base.skills.PROFESSIONAL], TECHNICAL: [...base.skills.TECHNICAL], TOOL: [...base.skills.TOOL], DOMAIN: [...base.skills.DOMAIN], SOFT: [...base.skills.SOFT] };
-  const have = new Set(Object.values(skills).flat().map((s) => s.toLowerCase()));
+  const skills = {
+    ...base.skills,
+    PROFESSIONAL: [...base.skills.PROFESSIONAL],
+    TECHNICAL: [...base.skills.TECHNICAL],
+    TOOL: [...base.skills.TOOL],
+    DOMAIN: [...base.skills.DOMAIN],
+    SOFT: [...base.skills.SOFT],
+  };
+  const have = new Set(
+    Object.values(skills)
+      .flat()
+      .map((s) => s.toLowerCase()),
+  );
   let skillsAdded = 0;
   for (const s of d.skills) {
     if (have.has(s.name.toLowerCase())) continue;
@@ -139,34 +207,39 @@ export function mergeDraftIntoInput(base: ProfileInput, d: Draft): { input: Prof
   }
   const languages = [...base.extras.LANGUAGE, ...d.languages.filter((l) => !base.extras.LANGUAGE.some((x) => same(x, l)))];
 
+  const merged: ProfileInput = {
+    ...base,
+    firstName: fill(base.firstName, d.firstName),
+    lastName: fill(base.lastName, d.lastName),
+    headline: fill(base.headline, d.headline),
+    email: fill(base.email, d.email),
+    phone: fill(base.phone, d.phone),
+    city: fill(base.city, city || null),
+    state: fill(base.state, state || null),
+    country: fill(base.country, country || null),
+    summary: fill(base.summary, d.summary),
+    links,
+    // a blank placeholder job from an empty form is replaced by the CV's jobs
+    experiences: [...base.experiences.filter((e) => e.company || e.title), ...newExp],
+    education: [...base.education, ...newEdu],
+    certifications: [...base.certifications, ...newCert],
+    projects: [...base.projects, ...newProj],
+    skills,
+    extras: { ...base.extras, LANGUAGE: languages },
+  };
+
+  // Whatever the CV reader found is made to fit the form's rules, so an imported CV can never leave a step stuck.
+  const input = cleanImported(merged);
+  const newIds = new Set(newExp.map((e) => e.id));
   return {
-    input: {
-      ...base,
-      firstName: fill(base.firstName, d.firstName),
-      lastName: fill(base.lastName, d.lastName),
-      headline: fill(base.headline, d.headline),
-      email: fill(base.email, d.email),
-      phone: fill(base.phone, d.phone),
-      city: fill(base.city, city || null),
-      state: fill(base.state, state || null),
-      country: fill(base.country, country || null),
-      summary: fill(base.summary, d.summary),
-      links,
-      // a blank placeholder job from an empty form is replaced by the CV's jobs
-      experiences: [...base.experiences.filter((e) => e.company || e.title), ...newExp],
-      education: [...base.education, ...newEdu],
-      certifications: [...base.certifications, ...newCert],
-      projects: [...base.projects, ...newProj],
-      skills,
-      extras: { ...base.extras, LANGUAGE: languages },
-    },
+    input,
     added: {
       experiences: newExp.length,
       education: newEdu.length,
       skills: skillsAdded,
       certifications: newCert.length,
       projects: newProj.length,
-      missingStart: newExp.filter((e) => !e.startDate).map((e) => [e.title, e.company].filter(Boolean).join(" at ")),
+      missingStart: input.experiences.filter((e) => newIds.has(e.id) && !e.startDate).map((e) => [e.title, e.company].filter(Boolean).join(" at ")),
     },
   };
 }

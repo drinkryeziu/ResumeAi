@@ -96,6 +96,22 @@ const WHAT: Record<string, string> = {
   company: "company",
   title: "job title",
   startDate: "start month",
+  responsibilities: "responsibilities",
+  achievements: "achievements",
+  tools: "tools",
+  summary: "summary",
+  degree: "degree",
+  field: "field of study",
+  issuer: "issuer",
+  issueDate: "issue month",
+  expiryDate: "expiry month",
+  credentialId: "credential ID",
+  role: "role",
+  results: "results",
+  location: "location",
+  city: "city",
+  state: "state or region",
+  country: "country",
   endDate: "end month (or tick “I currently work here”)",
   school: "school",
   name: "name",
@@ -103,6 +119,17 @@ const WHAT: Record<string, string> = {
 };
 const LINK_NAMES: Record<string, string> = { linkedin: "LinkedIn", portfolio: "Portfolio", github: "GitHub", behance: "Behance", dribbble: "Dribbble", website: "Website" };
 const ENTRY: Record<string, string> = { experiences: "Job", education: "Education", certifications: "Certification", projects: "Project" };
+
+/** The form rules' own wording ("Invalid string: must match pattern…", "Too big: expected string to have <=400 characters") said so a person can act on it. */
+export function friendlyMessage(message: string): string {
+  const long = message.match(/expected string to have <=(\d+) characters/i);
+  if (long) return `Too long: keep this to ${long[1]} characters or fewer.`;
+  const many = message.match(/expected array to have <=(\d+) items/i);
+  if (many) return `Too many entries: keep it to ${many[1]} or fewer.`;
+  if (/must match pattern/i.test(message)) return "Use a month and year, like Mar 2021.";
+  if (/Invalid (input|option|string)/i.test(message)) return "This doesn't look right. Check it and try again.";
+  return message;
+}
 
 /** A person-friendly name for the item a field belongs to: "Project Coordinator — end month", "Education 2 — school", "Email address". */
 export function describeField(p: ProfileInput, field: string): string {
@@ -146,7 +173,7 @@ export function profileProgress(p: ProfileInput): ProfileProgress {
       if (path[0] === "answers") continue;
       // The "current job or end month" rule is attached to the whole job; show it on the end-month field.
       const field = path.length === 2 && path[0] === "experiences" ? `${path.join(".")}.endDate` : path.join(".");
-      const message = path[0] === "links" ? "Enter a full web address, like https://example.com." : i.message;
+      const message = path[0] === "links" ? "Enter a full web address, like https://example.com." : friendlyMessage(i.message);
       issues.push({ section: sectionOf(path[0] ?? ""), field, message, label: describeField(p, field) });
     }
   }

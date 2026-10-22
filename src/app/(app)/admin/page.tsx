@@ -6,8 +6,9 @@ import { Card, CardHeader, SoftPanel } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { formatDate, formatNumber } from "@/lib/format";
-import { ACTIVE_DAYS, aiHealth, buildUserRows, RULE_LABELS, threatLevel, totalsOf, type Level, type UserRow } from "@/server/admin/overview";
-import { RemoveUserDialog } from "@/components/features/admin/RemoveUserDialog";
+import { ACTIVE_DAYS, aiHealth, buildUserRows, RULE_LABELS, threatLevel, totalsOf, type Level } from "@/server/admin/overview";
+import type { PersonRow } from "@/server/admin/people-table";
+import { PeopleTable } from "@/components/features/admin/PeopleTable";
 import { ownerEmail } from "@/server/admin/access";
 import { requireAdmin } from "@/server/auth/admin";
 import { setupStatus } from "@/server/store/setup-check";
@@ -39,6 +40,8 @@ export default async function AdminPage() {
   const checkedMs = Date.now() - started;
   const rows = buildUserRows(snapshot, now);
   const totals = totalsOf(rows);
+  // Dates travel to the browser as text.
+  const people: PersonRow[] = rows.map((r) => ({ id: r.id, name: r.name, email: r.email, hasProfile: r.hasProfile, applications: r.applications, applied: r.applied, averageScore: r.averageScore, lastActiveAt: r.lastActiveAt.toISOString(), active: r.active }));
   const level = threatLevel(security.counts);
   const ai = aiHealth(aiStats);
   const siteOk = setup.ready;
@@ -135,9 +138,13 @@ export default async function AdminPage() {
         <Card aria-labelledby="people-h">
           <CardHeader
             title={<span id="people-h">People using ResumeAi</span>}
-            subtitle={`Most recently active first. Active means any activity in the last ${ACTIVE_DAYS} days. Application counts only include jobs with a tailored resume or cover letter.`}
+            subtitle={`Most recently active first; press a column heading to sort. Active means any activity in the last ${ACTIVE_DAYS} days. Application counts only include jobs with a tailored resume or cover letter.`}
           />
-          {rows.length === 0 ? <p className="text-body-sm">Nobody has signed up yet.</p> : <UsersTable rows={rows} canRemove={role === "owner"} ownerEmail={ownerEmail()} />}
+          {rows.length === 0 ? (
+            <p className="text-body-sm">Nobody has signed up yet.</p>
+          ) : (
+            <PeopleTable rows={people} canRemove={role === "owner"} ownerEmail={ownerEmail()} />
+          )}
         </Card>
 
         {role === "owner" && (
@@ -173,99 +180,6 @@ export default async function AdminPage() {
             </div>
           </Card>
         )}
-      </div>
-    </>
-  );
-}
-
-function UsersTable({ rows, canRemove, ownerEmail: owner }: { rows: UserRow[]; canRemove: boolean; ownerEmail: string }) {
-  // The owner can delete anyone but themselves.
-  const remove = (r: UserRow) => (canRemove && r.email !== owner ? <RemoveUserDialog userId={r.id} name={r.name} email={r.email} /> : null);
-  const status = (r: UserRow) => (
-    <Badge tone={r.active ? "success" : "neutral"}>{r.active ? "Active" : "Inactive"}</Badge>
-  );
-  return (
-    <>
-      {/* Phones: one card per person. */}
-      <ul className="flex flex-col gap-ds-2 md:hidden">
-        {rows.map((r) => (
-          <li key={r.id} className="flex flex-col gap-ds-2 rounded-md bg-gray-100 p-ds-3">
-            <div className="flex items-start justify-between gap-ds-3">
-              <span className="min-w-0">
-                <span className="text-label-bold">{r.name}</span>
-                <span className="text-caption block truncate">{r.email}</span>
-              </span>
-              {status(r)}
-            </div>
-            <dl className="grid grid-cols-3 gap-ds-2 text-body-sm">
-              <div>
-                <dt className="text-caption">Created</dt>
-                <dd className="text-label-bold">{formatNumber(r.applications)}</dd>
-              </div>
-              <div>
-                <dt className="text-caption">Applied</dt>
-                <dd className="text-label-bold">{formatNumber(r.applied)}</dd>
-              </div>
-              <div>
-                <dt className="text-caption">Avg score</dt>
-                <dd className="text-label-bold">{score(r.averageScore)}</dd>
-              </div>
-            </dl>
-            <div className="flex items-center justify-between gap-ds-3">
-              <p className="text-caption">Last active {formatDate(r.lastActiveAt)}</p>
-              {remove(r)}
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      <div className="hidden md:block">
-        <table className="w-full text-left text-body-sm">
-          <caption className="sr-only">People using ResumeAi</caption>
-          <thead>
-            <tr className="text-caption">
-              <th scope="col" className="py-ds-2 pr-ds-3 font-semibold">
-                Name
-              </th>
-              <th scope="col" className="px-ds-3 py-ds-2 text-right font-semibold">
-                Applications created
-              </th>
-              <th scope="col" className="px-ds-3 py-ds-2 text-right font-semibold">
-                Applied
-              </th>
-              <th scope="col" className="px-ds-3 py-ds-2 text-right font-semibold">
-                Average score
-              </th>
-              <th scope="col" className="px-ds-3 py-ds-2 font-semibold">
-                Last active
-              </th>
-              <th scope="col" className="py-ds-2 pl-ds-3 font-semibold">
-                Status
-              </th>
-              {canRemove && (
-                <th scope="col" className="py-ds-2 pl-ds-3 text-right font-semibold">
-                  <span className="sr-only">Actions</span>
-                </th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-t border-gray-100">
-                <th scope="row" className="py-ds-3 pr-ds-3 font-normal">
-                  <span className="text-label-bold">{r.name}</span>
-                  <span className="text-caption block">{r.email}</span>
-                </th>
-                <td className="px-ds-3 py-ds-3 text-right tabular-nums">{formatNumber(r.applications)}</td>
-                <td className="px-ds-3 py-ds-3 text-right tabular-nums">{formatNumber(r.applied)}</td>
-                <td className="px-ds-3 py-ds-3 text-right tabular-nums">{score(r.averageScore)}</td>
-                <td className="px-ds-3 py-ds-3">{formatDate(r.lastActiveAt)}</td>
-                <td className="py-ds-3 pl-ds-3">{status(r)}</td>
-                {canRemove && <td className="py-ds-3 pl-ds-3 text-right">{remove(r)}</td>}
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </>
   );

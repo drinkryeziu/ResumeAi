@@ -11,7 +11,7 @@ import { requireProfile } from "@/server/auth/session";
 import { locationOf } from "@/server/documents/model";
 import { givenAnswers } from "@/server/domain/application-answers";
 
-export const metadata = { title: "Profile" };
+export const metadata = { title: "Professional profile" };
 
 const SKILL_GROUPS = [
   ["PROFESSIONAL", "Professional skills"],

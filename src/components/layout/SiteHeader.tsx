@@ -12,7 +12,7 @@ import { formatNumber } from "@/lib/format";
 export const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", match: ["/dashboard", "/jobs", "/master"] },
   { href: "/documents", label: "Documents", match: ["/documents"] },
-  { href: "/profile", label: "Profile", match: ["/profile", "/onboarding"] },
+  { href: "/profile", label: "Professional profile", match: ["/profile", "/onboarding"] },
 ] as const;
 
 const isActive = (pathname: string, match: readonly string[], fromDocuments = false, href = "") => {

@@ -50,3 +50,21 @@ describe("Your answers in the profile editor", () => {
     expect(ProfileInputSchema.safeParse(row("x".repeat(601))).success).toBe(false);
   });
 });
+
+describe("Your answers never hold up saving the rest of the profile", () => {
+  const withAnswers = (answers: NonNullable<ReturnType<typeof toProfileInput>["answers"]>) => ({ ...toProfileInput(TEST_PROFILE, "a@example.com", ""), answers });
+
+  it("accepts answers whose topic and question are long, and ids of any shape", async () => {
+    const long = "Experience with a very long requirement copied from a job posting. ".repeat(20);
+    const input = withAnswers([{ id: "fact_9f8e7d6c5b4a", status: "APPROVED", answer: "Did it", topic: long, question: long }]);
+    expect(ProfileInputSchema.safeParse(input).success).toBe(true);
+    const { profileProgress } = await import("@/components/features/profile/profile-progress");
+    expect(profileProgress(input).issues).toEqual([]);
+  });
+
+  it("reports no profile issue for an answer row, even a bad one (the editor checks the Yes sentence itself)", async () => {
+    const { profileProgress } = await import("@/components/features/profile/profile-progress");
+    const input = withAnswers([{ id: "", status: "APPROVED", answer: "x".repeat(700) }]);
+    expect(profileProgress(input).issues).toEqual([]);
+  });
+});

@@ -141,6 +141,9 @@ export function profileProgress(p: ProfileInput): ProfileProgress {
   if (!result.success) {
     for (const i of result.error.issues) {
       const path = i.path.map(String);
+      // "Your answers" is not a profile section: its one rule (a Yes needs a sentence) is checked by the editor itself, and nothing
+      // in it may hold up Save for the rest of the profile.
+      if (path[0] === "answers") continue;
       // The "current job or end month" rule is attached to the whole job; show it on the end-month field.
       const field = path.length === 2 && path[0] === "experiences" ? `${path.join(".")}.endDate` : path.join(".");
       const message = path[0] === "links" ? "Enter a full web address, like https://example.com." : i.message;

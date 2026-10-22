@@ -54,8 +54,9 @@ export const ProfileInputSchema = z.object({
   projects: z.array(z.object({ id, name: text(160).min(1, "Each project needs a name."), description: text(1500).optional(), role: text(120).optional(), tools: lines, results: text(1000).optional() })).max(15),
   extras: z.object({ LANGUAGE: lines, AWARD: lines, PUBLICATION: lines, VOLUNTEER: lines }),
   application: ApplicationSchema.optional(),
-  // Corrections to the "Your answers" rows (topic and question are only there so the editor can label them).
-  answers: z.array(z.object({ id, status: z.enum(["APPROVED", "DECLINED"]), answer: text(FACT_ANSWER_MAX).optional(), topic: text(300).optional(), question: text(600).optional() })).max(300).optional(),
+  // Corrections to the "Your answers" rows. Topic and question are only there so the editor can label them and are never saved,
+  // so they take any length (the job-match questions that created them have no limit): a long one must never block saving.
+  answers: z.array(z.object({ id: z.string().min(1).max(200), status: z.enum(["APPROVED", "DECLINED"]), answer: text(FACT_ANSWER_MAX).optional(), topic: z.string().optional(), question: z.string().optional() })).max(1000).optional(),
 });
 
 export type ProfileInput = z.input<typeof ProfileInputSchema>;

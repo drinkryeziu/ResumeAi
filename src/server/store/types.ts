@@ -24,6 +24,8 @@ export interface UserRecord {
 export interface JobRecord extends JobInput {
   userId: string;
   status: JobStatus;
+  /** When the person said they applied for this job (they tick "Applied" on the Documents page). Only they set it; null or missing = not yet. */
+  appliedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -143,6 +145,8 @@ export interface AppStore {
   getJob(userId: string, jobId: string): Promise<JobRecord | null>;
   listJobs(userId: string): Promise<JobRecord[]>;
   setJobStatus(userId: string, jobId: string, status: JobStatus): Promise<void>;
+  /** Marks the application as applied-for (now) or not. Does not touch `updatedAt`, so the list order stays. False when the job is not theirs or is gone. */
+  setJobApplied(userId: string, jobId: string, applied: boolean, now?: Date): Promise<boolean>;
   /**
    * Deletes one application: the job, its analysis, match and ATS reports, and its tailored resume and cover letter
    * (every version). Never touches the profile, the Master documents, the credit ledger or the AI run log.

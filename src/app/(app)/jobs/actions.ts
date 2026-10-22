@@ -289,6 +289,16 @@ export async function deleteApplication(fd: FormData) {
   redirect(`/dashboard?notice=${notice("application-deleted")}`);
 }
 
+/** The "Applied" tick on the Documents page: remembers that the person applied for this job (or takes it back). Theirs only. */
+export async function setApplied(jobId: string, applied: boolean): Promise<boolean> {
+  const { id } = await requireUser();
+  const parsed = z.object({ jobId: z.string().min(1).max(80), applied: z.boolean() }).safeParse({ jobId, applied });
+  if (!parsed.success) return false;
+  const found = await (await getStore()).setJobApplied(id, parsed.data.jobId, parsed.data.applied);
+  if (found) revalidatePath("/documents");
+  return found;
+}
+
 export async function regenerateMasterDocuments(_: ActionState, fd: FormData): Promise<ActionState> {
   const { id } = await requireUser();
   if (await tooFast(id)) return TOO_FAST;

@@ -85,6 +85,27 @@ export function storeContract(label: string, open: () => Promise<{ store: AppSto
       await expect(store.updateApprovedFacts("nobody", [])).rejects.toThrow(/not found/i);
     });
 
+    it("remembers that the person applied for a job, lets them take it back, and only for their own jobs", async () => {
+      const a = await user("applied-a@example.com");
+      const b = await user("applied-b@example.com");
+      const job = await store.createJob(a.id, { title: "Designer", company: "Northwind", description: "d" });
+      const before = (await store.getJob(a.id, job.id))!;
+      expect(before.appliedAt ?? null).toBeNull();
+
+      const when = new Date("2026-10-22T10:00:00Z");
+      expect(await store.setJobApplied(b.id, job.id, true, when)).toBe(false); // not theirs
+      expect((await store.getJob(a.id, job.id))!.appliedAt ?? null).toBeNull();
+
+      expect(await store.setJobApplied(a.id, job.id, true, when)).toBe(true);
+      const applied = (await store.getJob(a.id, job.id))!;
+      expect(new Date(applied.appliedAt!).toISOString()).toBe(when.toISOString());
+      expect(+applied.updatedAt).toBe(+before.updatedAt); // ticking the box does not reorder the list
+
+      expect(await store.setJobApplied(a.id, job.id, false)).toBe(true);
+      expect((await store.getJob(a.id, job.id))!.appliedAt ?? null).toBeNull();
+      expect(await store.setJobApplied(a.id, "job_missing", true)).toBe(false);
+    });
+
     it("keeps one answer per topic: a later answer replaces the earlier one", async () => {
       const u = await user("facts@example.com");
       await store.addApprovedFact(u.id, { topic: "WCAG", question: "q", answer: "first", status: "APPROVED", jobId: "j1" });

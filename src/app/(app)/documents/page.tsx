@@ -1,6 +1,7 @@
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { AppliedCheckbox } from "@/components/features/documents/AppliedCheckbox";
 import { DeleteDocumentButton } from "@/components/features/documents/DeleteDocumentButton";
 import { DocumentRow } from "@/components/features/documents/DocumentRow";
 import { requireProfile } from "@/server/auth/session";
@@ -128,11 +129,14 @@ export default async function DocumentsPage() {
           ) : (
             groups.map(({ job, resume, letter }) => (
               <Card key={job.id} role="group" aria-labelledby={`co-${job.id}`} className="flex flex-col gap-ds-3">
-                <div>
-                  <h3 id={`co-${job.id}`} className="text-card-title">
-                    {job.company}
-                  </h3>
-                  <p className="text-body-sm">{job.title}</p>
+                <div className="flex items-start justify-between gap-ds-4">
+                  <div className="min-w-0">
+                    <h3 id={`co-${job.id}`} className="text-card-title">
+                      {job.company}
+                    </h3>
+                    <p className="text-body-sm">{job.title}</p>
+                  </div>
+                  <AppliedCheckbox jobId={job.id} company={job.company} appliedAt={job.appliedAt ? new Date(job.appliedAt).toISOString() : null} />
                 </div>
                 <ul className="flex flex-col gap-ds-2">
                   {resume && (

@@ -235,6 +235,10 @@ export class MongoAppStore implements AppStore {
   async setJobStatus(userId: string, jobId: string, status: JobRecord["status"]) {
     await this.jobs.updateOne({ _id: jobId as never, userId }, { $set: { status, updatedAt: new Date() } });
   }
+  async setJobApplied(userId: string, jobId: string, applied: boolean, now = new Date()) {
+    const res = await this.jobs.updateOne({ _id: jobId as never, userId }, { $set: { appliedAt: applied ? now : null } });
+    return res.matchedCount > 0;
+  }
   async deleteJob(userId: string, jobId: string) {
     const res = await this.jobs.deleteOne({ _id: jobId as never, userId });
     if (!res.deletedCount) return false;

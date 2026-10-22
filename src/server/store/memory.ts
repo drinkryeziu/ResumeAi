@@ -189,6 +189,13 @@ export class MemoryAppStore implements AppStore {
     if (j) Object.assign(j, { status, updatedAt: new Date() });
   }
 
+  async setJobApplied(userId: string, jobId: string, applied: boolean, now = new Date()) {
+    const j = await this.getJob(userId, jobId);
+    if (!j) return false;
+    j.appliedAt = applied ? now : null;
+    return true;
+  }
+
   async saveAnalysis(userId: string, a: Omit<AnalysisRecord, "id" | "createdAt">) {
     if (!this.ownedJobIds(userId).has(a.jobId)) throw new Error("Job not found");
     const rec = { ...a, id: id("ana"), createdAt: new Date() };

@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
-import { Download, FileCheck2, MessageCircleQuestion, ShieldCheck } from "lucide-react";
+import { Download, FileCheck2, MessageCircleQuestion, PlayCircle, ShieldCheck } from "lucide-react";
 import { LegalLinks } from "@/components/features/legal/LegalLinks";
 import { PublicHeader } from "@/components/layout/PublicHeader";
 import { ResumeShowcase } from "@/components/features/marketing/ResumeShowcase";
+import { TourVideo } from "@/components/features/marketing/TourVideo";
 import { ButtonLink } from "@/components/ui/Button";
 import { FeatureItem } from "@/components/ui/FeatureItem";
 import { signedInUserId } from "@/server/auth/session";
@@ -47,12 +48,20 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
                 <a href="/sign-in" className="text-body-sm text-white underline">
                   I already have an account
                 </a>
+                <a href="#tour" className="inline-flex items-center gap-1.5 text-body-sm text-white underline">
+                  <PlayCircle size={18} aria-hidden="true" /> Watch how it works
+                </a>
               </div>
               <p className="text-caption text-white/70">{DEFAULT_PLANS[0].signupCredits} free credits — enough for your first tailored application.</p>
             </div>
             <ResumeShowcase />
           </div>
         </section>
+
+        {/* The tour sits across the bottom edge of the hero, right under the headline and the buttons. */}
+        <div id="tour" className="relative z-10 mx-auto -mt-[40px] max-w-[1120px] scroll-mt-[60px] px-ds-4 md:px-ds-5">
+          <TourVideo />
+        </div>
 
         <section id="how-it-works" className="mx-auto max-w-[1120px] scroll-mt-[60px] px-ds-4 py-ds-6 md:px-ds-5">
           <h2 className="text-heading-section mb-ds-5">How it works</h2>

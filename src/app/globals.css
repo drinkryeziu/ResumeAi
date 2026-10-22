@@ -92,3 +92,42 @@
     opacity: 0;
   }
 }
+
+/* The first-page tour: shapes pop in one after another and bars fill. Nothing moves for people who prefer reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .wt-in {
+    animation: wt-in 320ms ease-out both;
+  }
+  .wt-pop {
+    animation: wt-pop 420ms ease-out both;
+  }
+  .wt-fill {
+    transform-origin: left;
+    animation: wt-fill 700ms ease-out both;
+  }
+  .wt-pulse {
+    animation: wt-pulse 1.4s ease-in-out 1.2s 2;
+  }
+  @keyframes wt-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  @keyframes wt-pop {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.97);
+    }
+  }
+  @keyframes wt-fill {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  @keyframes wt-pulse {
+    50% {
+      transform: scale(1.04);
+    }
+  }
+}

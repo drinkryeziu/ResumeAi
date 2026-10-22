@@ -138,14 +138,6 @@ export default async function AdminPage() {
           )}
         </Card>
 
-        <ErrorLogs
-          total={errorLog.total}
-          entries={errorLog.entries}
-          who={new Map(snapshot.users.map((u) => [u.id, { name: u.name, email: u.email }]))}
-          canClear={role === "owner"}
-          days={ERROR_DAYS}
-        />
-
         <Card aria-labelledby="people-h">
           <CardHeader
             title={<span id="people-h">People using ResumeAi</span>}
@@ -191,6 +183,14 @@ export default async function AdminPage() {
             </div>
           </Card>
         )}
+
+        <ErrorLogs
+          total={errorLog.total}
+          entries={errorLog.entries}
+          who={new Map(snapshot.users.map((u) => [u.id, { name: u.name, email: u.email }]))}
+          canClear={role === "owner"}
+          days={ERROR_DAYS}
+        />
       </div>
     </>
   );

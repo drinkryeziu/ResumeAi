@@ -196,6 +196,46 @@ export function storeContract(label: string, open: () => Promise<{ store: AppSto
       expect((await store.errorSummary(new Date(+now - 86_400_000), 100)).entries.some((x) => x.userId === b.id)).toBe(false);
     });
 
+    it("keeps the numbers for the owner's money report: purchases, running costs, AI cost and credits used", async () => {
+      const u = await user("money@example.com");
+      const now = new Date();
+      const old = new Date(+now - 45 * 86_400_000);
+      const since = new Date(+now - 30 * 86_400_000);
+
+      const p0 = await store.listPurchases(since);
+      await store.recordPurchase({ at: old, kind: "PLAN", name: "Pro", cents: 1999, credits: 800 });
+      await store.recordPurchase({ at: new Date(+now - 1000), kind: "PACK", name: "100 credits", cents: 499, credits: 100 });
+      await store.recordPurchase({ at: now, kind: "PLAN", name: "Starter", cents: 999, credits: 300 });
+      const buys = await store.listPurchases(since);
+      expect(buys.length - p0.length).toBe(2); // the 45-day-old one is outside the window
+      expect(buys.slice(0, 2).map((b) => b.name)).toEqual(["Starter", "100 credits"]); // newest first
+      expect(JSON.stringify(buys)).not.toMatch(/userId|@/); // nothing about who bought
+
+      const costs0 = await store.listRunningCosts();
+      const host = await store.addRunningCost("Hosting", 2000);
+      await store.addRunningCost("Database", 900);
+      expect((await store.listRunningCosts()).map((c) => [c.label, c.cents]).slice(costs0.length)).toEqual([["Hosting", 2000], ["Database", 900]]);
+      expect(await store.removeRunningCost(host.id)).toBe(true);
+      expect(await store.removeRunningCost(host.id)).toBe(false);
+
+      const ai0 = await store.aiCostSince(since);
+      const run = { userId: u.id, workflow: "w", provider: "mock", model: "m", promptVersion: "p", inputTokens: 1, outputTokens: 1, latencyMs: 1, error: null };
+      await store.aiRuns.record({ ...run, costUsd: 0.25, status: "SUCCEEDED" });
+      await store.aiRuns.record({ ...run, costUsd: 0.5, status: "FAILED" });
+      const ai1 = await store.aiCostSince(since);
+      expect(ai1.runs - ai0.runs).toBe(2);
+      expect(ai1.costUsd - ai0.costUsd).toBeCloseTo(0.75);
+
+      const c0 = await store.creditTotalsSince(since);
+      await store.credits.grant(u.id, 100, "GRANT", "money-grant");
+      const r1 = await store.credits.reserve(u.id, "OPTIMIZE_RESUME", { idempotencyKey: "money-1" });
+      await store.credits.reserve(u.id, "JOB_MATCH", { idempotencyKey: "money-2" });
+      await store.credits.refund(r1, "failed");
+      const c1 = await store.creditTotalsSince(since);
+      expect(c1.consumed - c0.consumed).toBe(20); // 15 + 5
+      expect(c1.refunded - c0.refunded).toBe(15);
+    });
+
     it("keeps one answer per topic: a later answer replaces the earlier one", async () => {
       const u = await user("facts@example.com");
       await store.addApprovedFact(u.id, { topic: "WCAG", question: "q", answer: "first", status: "APPROVED", jobId: "j1" });

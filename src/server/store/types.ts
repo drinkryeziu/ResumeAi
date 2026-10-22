@@ -3,6 +3,7 @@ import type { AIRunStore } from "@/server/ai/runner";
 import type { CreditService } from "@/server/credits/service";
 import type { CoverLetterDocument, ResumeDocument } from "@/server/documents/model";
 import type { ErrorEntry, ErrorInput, ErrorSummary } from "@/server/admin/errors";
+import type { Purchase, PurchaseInput, RunningCost } from "@/server/admin/money";
 import type { AdminSnapshot, SecurityEvent, SecuritySummary } from "@/server/admin/overview";
 import type { ApprovedFactItem, JobInput, ProfileSnapshot } from "@/server/domain/profile";
 
@@ -118,6 +119,17 @@ export interface AppStore {
   /** Notes one security event (a wrong password, a request turned away). Holds no personal data; old ones expire after 30 days. */
   recordSecurityEvent(event: SecurityEvent): Promise<void>;
   securitySummary(since: Date, recentLimit?: number): Promise<SecuritySummary>;
+  /** The owner's money report. Purchases hold no personal data: what was bought, for how much, and when (checkout calls recordPurchase). */
+  recordPurchase(purchase: PurchaseInput): Promise<void>;
+  listPurchases(since: Date): Promise<Purchase[]>;
+  /** What every AI run since `since` cost, in dollars (failed runs included: they were paid for). */
+  aiCostSince(since: Date): Promise<{ costUsd: number; runs: number }>;
+  /** Credits used and refunded since `since`, over everyone. */
+  creditTotalsSince(since: Date): Promise<{ consumed: number; refunded: number }>;
+  /** Fixed monthly costs the owner entered (hosting, database, email…). */
+  listRunningCosts(): Promise<RunningCost[]>;
+  addRunningCost(label: string, cents: number): Promise<RunningCost>;
+  removeRunningCost(id: string): Promise<boolean>;
   /** Notes an error a person ran into (cleaned message, no document content). Entries expire after 30 days. */
   recordError(entry: ErrorInput): Promise<void>;
   /** The error log since `since`: how many, and the newest `limit`. */

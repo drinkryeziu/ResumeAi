@@ -4,6 +4,7 @@ import { MemoryCreditStore } from "@/server/credits/memory-store";
 import { CreditService } from "@/server/credits/service";
 import type { ProfileSnapshot } from "@/server/domain/profile";
 import type { ErrorEntry, ErrorInput, ErrorSummary } from "@/server/admin/errors";
+import type { Purchase, PurchaseInput, RunningCost } from "@/server/admin/money";
 import type { AdminSnapshot, SecurityEvent, SecuritySummary } from "@/server/admin/overview";
 import type { AdminRecord, AnalysisRecord, AppStore, AtsRecord, CoverLetterRecord, CvImport, JobRecord, MatchRecord, ResumeRecord, UserRecord } from "./types";
 
@@ -30,6 +31,8 @@ export class MemoryAppStore implements AppStore {
   private admins: Array<{ userId: string; addedBy: string; addedAt: Date }> = [];
   private events: SecurityEvent[] = [];
   private errors: ErrorEntry[] = [];
+  private purchases: Purchase[] = [];
+  private runningCosts: RunningCost[] = [];
 
   aiRuns = {
     record: async (run: Omit<AIRunRecord, "id" | "createdAt">) => {
@@ -68,6 +71,32 @@ export class MemoryAppStore implements AppStore {
       },
       recent: rows.slice(0, recentLimit).map((e) => ({ ...e })),
     };
+  }
+  async recordPurchase(p: PurchaseInput) {
+    this.purchases.push({ ...p, id: id("buy") });
+  }
+  async listPurchases(since: Date) {
+    return this.purchases.filter((p) => +p.at >= +since).sort((a, b) => +b.at - +a.at).map((p) => ({ ...p }));
+  }
+  async aiCostSince(since: Date) {
+    const runs = this.runs.filter((r) => +r.createdAt >= +since);
+    return { costUsd: runs.reduce((a, r) => a + r.costUsd, 0), runs: runs.length };
+  }
+  async creditTotalsSince(since: Date) {
+    return this.creditStore.totalsSince(since);
+  }
+  async listRunningCosts() {
+    return this.runningCosts.map((c) => ({ ...c }));
+  }
+  async addRunningCost(label: string, cents: number) {
+    const rec = { id: id("cost"), label, cents };
+    this.runningCosts.push(rec);
+    return { ...rec };
+  }
+  async removeRunningCost(costId: string) {
+    const before = this.runningCosts.length;
+    this.runningCosts = this.runningCosts.filter((c) => c.id !== costId);
+    return this.runningCosts.length < before;
   }
   async recordError(entry: ErrorInput) {
     this.errors.push({ ...entry, id: id("err") });

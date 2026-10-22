@@ -67,6 +67,15 @@ export class MemoryCreditStore implements CreditStore {
     this.balances.delete(userId);
   }
 
+  /** Credits used and credits refunded since `since`, over everyone (for the owner's money report). */
+  async totalsSince(since: Date) {
+    const rows = this.entries.filter((e) => +e.createdAt >= +since);
+    return {
+      consumed: rows.filter((e) => e.reason === "CONSUME").reduce((a, e) => a - e.delta, 0),
+      refunded: rows.filter((e) => e.reason === "REFUND").reduce((a, e) => a + e.delta, 0),
+    };
+  }
+
   async history(userId: string, limit: number) {
     return this.entries.filter((e) => e.userId === userId).slice(-limit).reverse();
   }

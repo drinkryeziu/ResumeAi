@@ -4,6 +4,7 @@ import { MongoCreditStore } from "@/server/credits/mongo-store";
 import { CreditService } from "@/server/credits/service";
 import type { ProfileSnapshot } from "@/server/domain/profile";
 import type { ErrorEntry, ErrorInput, ErrorSummary } from "@/server/admin/errors";
+import type { Purchase, PurchaseInput, RunningCost } from "@/server/admin/money";
 import type { AdminSnapshot, SecurityEvent, SecuritySummary } from "@/server/admin/overview";
 import type { AdminRecord, AnalysisRecord, AppStore, AtsRecord, CoverLetterRecord, CvImport, JobRecord, MatchRecord, ResumeRecord, UserRecord } from "./types";
 
@@ -48,6 +49,8 @@ export class MongoAppStore implements AppStore {
   private admins: Collection<Doc>;
   private events: Collection<Doc>;
   private errorLog: Collection<Doc>;
+  private purchases: Collection<Doc>;
+  private runningCosts: Collection<Doc>;
 
   constructor(
     client: MongoClient,
@@ -70,6 +73,8 @@ export class MongoAppStore implements AppStore {
     this.admins = db.collection("admins");
     this.events = db.collection("security_events");
     this.errorLog = db.collection("error_logs");
+    this.purchases = db.collection("purchases");
+    this.runningCosts = db.collection("running_costs");
   }
 
   /** Idempotent: safe to run on every cold start. */
@@ -93,6 +98,7 @@ export class MongoAppStore implements AppStore {
       this.events.createIndex({ at: 1 }, { expireAfterSeconds: 30 * 86_400 }), // security events are kept for 30 days
       this.errorLog.createIndex({ at: 1 }, { expireAfterSeconds: 30 * 86_400 }), // so is the error log
       this.errorLog.createIndex({ userId: 1 }),
+      this.purchases.createIndex({ at: -1 }),
       this.errorLog.createIndex({ source: 1, code: 1 }),
       this.creditStore.ensureIndexes(),
     ]);
@@ -165,6 +171,30 @@ export class MongoAppStore implements AppStore {
       this.events.find({ at: { $gte: since } }).sort({ at: -1 }).limit(recentLimit).toArray(),
     ]);
     return { counts: { sign_in_failed: failed, rate_limited: limited, account_removed: removed }, recent: recent.map((e) => ({ type: e.type, ...(e.rule ? { rule: e.rule } : {}), at: e.at })) };
+  }
+  async recordPurchase(p: PurchaseInput) {
+    await this.purchases.insertOne({ _id: newId("buy") as never, at: p.at, kind: p.kind, name: p.name, cents: p.cents, credits: p.credits });
+  }
+  async listPurchases(since: Date) {
+    return (await this.purchases.find({ at: { $gte: since } }).sort({ at: -1 }).toArray()).map((r) => row<Purchase>(r)!);
+  }
+  async aiCostSince(since: Date) {
+    const [r] = await this.runs.aggregate<{ costUsd: number; runs: number }>([{ $match: { createdAt: { $gte: since } } }, { $group: { _id: null, costUsd: { $sum: "$costUsd" }, runs: { $sum: 1 } } }]).toArray();
+    return { costUsd: r?.costUsd ?? 0, runs: r?.runs ?? 0 };
+  }
+  async creditTotalsSince(since: Date) {
+    return this.creditStore.totalsSince(since);
+  }
+  async listRunningCosts() {
+    return (await this.runningCosts.find({}).sort({ _id: 1 }).toArray()).map((r) => row<RunningCost>(r)!);
+  }
+  async addRunningCost(label: string, cents: number) {
+    const rec = { id: newId("cost"), label, cents };
+    await this.runningCosts.insertOne({ _id: rec.id as never, label, cents });
+    return rec;
+  }
+  async removeRunningCost(costId: string) {
+    return (await this.runningCosts.deleteOne({ _id: costId as never })).deletedCount > 0;
   }
   async recordError(entry: ErrorInput) {
     await this.errorLog.insertOne({ _id: newId("err") as never, source: entry.source, code: entry.code, message: entry.message, userId: entry.userId, at: entry.at, ...(entry.path ? { path: entry.path } : {}) });

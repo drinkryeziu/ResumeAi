@@ -9,8 +9,10 @@ import { formatDate, formatNumber } from "@/lib/format";
 import { ACTIVE_DAYS, aiHealth, buildUserRows, RULE_LABELS, threatLevel, totalsOf, type Level } from "@/server/admin/overview";
 import type { PersonRow } from "@/server/admin/people-table";
 import { ErrorLogs } from "@/components/features/admin/ErrorLogs";
+import { MoneyReport } from "@/components/features/admin/MoneyReport";
 import { PeopleTable } from "@/components/features/admin/PeopleTable";
 import { ownerEmail } from "@/server/admin/access";
+import { aiCentsPerCredit, monthReport } from "@/server/admin/money";
 import { requireAdmin } from "@/server/auth/admin";
 import { setupStatus } from "@/server/store/setup-check";
 import { removeViewer } from "./actions";
@@ -19,6 +21,7 @@ export const metadata = { title: "Admin dashboard", robots: { index: false, foll
 
 const DAY = 86_400_000;
 const ERROR_DAYS = 30;
+const MONEY_DAYS = 30;
 const LEVEL_TEXT: Record<Level, string> = { normal: "Normal", elevated: "Elevated", high: "High" };
 const LEVEL_TONE = { normal: "ok", elevated: "warn", high: "bad" } as const;
 const EVENT_TEXT = { sign_in_failed: "Wrong password at sign-in", rate_limited: "Request turned away, too many tries", account_removed: "Account deleted by the owner" } as const;
@@ -32,13 +35,17 @@ export default async function AdminPage() {
   const now = new Date();
   const since = new Date(+now - DAY);
   const started = Date.now();
-  const [setup, snapshot, aiStats, security, errorLog, viewers] = await Promise.all([
+  const monthAgo = new Date(+now - MONEY_DAYS * DAY);
+  const owner = role === "owner";
+  const [setup, snapshot, aiStats, security, errorLog, viewers, money] = await Promise.all([
     setupStatus(),
     store.adminSnapshot(),
     store.aiRunStats(since),
     store.securitySummary(since, 10),
     store.errorSummary(new Date(+now - ERROR_DAYS * DAY), 200),
-    role === "owner" ? store.listAdmins() : Promise.resolve([]),
+    owner ? store.listAdmins() : Promise.resolve([]),
+    // The money report is the owner's alone: it is not even read for a viewer.
+    owner ? Promise.all([store.listPurchases(monthAgo), store.aiCostSince(monthAgo), store.creditTotalsSince(monthAgo), store.listRunningCosts()]) : Promise.resolve(null),
   ]);
   const checkedMs = Date.now() - started;
   const rows = buildUserRows(snapshot, now);
@@ -182,6 +189,16 @@ export default async function AdminPage() {
               <AddViewerForm />
             </div>
           </Card>
+        )}
+
+        {money && (
+          <MoneyReport
+            report={monthReport({ purchases: money[0], aiCostUsd: money[1].costUsd, runningCosts: money[3] })}
+            perCredit={aiCentsPerCredit(money[1].costUsd, money[2].consumed, money[2].refunded)}
+            purchases={money[0]}
+            runningCosts={money[3]}
+            days={MONEY_DAYS}
+          />
         )}
 
         <ErrorLogs

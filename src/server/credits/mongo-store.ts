@@ -141,6 +141,15 @@ export class MongoCreditStore implements CreditStore {
     await this.balances.deleteOne({ _id: userId });
   }
 
+  /** Credits used and credits refunded since `since`, over everyone (for the owner's money report). */
+  async totalsSince(since: Date) {
+    const rows = await this.ledger
+      .aggregate<{ _id: string; total: number }>([{ $match: { createdAt: { $gte: since }, reason: { $in: ["CONSUME", "REFUND"] } } }, { $group: { _id: "$reason", total: { $sum: "$delta" } } }])
+      .toArray();
+    const sum = (reason: string) => rows.find((r) => r._id === reason)?.total ?? 0;
+    return { consumed: -sum("CONSUME"), refunded: sum("REFUND") };
+  }
+
   async history(userId: string, limit: number) {
     return (await this.ledger.find({ userId }).sort({ ts: -1 }).limit(limit).toArray()).map(toEntry);
   }

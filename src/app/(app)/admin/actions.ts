@@ -58,3 +58,25 @@ export async function clearErrorGroup(fd: FormData) {
   if (parsed.success) await store.clearErrors(parsed.data.source, parsed.data.code);
   revalidatePath("/admin");
 }
+
+/** The owner adds a fixed monthly cost of running the app (hosting, database, email…). */
+export async function addRunningCost(_: AdminState, fd: FormData): Promise<AdminState> {
+  const { user, store } = await requireOwner();
+  if (await overLimit(store, RULES.adminUser, user.id)) return { error: TOO_MANY };
+  const parsed = z
+    .object({ label: z.string().trim().min(1, "Say what the cost is for, like Hosting.").max(60, "Keep the name under 60 characters."), amount: z.coerce.number("Enter the monthly amount in dollars.").min(0.01, "Enter an amount above zero.").max(100_000, "That is more than we expect. Check the amount.") })
+    .safeParse({ label: fd.get("label"), amount: fd.get("amount") });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+  if ((await store.listRunningCosts()).length >= 30) return { error: "That is plenty of items. Remove one before adding another." };
+  await store.addRunningCost(parsed.data.label, Math.round(parsed.data.amount * 100));
+  revalidatePath("/admin");
+  return { ok: `${parsed.data.label} added.` };
+}
+
+export async function removeRunningCost(fd: FormData) {
+  const { user, store } = await requireOwner();
+  if (await overLimit(store, RULES.adminUser, user.id)) return;
+  const id = z.string().min(1).max(80).safeParse(fd.get("id"));
+  if (id.success) await store.removeRunningCost(id.data);
+  revalidatePath("/admin");
+}

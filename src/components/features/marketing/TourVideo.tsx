@@ -4,17 +4,23 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { Button, IconButton } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
+import { pickVoices } from "@/lib/tour-voices";
 import { firstStepOf, SCENES, sceneProgress, shownLines, STEPS, tourLength, type Speaker } from "@/lib/walkthrough";
 import { TourScene } from "./TourScenes";
 
-/** Reads a line aloud with a higher voice for the person asking and a lower one for the guide, when the browser can speak. */
+/**
+ * Reads a line aloud with the most natural voices the device has: a woman's for the person asking and a man's for the guide when it
+ * has both. Only when it has to share one voice does it fall back to a higher and a lower pitch to tell them apart.
+ */
 function speak(text: string, who: Speaker, onEnd: () => void): () => void {
   const synth = window.speechSynthesis;
   const u = new SpeechSynthesisUtterance(text);
-  const english = synth.getVoices().filter((v) => v.lang.toLowerCase().startsWith("en"));
-  const voice = who === "asks" ? english[0] : (english[1] ?? english[0]);
+  const pick = pickVoices(synth.getVoices());
+  const voice = who === "asks" ? pick.asks : pick.explains;
   if (voice) u.voice = voice;
-  u.pitch = who === "asks" ? 1.25 : 0.95;
+  u.lang = voice?.lang ?? "en-US";
+  u.rate = who === "asks" ? 1 : 0.96; // a touch slower than the questions, as if explaining
+  u.pitch = pick.distinct ? 1 : who === "asks" ? 1.2 : 0.9;
   u.onend = onEnd;
   u.onerror = onEnd;
   synth.cancel();
@@ -41,7 +47,12 @@ export function TourVideo() {
   const [elapsed, setElapsed] = useState(0);
   const stepStarted = useRef(0);
 
-  useEffect(() => setCanSpeak("speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined"), []);
+  useEffect(() => {
+    const ok = "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined";
+    setCanSpeak(ok);
+    // Some browsers load their voices late; asking once wakes the list up so the right ones are there when "Read aloud" is pressed.
+    if (ok) window.speechSynthesis.getVoices();
+  }, []);
 
   const step = STEPS[i]!;
   const advance = () => {
@@ -61,7 +72,7 @@ export function TourVideo() {
     let fallback: ReturnType<typeof setTimeout> | undefined;
     if (voice && canSpeak) {
       stopSpeech = speak(step.text, step.speaker, () => {
-        timer = setTimeout(advance, 350);
+        timer = setTimeout(advance, 450); // a breath between speakers
       });
       fallback = setTimeout(advance, step.ms + 6000); // some browsers never say "done"
     } else timer = setTimeout(advance, step.ms);

@@ -21,10 +21,10 @@ export const SCENES: readonly Scene[] = [
     id: "about",
     title: "What ResumeAi is",
     lines: [
-      { speaker: "asks", text: "What is this app about?" },
+      { speaker: "asks", text: "Hey, what is this app about?" },
       {
         speaker: "explains",
-        text: "ResumeAi writes a resume and a cover letter for each job you apply to, using only what's true about you. It also shows you how well you match the job before you apply.",
+        text: "Glad you asked. ResumeAi helps you apply for jobs without starting from scratch every time. For each job, it writes a resume and a cover letter that fit it, using only what's true about you.",
       },
     ],
   },
@@ -32,65 +32,65 @@ export const SCENES: readonly Scene[] = [
     id: "signup",
     title: "Sign up",
     lines: [
-      { speaker: "asks", text: "How do I use it?" },
-      { speaker: "explains", text: "First, sign up for a free account. From there it works in a few simple steps, and I'll walk you through them." },
+      { speaker: "asks", text: "Okay, that sounds useful. How do I use it?" },
+      { speaker: "explains", text: "It's pretty simple. First, you sign up for a free account. After that it's just a few steps, and I'll walk you through them." },
     ],
   },
   {
     id: "profile",
     title: "Create your profile once",
     lines: [
-      { speaker: "asks", text: "What do I do once I'm signed up?" },
-      { speaker: "explains", text: "You create your professional profile once, by typing it in or uploading your CV. It stays your single source of truth, so you never rewrite it for every job." },
+      { speaker: "asks", text: "Alright, I'm signed up. Now what?" },
+      { speaker: "explains", text: "Now you tell us about yourself, once. Type it in, or upload your CV and we'll read it for you. That's your profile, and you won't have to redo it for every job." },
     ],
   },
   {
     id: "masters",
     title: "Get your master documents",
     lines: [
-      { speaker: "asks", text: "And then what happens?" },
-      { speaker: "explains", text: "We write your Master Resume and Master Cover Letter from your profile. Creating them is free, and every application starts from them." },
+      { speaker: "asks", text: "And then?" },
+      { speaker: "explains", text: "Then we write your Master Resume and Master Cover Letter from it. That part is free, and every application you make starts from them." },
     ],
   },
   {
     id: "job",
     title: "Add a job",
     lines: [
-      { speaker: "asks", text: "How do I go for a specific job?" },
-      { speaker: "explains", text: "Paste the job description, or upload it as a file, then press Tailor your resume to a job." },
+      { speaker: "asks", text: "Okay. And when I find a job I like?" },
+      { speaker: "explains", text: "Paste in the job description, or upload it as a file. Then press Tailor your resume to a job." },
     ],
   },
   {
     id: "match",
     title: "See how you match",
     lines: [
-      { speaker: "asks", text: "Will I know if I'm a good fit?" },
-      { speaker: "explains", text: "Yes. You get a Job Match Score, and you see which requirements your profile covers and which ones it doesn't." },
+      { speaker: "asks", text: "Can I tell if I'm actually a good fit?" },
+      { speaker: "explains", text: "Yes. You get a Job Match Score, and you can see which requirements you cover and which ones you don't." },
     ],
   },
   {
     id: "questions",
     title: "Answer, never invent",
     lines: [
-      { speaker: "asks", text: "What if the job asks for something I never listed?" },
-      { speaker: "explains", text: "We ask you, and you decide. We only use what's true about you. Nothing is made up: not a job, not a skill, not a number." },
+      { speaker: "asks", text: "What if the job asks for something I've never listed?" },
+      { speaker: "explains", text: "Then we ask you, and you decide. If you've done it, tell us in your own words. If not, we leave it out. We never make anything up." },
     ],
   },
   {
     id: "documents",
     title: "Review your documents",
     lines: [
-      { speaker: "asks", text: "What do I get at the end?" },
-      { speaker: "explains", text: "A resume and a cover letter written for that job. Read them, change anything you like, and go back to an earlier version at any time." },
+      { speaker: "asks", text: "So what do I get at the end?" },
+      { speaker: "explains", text: "A resume and a cover letter written for that job. Read them, change anything you want, and you can always go back to an earlier version." },
     ],
   },
   {
     id: "download",
     title: "Download and apply",
     lines: [
-      { speaker: "asks", text: "How do I send it?" },
-      { speaker: "explains", text: "Download it as PDF or Word, then apply on the company's own site. We never apply for you. Tick Applied to keep track of where you've sent it." },
-      { speaker: "explains", text: "That's all there is to it. Create your free profile to try it." },
+      { speaker: "asks", text: "Last thing. How do I actually send it?" },
+      { speaker: "explains", text: "Download it as a PDF or Word file, then apply on the company's own site. We never apply for you. Tick Applied to remember where you've sent it." },
+      { speaker: "explains", text: "And that's it. Create your free profile and give it a try." },
     ],
   },
 ];

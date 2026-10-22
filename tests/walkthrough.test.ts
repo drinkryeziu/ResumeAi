@@ -11,13 +11,19 @@ describe("the first-page tour", () => {
   });
 
   it("opens with what the app is and how to start, and tells people to sign up first", () => {
-    expect(SCENES[0]!.lines[0]!.text).toBe("What is this app about?");
-    expect(SCENES[1]!.lines[0]!.text).toBe("How do I use it?");
+    expect(SCENES[0]!.lines[0]!.text).toMatch(/what is this app about/i);
+    expect(SCENES[1]!.lines[0]!.text).toMatch(/how do I use it/i);
     expect(SCENES[1]!.lines[1]!.text).toMatch(/sign up/i);
   });
 
   it("covers the whole journey, in order", () => {
     expect(SCENES.map((s) => s.id)).toEqual(["about", "signup", "profile", "masters", "job", "match", "questions", "documents", "download"]);
+  });
+
+  it("sounds like talking: contractions, short questions, and nothing stiff", () => {
+    const said = SCENES.flatMap((s) => s.lines.map((l) => l.text));
+    expect(said.filter((t) => /\b(I'm|it's|that's|don't|you'll|won't|we'll|I've|company's|doesn't)\b/i.test(t)).length).toBeGreaterThanOrEqual(6);
+    expect(said.filter((t) => t.length < 60).length).toBeGreaterThanOrEqual(8); // the questions are short, like a person's
   });
 
   it("uses plain words: no jargon and no emoji", () => {
@@ -29,7 +35,7 @@ describe("the first-page tour", () => {
   it("promises only what the product does", () => {
     const text = SCENES.flatMap((s) => s.lines.map((l) => l.text)).join(" ");
     expect(text).toMatch(/never apply for you/);
-    expect(text).toMatch(/Nothing is made up/);
+    expect(text).toMatch(/never make anything up/);
     expect(text).not.toMatch(/guarantee|interview|hired/i);
   });
 

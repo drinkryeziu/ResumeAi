@@ -7,7 +7,7 @@ export async function exportAccountData(store: AppStore, userId: string, now = n
   const user = await store.getUser(userId);
   if (!user) return null;
   const jobs = await store.listJobs(userId);
-  const [profile, cvImport, masterResume, masterCoverLetter, balance, history, aiRuns] = await Promise.all([
+  const [profile, cvImport, masterResume, masterCoverLetter, balance, history, aiRuns, errorLog] = await Promise.all([
     store.findProfile(userId),
     store.getCvImport(userId),
     store.resumeForJob(userId, null),
@@ -15,6 +15,7 @@ export async function exportAccountData(store: AppStore, userId: string, now = n
     store.credits.balance(userId),
     store.credits.history(userId, 100_000),
     store.aiRuns.listForUser(userId),
+    store.listErrorsForUser(userId),
   ]);
   const applications = await Promise.all(
     jobs.map(async (job) => {
@@ -39,6 +40,7 @@ export async function exportAccountData(store: AppStore, userId: string, now = n
     applications,
     credits: { balance, history },
     aiActions: aiRuns,
+    errorLog, // the problems the site noted when something failed for you (messages never include your documents)
   };
 }
 

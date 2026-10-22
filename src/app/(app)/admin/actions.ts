@@ -49,3 +49,12 @@ export async function removeUser(_: AdminState, fd: FormData): Promise<AdminStat
   revalidatePath("/admin");
   return { ok: "The account and everything in it was deleted." };
 }
+
+/** The owner marks one problem in the error log as fixed: its entries are removed. */
+export async function clearErrorGroup(fd: FormData) {
+  const { user, store } = await requireOwner();
+  if (await overLimit(store, RULES.adminUser, user.id)) return;
+  const parsed = z.object({ source: z.string().min(1).max(60), code: z.string().min(1).max(60) }).safeParse({ source: fd.get("source"), code: fd.get("code") });
+  if (parsed.success) await store.clearErrors(parsed.data.source, parsed.data.code);
+  revalidatePath("/admin");
+}

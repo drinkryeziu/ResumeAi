@@ -3,6 +3,7 @@ import type { AIRunRecord } from "@/server/ai/runner";
 import { MemoryCreditStore } from "@/server/credits/memory-store";
 import { CreditService } from "@/server/credits/service";
 import type { ProfileSnapshot } from "@/server/domain/profile";
+import type { ErrorEntry, ErrorInput, ErrorSummary } from "@/server/admin/errors";
 import type { AdminSnapshot, SecurityEvent, SecuritySummary } from "@/server/admin/overview";
 import type { AdminRecord, AnalysisRecord, AppStore, AtsRecord, CoverLetterRecord, CvImport, JobRecord, MatchRecord, ResumeRecord, UserRecord } from "./types";
 
@@ -28,6 +29,7 @@ export class MemoryAppStore implements AppStore {
   private runs: AIRunRecord[] = [];
   private admins: Array<{ userId: string; addedBy: string; addedAt: Date }> = [];
   private events: SecurityEvent[] = [];
+  private errors: ErrorEntry[] = [];
 
   aiRuns = {
     record: async (run: Omit<AIRunRecord, "id" | "createdAt">) => {
@@ -66,6 +68,22 @@ export class MemoryAppStore implements AppStore {
       },
       recent: rows.slice(0, recentLimit).map((e) => ({ ...e })),
     };
+  }
+  async recordError(entry: ErrorInput) {
+    this.errors.push({ ...entry, id: id("err") });
+    this.errors = this.errors.filter((e) => +entry.at - +e.at <= 30 * 86_400_000);
+  }
+  async errorSummary(since: Date, limit = 200): Promise<ErrorSummary> {
+    const rows = this.errors.filter((e) => +e.at >= +since).sort((a, b) => +b.at - +a.at);
+    return { total: rows.length, entries: rows.slice(0, limit).map((e) => ({ ...e })) };
+  }
+  async listErrorsForUser(userId: string) {
+    return this.errors.filter((e) => e.userId === userId).sort((a, b) => +b.at - +a.at).map((e) => ({ ...e }));
+  }
+  async clearErrors(source: string, code: string) {
+    const before = this.errors.length;
+    this.errors = this.errors.filter((e) => !(e.source === source && e.code === code));
+    return before - this.errors.length;
   }
   async listAdmins(): Promise<AdminRecord[]> {
     return this.admins
@@ -126,6 +144,7 @@ export class MemoryAppStore implements AppStore {
     this.letters = this.letters.filter((l) => l.userId !== userId);
     this.runs = this.runs.filter((r) => r.userId !== userId);
     this.admins = this.admins.filter((a) => a.userId !== userId);
+    this.errors = this.errors.filter((e) => e.userId !== userId);
     this.profiles.delete(userId);
     this.cvImports.delete(userId);
     for (const [k, v] of this.resets) if (v.userId === userId) this.resets.delete(k);

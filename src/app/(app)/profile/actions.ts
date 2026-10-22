@@ -6,6 +6,7 @@ import { resumeParser, runWorkflow, WorkflowOutputError } from "@/server/ai";
 import { aiAvailable } from "@/server/ai/providers/registry";
 import { describeAIError } from "@/server/ai/errors";
 import { AINotConfiguredError, AIProviderError } from "@/server/ai/providers/types";
+import { recordError } from "@/server/admin/record-error";
 import { guideFor, type CvProblem } from "@/lib/cv-problems";
 import { notice } from "@/lib/notices";
 import { extractText, UploadError } from "@/server/documents/extract-text";
@@ -23,6 +24,12 @@ const NO_AI = "AI writing isn't switched on for this site yet, so your Master do
 export type ProfileState = { error?: string; problem?: CvProblem; detail?: string } | undefined;
 
 const fail = (problem: CvProblem, detail?: string, sizeMb?: number): ProfileState => ({ error: guideFor(problem, { sizeMb }).reason, problem, ...(detail ? { detail } : {}) });
+
+/** Problems reading a CV go to the admin dashboard's error log. The message is the plain reason: never the CV's own text. */
+async function logCvProblem(userId: string, problem: CvProblem, extra = "") {
+  if (problem === "no_file" || problem === "too_short") return; // nothing was sent: not a fault
+  await recordError(await getStore(), { source: "cv_upload", code: problem, message: `${guideFor(problem).reason}${extra}`, userId });
+}
 
 /**
  * Saves the Master Profile. On first save — or when the user asks — it then (re)generates the
@@ -60,6 +67,7 @@ export async function saveProfile(_: ProfileState, fd: FormData): Promise<Profil
   try {
     await generateMasterDocuments(store, user.id, String(fd.get("requestId") || crypto.randomUUID()));
   } catch (e) {
+    await recordError(store, { source: "save_profile", code: e instanceof WorkflowOutputError ? "answer_rejected" : e instanceof AIProviderError ? "ai_busy" : "unexpected", message: e instanceof Error ? `${e.name}: ${e.message}` : "Unknown error", userId: user.id });
     if (e instanceof WorkflowOutputError) return { error: `Your profile was saved, but we couldn't update your Master documents. Save again to retry.${e.violations.length ? ` (Reason: ${e.violations.slice(0, 2).map((v) => v.slice(0, 180)).join(" · ")})` : ""}` };
     if (e instanceof AIProviderError) return { error: `Your profile was saved. ${describeAIError(e, "update your Master documents")} Save again to retry.` };
     throw e;
@@ -79,13 +87,17 @@ const RETURN_TO = { onboarding: "/onboarding", edit: "/profile/edit" } as const;
  */
 export async function importCv(_: ProfileState, fd: FormData): Promise<ProfileState> {
   const user = await requireUser();
-  if (await overLimit(await getStore(), RULES.aiUser, user.id)) return fail("too_fast");
+  const report = async (problem: CvProblem, detail?: string, sizeMb?: number, extra = ""): Promise<ProfileState> => {
+    await logCvProblem(user.id, problem, extra);
+    return fail(problem, detail, sizeMb);
+  };
+  if (await overLimit(await getStore(), RULES.aiUser, user.id)) return fail("too_fast"); // the dashboard's security events already count these
   const back = RETURN_TO[fd.get("returnTo") === "edit" ? "edit" : "onboarding"];
   // Either an uploaded file or pasted text; pasted text goes through the same reader as a .txt file.
   const pasted = String(fd.get("cvText") ?? "").trim();
   if (fd.has("cvText") && pasted.length < 100) return fail("too_short");
   const file = pasted ? new File([pasted], "Pasted CV.txt", { type: "text/plain" }) : fd.get("cv");
-  if (!(file instanceof File) || file.size === 0) return fail(file instanceof File ? "empty" : "no_file");
+  if (!(file instanceof File) || file.size === 0) return report(file instanceof File ? "empty" : "no_file");
   const store = await getStore();
   try {
     const text = await extractText(file);
@@ -94,15 +106,17 @@ export async function importCv(_: ProfileState, fd: FormData): Promise<ProfileSt
       { text },
       { userId: user.id, requestId: String(fd.get("requestId") || crypto.randomUUID()), credits: store.credits, runs: store.aiRuns },
     );
-    if (!output.experiences.length && !output.education.length && !output.skills.length) return fail("no_content");
+    if (!output.experiences.length && !output.education.length && !output.skills.length) return report("no_content");
     await store.setCvImport(user.id, { fileName: file.name, draft: output, createdAt: new Date() });
   } catch (e) {
-    if (e instanceof UploadError) return fail(e.code ?? "unsupported", e.code ? undefined : e.message, file.size / 1_048_576);
-    if (e instanceof WorkflowOutputError) return fail("unreadable", e.violations.slice(0, 2).map((v) => v.slice(0, 180)).join(" · "));
+    if (e instanceof UploadError) return report(e.code ?? "unsupported", e.code ? undefined : e.message, file.size / 1_048_576);
+    if (e instanceof WorkflowOutputError) return report("unreadable", e.violations.slice(0, 2).map((v) => v.slice(0, 180)).join(" · "), undefined, ` (${e.violations.length} ${e.violations.length === 1 ? "check" : "checks"} failed)`);
     if (e instanceof AIProviderError) {
       const off = e instanceof AINotConfiguredError || e.reason === "no_credit";
-      return fail(off ? "ai_off" : "ai_busy", describeAIError(e, "read your CV"));
+      const why = describeAIError(e, "read your CV");
+      return report(off ? "ai_off" : "ai_busy", why, undefined, ` ${why}`);
     }
+    await recordError(store, { source: "cv_upload", code: "unexpected", message: e instanceof Error ? `${e.name}: ${e.message}` : "Unknown error", userId: user.id });
     throw e;
   }
   redirect(`${back}?imported=1`);

@@ -12,10 +12,25 @@ export const isStaleDeployError = (e: Error) =>
 
 const RELOADED = "resumeai:reloaded-after-update";
 
+/** Tells the site about a crash so it appears in the admin dashboard's error log. Just the error and the page address, nothing from the page. */
+function report(error: Error & { digest?: string }) {
+  try {
+    void fetch("/api/errors", {
+      method: "POST",
+      keepalive: true,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: error.name, message: error.message, digest: error.digest, path: window.location.pathname }),
+    }).catch(() => {});
+  } catch {
+    /* reporting must never cause another error */
+  }
+}
+
 export function ErrorScreen({ error, reset }: { error: Error & { digest?: string }; reset?: () => void }) {
   const stale = isStaleDeployError(error);
   useEffect(() => {
     console.error("[app error]", error);
+    if (!stale) report(error); // a page left open across an update is not a fault: reloading fixes it
     if (!stale) return;
     try {
       if (sessionStorage.getItem(RELOADED)) return; // once only, never a reload loop

@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod/v4";
 import { TONES, WorkflowOutputError } from "@/server/ai";
 import { describeAIError } from "@/server/ai/errors";
-import { AIProviderError } from "@/server/ai/providers/types";
+import { AINotConfiguredError, AIProviderError } from "@/server/ai/providers/types";
+import { recordError } from "@/server/admin/record-error";
 import { requireUser } from "@/server/auth/session";
 import { InsufficientCreditsError } from "@/server/credits/types";
 import { extractText, UploadError } from "@/server/documents/extract-text";
@@ -23,17 +24,34 @@ const rejectionDetail = (e: WorkflowOutputError) => (e.violations.length ? ` (Re
  * Typed errors → the plain-language messages users see. Internals never leak. Running out of credits is not a failure: the
  * state carries what is really saved (read back from the store) so the page can show the credit-limit window.
  */
-async function toState(err: unknown, who?: { userId: string; jobId: string | null }): Promise<ActionState> {
+async function toState(err: unknown, who?: { userId: string; jobId: string | null; action: string }): Promise<ActionState> {
   if (err instanceof InsufficientCreditsError) {
     const creditStop = who ? await describeCreditStop(await getStore(), who.userId, who.jobId, err) : undefined;
     return { error: err.message, needCredits: true, creditStop };
   }
   // An answer the checks turned down: say which check, so a repeat can be understood and fixed (rule names and ids, nothing personal).
-  if (err instanceof WorkflowOutputError) return { error: `${err.message}${rejectionDetail(err)}` };
-  if (err instanceof pipeline.PipelineError || err instanceof UploadError) return { error: err.message };
-  if (err instanceof AIProviderError) return { error: `${describeAIError(err, "finish that")} Your credits were refunded.` };
+  if (err instanceof WorkflowOutputError) {
+    await logError(who, "answer_rejected", `The AI's answer was turned down by the fact checks (${err.violations.length} ${err.violations.length === 1 ? "check" : "checks"} failed).`);
+    return { error: `${err.message}${rejectionDetail(err)}` };
+  }
+  if (err instanceof pipeline.PipelineError || err instanceof UploadError) {
+    await logError(who, err instanceof UploadError ? (err.code ?? "upload") : "step_refused", err.message);
+    return { error: err.message };
+  }
+  if (err instanceof AIProviderError) {
+    const code = err instanceof AINotConfiguredError ? "ai_off" : err.reason === "no_credit" ? "ai_no_credit" : err.status ? `ai_${err.status}` : "ai_busy";
+    const message = describeAIError(err, "finish that");
+    await logError(who, code, message);
+    return { error: `${message} Your credits were refunded.` };
+  }
   console.error("[jobs/actions]", err);
+  await logError(who, "unexpected", err instanceof Error ? `${err.name}: ${err.message}` : "Unknown error");
   return { error: "Something went wrong. Any credits used were refunded." };
+}
+
+/** Puts the failure in the admin dashboard's error log, with who ran into it and where. */
+async function logError(who: { userId: string; action: string } | undefined, code: string, message: string) {
+  await recordError(await getStore(), { source: who?.action ?? "unknown", code, message, userId: who?.userId });
 }
 
 /** AI actions cost real money; credits limit them, this stops a runaway loop. */
@@ -75,19 +93,19 @@ export async function analyzeNewJob(_: ActionState, fd: FormData): Promise<Actio
     jobId = job.id;
     await pipeline.analyzeJob(store, user.id, jobId, requestId(fd));
   } catch (e) {
-    return toState(e, { userId: user.id, jobId });
+    return toState(e, { userId: user.id, jobId, action: "analyze_job" });
   }
   redirect(`/jobs/${jobId}/match?notice=${notice("job-analyzed")}`);
 }
 
-async function step(fd: FormData, run: (jobId: string, rid: string) => Promise<unknown>, next: (jobId: string) => string): Promise<ActionState> {
+async function step(action: string, fd: FormData, run: (jobId: string, rid: string) => Promise<unknown>, next: (jobId: string) => string): Promise<ActionState> {
   const jobId = z.string().min(1).parse(fd.get("jobId"));
   const { id: userId } = await requireUser();
   if (await tooFast(userId)) return TOO_FAST;
   try {
     await run(jobId, requestId(fd));
   } catch (e) {
-    return toState(e, { userId, jobId });
+    return toState(e, { userId, jobId, action });
   }
   revalidatePath(`/jobs/${jobId}`, "layout");
   redirect(next(jobId));
@@ -100,6 +118,7 @@ export async function createApplication(_: ActionState, fd: FormData) {
   const { id } = await requireUser();
   const store = await getStore();
   return step(
+    "create_application",
     fd,
     (jobId, rid) => pipeline.createApplication(store, id, jobId, rid, ToneField.parse(fd.get("tone"))),
     (j) => `/jobs/${j}?new=1&notice=${notice("application-created")}`,
@@ -111,6 +130,7 @@ export async function continueAnalysis(_: ActionState, fd: FormData) {
   const { id } = await requireUser();
   const store = await getStore();
   return step(
+    "analyze_job",
     fd,
     (jobId, rid) => pipeline.analyzeJob(store, id, jobId, rid),
     (j) => `/jobs/${j}/match?notice=${notice("job-analyzed")}`,
@@ -121,6 +141,7 @@ export async function recheckMatch(_: ActionState, fd: FormData) {
   const { id } = await requireUser();
   const store = await getStore();
   return step(
+    "check_match",
     fd,
     (jobId, rid) => pipeline.checkMatch(store, id, jobId, rid),
     (j) => `/jobs/${j}/match?notice=${notice("match-updated")}`,
@@ -132,6 +153,7 @@ export async function improveResume(_: ActionState, fd: FormData) {
   const store = await getStore();
   const notes = fd.getAll("improve").map(String).filter(Boolean);
   return step(
+    "improve_resume",
     fd,
     (jobId, rid) => pipeline.optimizeResume(store, id, jobId, rid, notes.length ? notes : undefined),
     (j) => `/jobs/${j}?doc=resume&notice=${notice("resume-improved")}`,
@@ -142,6 +164,7 @@ export async function runAtsCheck(_: ActionState, fd: FormData) {
   const { id } = await requireUser();
   const store = await getStore();
   return step(
+    "ats_check",
     fd,
     (jobId, rid) => pipeline.runAtsCheck(store, id, jobId, rid),
     (j) => `/jobs/${j}?doc=resume&notice=${notice("ats-checked")}#ats`,
@@ -156,6 +179,7 @@ export async function rewriteCoverLetter(_: ActionState, fd: FormData) {
   const parsed = LetterInput.safeParse({ tone: fd.get("tone"), mode: fd.get("mode") });
   if (!parsed.success) return { error: "Choose a tone." };
   return step(
+    "rewrite_cover_letter",
     fd,
     (jobId, rid) => pipeline.writeCoverLetter(store, id, jobId, rid, parsed.data.tone, parsed.data.mode),
     (j) => `/jobs/${j}?doc=cover-letter&notice=${notice("letter-rewritten")}`,
@@ -172,7 +196,7 @@ export async function answerQuestion(_: ActionState, fd: FormData): Promise<Acti
   try {
     await pipeline.answerGapQuestion(await getStore(), id, jobId, parsed.data);
   } catch (e) {
-    return toState(e, { userId: id, jobId });
+    return toState(e, { userId: id, jobId, action: "answer_question" });
   }
   revalidatePath(`/jobs/${jobId}/match`);
   return { ok: parsed.data.answer === "yes" ? "Saved. We'll use this when we create your application." : "Got it — we won't include this." };
@@ -218,7 +242,7 @@ export async function saveResumeEdits(_: ActionState, fd: FormData): Promise<Act
     const { competencies, ...rest } = parsed.data;
     await pipeline.saveResumeEdits(await getStore(), id, jobId, { ...rest, ...(fd.has("competencies") ? { competencies } : {}), experience, projects });
   } catch (e) {
-    return toState(e, { userId: id, jobId });
+    return toState(e, { userId: id, jobId, action: "save_resume" });
   }
   revalidatePath(pathOf(jobId));
   redirect(`${pathOf(jobId)}?doc=resume&notice=${notice("version-saved")}${fromOf(fd)}`);
@@ -246,7 +270,7 @@ export async function saveCoverLetterEdits(_: ActionState, fd: FormData): Promis
   try {
     await pipeline.saveCoverLetterEdits(await getStore(), id, jobId, { greeting: parsed.data.greeting, paragraphs: parsed.data.body, closing: parsed.data.closing });
   } catch (e) {
-    return toState(e, { userId: id, jobId });
+    return toState(e, { userId: id, jobId, action: "save_cover_letter" });
   }
   revalidatePath(pathOf(jobId));
   redirect(`${pathOf(jobId)}?doc=cover-letter&notice=${notice("version-saved")}${fromOf(fd)}`);
@@ -305,7 +329,7 @@ export async function regenerateMasterDocuments(_: ActionState, fd: FormData): P
   try {
     await pipeline.generateMasterDocuments(await getStore(), id, requestId(fd));
   } catch (e) {
-    return toState(e, { userId: id, jobId: null });
+    return toState(e, { userId: id, jobId: null, action: "master_documents" });
   }
   revalidatePath("/master");
   redirect(`/master?notice=${notice("masters-updated")}`);

@@ -167,6 +167,35 @@ export function storeContract(label: string, open: () => Promise<{ store: AppSto
       expect((await store.listAdmins()).some((x) => x.userId === a.id)).toBe(false);
     });
 
+    it("keeps an error log: newest first within a window, per person, clearable by problem, and gone with the account", async () => {
+      const a = await user("err-a@example.com");
+      const b = await user("err-b@example.com");
+      const now = new Date();
+      const old = new Date(+now - 5 * 86_400_000);
+      const before = await store.errorSummary(new Date(+now - 86_400_000), 1000);
+      await store.recordError({ at: old, source: "cv_upload", code: "scanned", message: "old one", userId: a.id });
+      await store.recordError({ at: new Date(+now - 2000), source: "cv_upload", code: "scanned", message: "first", userId: a.id, path: "/onboarding" });
+      await store.recordError({ at: new Date(+now - 1000), source: "analyze_job", code: "ai_busy", message: "second", userId: b.id });
+      await store.recordError({ at: now, source: "page", code: "browser", message: "third", userId: null });
+
+      const sum = await store.errorSummary(new Date(+now - 86_400_000), 2);
+      expect(sum.total - before.total).toBe(3); // the five-day-old one is outside the window
+      expect(sum.entries.map((x) => x.message)).toEqual(["third", "second"]); // newest first, limited
+      expect(sum.entries[1]).toMatchObject({ source: "analyze_job", code: "ai_busy", userId: b.id });
+
+      const mine = await store.listErrorsForUser(a.id);
+      expect(mine.map((x) => x.message)).toEqual(["first", "old one"]);
+      expect(mine[0]).toMatchObject({ path: "/onboarding" });
+
+      expect(await store.clearErrors("cv_upload", "scanned")).toBeGreaterThanOrEqual(2);
+      expect(await store.listErrorsForUser(a.id)).toEqual([]);
+      expect((await store.errorSummary(new Date(+now - 86_400_000), 100)).entries.some((x) => x.code === "ai_busy")).toBe(true);
+
+      await store.deleteAccount(b.id);
+      expect(await store.listErrorsForUser(b.id)).toEqual([]);
+      expect((await store.errorSummary(new Date(+now - 86_400_000), 100)).entries.some((x) => x.userId === b.id)).toBe(false);
+    });
+
     it("keeps one answer per topic: a later answer replaces the earlier one", async () => {
       const u = await user("facts@example.com");
       await store.addApprovedFact(u.id, { topic: "WCAG", question: "q", answer: "first", status: "APPROVED", jobId: "j1" });

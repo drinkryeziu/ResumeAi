@@ -51,6 +51,11 @@ export default function PrivacyPage() {
           because of too many tries) with the kind of event and the time, and nothing that identifies you. It is deleted after 30 days.
         </P>
         <P>
+          When something goes wrong for you, for example a CV that can&apos;t be read or a page that crashes, we keep a note of what failed, where, when and which account it
+          was, so we can fix it. The note never includes the content of your profile, CV or documents. It is part of &quot;Download my data&quot;, and it is deleted after 30 days or
+          when you delete your account.
+        </P>
+        <P>
           To run the service, the site owner, and people the owner allows, can open an admin page. It shows each account&apos;s name and email, how many applications
           they created and ticked as applied, their average Job Match Score and when they were last active, together with system health. It does not show the
           content of your profile, resumes or cover letters.

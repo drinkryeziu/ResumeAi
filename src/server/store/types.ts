@@ -2,6 +2,7 @@ import type { AtsAdvice, AtsScores, JobAnalysis, MatchReport, ProfileDraft, Tone
 import type { AIRunStore } from "@/server/ai/runner";
 import type { CreditService } from "@/server/credits/service";
 import type { CoverLetterDocument, ResumeDocument } from "@/server/documents/model";
+import type { ErrorEntry, ErrorInput, ErrorSummary } from "@/server/admin/errors";
 import type { AdminSnapshot, SecurityEvent, SecuritySummary } from "@/server/admin/overview";
 import type { ApprovedFactItem, JobInput, ProfileSnapshot } from "@/server/domain/profile";
 
@@ -117,6 +118,14 @@ export interface AppStore {
   /** Notes one security event (a wrong password, a request turned away). Holds no personal data; old ones expire after 30 days. */
   recordSecurityEvent(event: SecurityEvent): Promise<void>;
   securitySummary(since: Date, recentLimit?: number): Promise<SecuritySummary>;
+  /** Notes an error a person ran into (cleaned message, no document content). Entries expire after 30 days. */
+  recordError(entry: ErrorInput): Promise<void>;
+  /** The error log since `since`: how many, and the newest `limit`. */
+  errorSummary(since: Date, limit?: number): Promise<ErrorSummary>;
+  /** What the log holds about one person, for their data export. */
+  listErrorsForUser(userId: string): Promise<ErrorEntry[]>;
+  /** Removes one problem from the log ("fixed"). Returns how many entries went. */
+  clearErrors(source: string, code: string): Promise<number>;
   /** People (besides the owner) who may open the admin dashboard. Newest first. */
   listAdmins(): Promise<AdminRecord[]>;
   isAdminUser(userId: string): Promise<boolean>;

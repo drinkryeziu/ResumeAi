@@ -3,6 +3,7 @@ import type { AIRunRecord } from "@/server/ai/runner";
 import { MongoCreditStore } from "@/server/credits/mongo-store";
 import { CreditService } from "@/server/credits/service";
 import type { ProfileSnapshot } from "@/server/domain/profile";
+import type { ErrorEntry, ErrorInput, ErrorSummary } from "@/server/admin/errors";
 import type { AdminSnapshot, SecurityEvent, SecuritySummary } from "@/server/admin/overview";
 import type { AdminRecord, AnalysisRecord, AppStore, AtsRecord, CoverLetterRecord, CvImport, JobRecord, MatchRecord, ResumeRecord, UserRecord } from "./types";
 
@@ -46,6 +47,7 @@ export class MongoAppStore implements AppStore {
   private runs: Collection<Doc>;
   private admins: Collection<Doc>;
   private events: Collection<Doc>;
+  private errorLog: Collection<Doc>;
 
   constructor(
     client: MongoClient,
@@ -67,6 +69,7 @@ export class MongoAppStore implements AppStore {
     this.runs = db.collection("ai_runs");
     this.admins = db.collection("admins");
     this.events = db.collection("security_events");
+    this.errorLog = db.collection("error_logs");
   }
 
   /** Idempotent: safe to run on every cold start. */
@@ -88,6 +91,9 @@ export class MongoAppStore implements AppStore {
       this.runs.createIndex({ userId: 1, createdAt: -1 }),
       this.runs.createIndex({ createdAt: -1 }),
       this.events.createIndex({ at: 1 }, { expireAfterSeconds: 30 * 86_400 }), // security events are kept for 30 days
+      this.errorLog.createIndex({ at: 1 }, { expireAfterSeconds: 30 * 86_400 }), // so is the error log
+      this.errorLog.createIndex({ userId: 1 }),
+      this.errorLog.createIndex({ source: 1, code: 1 }),
       this.creditStore.ensureIndexes(),
     ]);
   }
@@ -160,6 +166,19 @@ export class MongoAppStore implements AppStore {
     ]);
     return { counts: { sign_in_failed: failed, rate_limited: limited, account_removed: removed }, recent: recent.map((e) => ({ type: e.type, ...(e.rule ? { rule: e.rule } : {}), at: e.at })) };
   }
+  async recordError(entry: ErrorInput) {
+    await this.errorLog.insertOne({ _id: newId("err") as never, source: entry.source, code: entry.code, message: entry.message, userId: entry.userId, at: entry.at, ...(entry.path ? { path: entry.path } : {}) });
+  }
+  async errorSummary(since: Date, limit = 200): Promise<ErrorSummary> {
+    const [total, rows] = await Promise.all([this.errorLog.countDocuments({ at: { $gte: since } }), this.errorLog.find({ at: { $gte: since } }).sort({ at: -1 }).limit(limit).toArray()]);
+    return { total, entries: rows.map((r) => row<ErrorEntry>(r)!) };
+  }
+  async listErrorsForUser(userId: string) {
+    return (await this.errorLog.find({ userId }).sort({ at: -1 }).toArray()).map((r) => row<ErrorEntry>(r)!);
+  }
+  async clearErrors(source: string, code: string) {
+    return (await this.errorLog.deleteMany({ source, code })).deletedCount;
+  }
   async listAdmins(): Promise<AdminRecord[]> {
     const rows = await this.admins.find({}).sort({ addedAt: -1 }).toArray();
     const users = rows.length ? await this.users.find({ _id: { $in: rows.map((r) => r._id) } }, { projection: { name: 1, email: 1 } }).toArray() : [];
@@ -189,6 +208,7 @@ export class MongoAppStore implements AppStore {
     await Promise.all([this.profiles.deleteOne({ _id: userId as never }), this.cvImports.deleteOne({ _id: userId as never })]);
     await this.creditStore.deleteForUser(userId);
     await this.admins.deleteOne({ _id: userId as never });
+    await this.errorLog.deleteMany({ userId });
     await this.users.deleteOne({ _id: userId as never }); // last: if anything above failed, the account still exists and the user can try again
   }
 

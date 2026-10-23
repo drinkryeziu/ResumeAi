@@ -33,19 +33,22 @@ const goodVoices = () => (speech()?.getVoices() ?? []).filter((v) => voiceScore(
  * Reads text aloud, a sentence at a time so there is a breath between them, in the voice the person chose or else the most natural
  * man's voice the device has (the same picker the first-page tour uses). `onEnd` is called when it is finished or cut off.
  */
-function say(text: string, onEnd: () => void, voiceName?: string) {
+function say(text: string, onEnd: () => void, voiceName?: string, onStart?: () => void, plain = false) {
   const synth = speech();
   if (!synth) return onEnd();
   const pick = pickVoices(synth.getVoices());
-  const voice = (voiceName && synth.getVoices().find((v) => v.name === voiceName)) || pick.explains;
+  // "plain" is the last resort: no chosen voice, the device's own default.
+  const voice = plain ? undefined : (voiceName && synth.getVoices().find((v) => v.name === voiceName)) || pick.explains;
   const parts = sentences(text);
   synth.cancel();
+  synth.resume(); // some browsers stay paused after a tab was in the background
   parts.forEach((part, i) => {
     const u = new SpeechSynthesisUtterance(part);
     if (voice) u.voice = voice;
     u.lang = voice?.lang ?? "en-US";
     u.rate = 0.95;
     u.pitch = pick.distinct || voiceName ? 1 : 0.92;
+    if (i === 0) u.onstart = () => onStart?.();
     if (i === parts.length - 1) u.onend = onEnd;
     u.onerror = onEnd;
     synth.speak(u);
@@ -75,6 +78,8 @@ export function AskDrin({ facts }: { facts: Facts }) {
   const [voiceOn, setVoiceOn] = useState(false);
   const [speaking, setSpeaking] = useState<string | null>(null);
   const [voices, setVoices] = useState<string[]>([]);
+  /** True when a reading did not start at all (no sound could be played). */
+  const [silent, setSilent] = useState(false);
   const [voiceName, setVoiceName] = useState("");
   const voiceNameRef = useRef("");
   const voiceRef = useRef(false);
@@ -84,7 +89,30 @@ export function AskDrin({ facts }: { facts: Facts }) {
   const read = (text: string) => {
     const mine = ++spoken.current;
     setSpeaking(text);
-    say(text, () => spoken.current === mine && setSpeaking(null), voiceNameRef.current);
+    const done = () => spoken.current === mine && setSpeaking(null);
+    // Some voices are listed but not installed, and then the browser stays silent. If nothing starts within three seconds, try the
+    // device's default voice, and if that is silent too, say so instead of leaving the person wondering.
+    const attempt = (plain: boolean) => {
+      let started = false;
+      say(
+        text,
+        done,
+        voiceNameRef.current,
+        () => {
+          started = true;
+          setSilent(false);
+        },
+        plain,
+      );
+      setTimeout(() => {
+        if (spoken.current !== mine || started) return;
+        if (!plain) return attempt(true);
+        speech()?.cancel();
+        setSilent(true);
+        setSpeaking(null);
+      }, 3000);
+    };
+    attempt(false);
   };
   const hush = () => {
     spoken.current++;
@@ -222,6 +250,11 @@ export function AskDrin({ facts }: { facts: Facts }) {
             </button>
           </header>
 
+          {silent && (
+            <p role="status" className="bg-warning-tint px-ds-4 py-ds-2 text-caption text-warning">
+              I couldn&apos;t play any sound. Check that your volume is up, or pick another voice from the list.
+            </p>
+          )}
           {canSpeak && voiceOn && voices.length > 0 && (
             <div className="flex items-center gap-ds-2 bg-white px-ds-4 py-ds-2">
               <label htmlFor="ask-drin-voice" className="shrink-0 text-caption">

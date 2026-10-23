@@ -12,7 +12,12 @@ import { DrinAvatar } from "./DrinAvatar";
 type Turn = { from: "you"; text: string } | { from: "drin"; reply: Reply };
 
 const GREETING = "Hi, I'm Drin. Ask me anything about how ResumeAi works, or pick a question below.";
-const THINKING_MS = 450;
+/** How long Drin "thinks" before he starts to write (1 to 2 seconds), and how fast he types (characters every tick). */
+const THINK_MIN_MS = 1000;
+const THINK_MAX_MS = 2000;
+const TICK_MS = 22;
+const CHARS_PER_TICK = 2;
+const prefersReducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 /**
  * "Ask Drin": a small helper on every page. Questions are answered from the app's own information (what the app does, what it
@@ -24,34 +29,62 @@ export function AskDrin({ facts }: { facts: Facts }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
+  /** The answer being typed out right now, and how many of its characters are showing. */
+  const [typing, setTyping] = useState<{ reply: Reply; shown: number } | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const launcher = useRef<HTMLButtonElement>(null);
   const end = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const ticker = useRef<ReturnType<typeof setInterval>>(undefined);
+  const busy = thinking || typing !== null;
 
-  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(timer.current);
+      clearInterval(ticker.current);
+    },
+    [],
+  );
   useEffect(() => {
     if (open) input.current?.focus();
   }, [open]);
   useEffect(() => {
     end.current?.scrollIntoView({ block: "end" });
-  }, [turns, thinking, open]);
+  }, [turns, thinking, typing?.shown, open]);
 
   const close = () => {
     setOpen(false);
     launcher.current?.focus();
   };
 
+  /** Drin thinks for a moment, then types the answer out; the whole answer is only announced to screen readers once it is written. */
   const ask = (text: string) => {
     const q = text.trim().slice(0, 300);
-    if (!q || thinking) return;
+    if (!q || busy) return;
     setTurns((t) => [...t, { from: "you", text: q }]);
     setDraft("");
     setThinking(true);
-    timer.current = setTimeout(() => {
-      setTurns((t) => [...t, { from: "drin", reply: reply(q, facts) }]);
-      setThinking(false);
-    }, THINKING_MS);
+    const calm = prefersReducedMotion();
+    const answer = reply(q, facts);
+    const finish = () => {
+      clearInterval(ticker.current);
+      setTyping(null);
+      setTurns((t) => [...t, { from: "drin", reply: answer }]);
+    };
+    timer.current = setTimeout(
+      () => {
+        setThinking(false);
+        if (calm) return finish();
+        setTyping({ reply: answer, shown: 0 });
+        let shown = 0;
+        ticker.current = setInterval(() => {
+          shown += CHARS_PER_TICK;
+          if (shown >= answer.text.length) return finish();
+          setTyping({ reply: answer, shown });
+        }, TICK_MS);
+      },
+      calm ? 400 : THINK_MIN_MS + Math.random() * (THINK_MAX_MS - THINK_MIN_MS),
+    );
   };
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -114,11 +147,24 @@ export function AskDrin({ facts }: { facts: Facts }) {
               ),
             )}
             {thinking && (
-              <p className="self-start text-caption" role="status">
-                Drin is typing…
-              </p>
+              <div className="flex flex-col items-start gap-0.5">
+                <span className="text-caption">Drin</span>
+                <span className="flex items-center gap-1.5 rounded-[18px_18px_18px_6px] bg-white px-ds-4 py-ds-3 shadow-card" aria-hidden="true">
+                  <span className="drin-dot" />
+                  <span className="drin-dot" style={{ animationDelay: "160ms" }} />
+                  <span className="drin-dot" style={{ animationDelay: "320ms" }} />
+                </span>
+                <span className="sr-only" role="status">
+                  Drin is typing
+                </span>
+              </div>
             )}
-            {turns.length === 0 && <Chips label="Popular questions" ids={[...STARTERS]} onPick={(q) => ask(q)} />}
+            {typing && (
+              <div aria-hidden="true">
+                <Bubble from="drin">{typing.reply.text.slice(0, typing.shown)}</Bubble>
+              </div>
+            )}
+            {turns.length === 0 && !busy && <Chips label="Popular questions" ids={[...STARTERS]} onPick={(q) => ask(q)} />}
             <div ref={end} />
           </div>
 
@@ -138,7 +184,7 @@ export function AskDrin({ facts }: { facts: Facts }) {
             />
             <button
               type="submit"
-              disabled={!draft.trim() || thinking}
+              disabled={!draft.trim() || busy}
               aria-label="Send question"
               className="au-grad grid size-11 shrink-0 place-items-center rounded-full text-white hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:bg-gray-100 disabled:[background-image:none] disabled:text-gray-400"
             >

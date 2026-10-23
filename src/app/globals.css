@@ -177,3 +177,30 @@
   border-radius: 9999px;
   pointer-events: none;
 }
+
+/* Ask Drin's "thinking" dots: three dots that rise and fall in turn. Still for people who prefer reduced motion. */
+.drin-dot {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--au-violet);
+  opacity: 0.55;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .drin-dot {
+    animation: drin-dot 1s ease-in-out infinite;
+  }
+  @keyframes drin-dot {
+    0%,
+    80%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.4;
+    }
+    40% {
+      transform: translateY(-4px);
+      opacity: 1;
+    }
+  }
+}

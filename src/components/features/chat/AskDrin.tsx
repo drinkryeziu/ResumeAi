@@ -7,7 +7,8 @@ import type { Facts } from "@/lib/ask-drin/facts";
 import { byId, STARTERS } from "@/lib/ask-drin/knowledge";
 import { reply, type Reply } from "@/lib/ask-drin/match";
 import { cn } from "@/lib/cn";
-import { pickVoices } from "@/lib/tour-voices";
+import { sentences } from "@/lib/ask-drin/speech-text";
+import { pickVoices, score as voiceScore } from "@/lib/tour-voices";
 import { DrinAvatar } from "./DrinAvatar";
 
 type Turn = { from: "you"; text: string } | { from: "drin"; reply: Reply };
@@ -24,21 +25,31 @@ const VOICE_KEY = "ask-drin-voice";
 const speech = () =>
   typeof window !== "undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined" ? window.speechSynthesis : null;
 
-/** Reads text aloud in the most natural man's voice the device has (the same picker the first-page tour uses). */
-function say(text: string, onEnd: () => void) {
+const VOICE_NAME_KEY = "ask-drin-voice-name";
+/** The voices worth offering: English, without the novelty ones, best first. */
+const goodVoices = () => (speech()?.getVoices() ?? []).filter((v) => voiceScore(v) > -10).sort((a, b) => voiceScore(b) - voiceScore(a));
+
+/**
+ * Reads text aloud, a sentence at a time so there is a breath between them, in the voice the person chose or else the most natural
+ * man's voice the device has (the same picker the first-page tour uses). `onEnd` is called when it is finished or cut off.
+ */
+function say(text: string, onEnd: () => void, voiceName?: string) {
   const synth = speech();
   if (!synth) return onEnd();
   const pick = pickVoices(synth.getVoices());
-  const voice = pick.explains;
-  const u = new SpeechSynthesisUtterance(text);
-  if (voice) u.voice = voice;
-  u.lang = voice?.lang ?? "en-US";
-  u.rate = 0.98;
-  u.pitch = pick.distinct ? 1 : 0.9;
-  u.onend = onEnd;
-  u.onerror = onEnd;
+  const voice = (voiceName && synth.getVoices().find((v) => v.name === voiceName)) || pick.explains;
+  const parts = sentences(text);
   synth.cancel();
-  synth.speak(u);
+  parts.forEach((part, i) => {
+    const u = new SpeechSynthesisUtterance(part);
+    if (voice) u.voice = voice;
+    u.lang = voice?.lang ?? "en-US";
+    u.rate = 0.95;
+    u.pitch = pick.distinct || voiceName ? 1 : 0.92;
+    if (i === parts.length - 1) u.onend = onEnd;
+    u.onerror = onEnd;
+    synth.speak(u);
+  });
 }
 
 /**
@@ -63,6 +74,9 @@ export function AskDrin({ facts }: { facts: Facts }) {
   const [canSpeak, setCanSpeak] = useState(false);
   const [voiceOn, setVoiceOn] = useState(false);
   const [speaking, setSpeaking] = useState<string | null>(null);
+  const [voices, setVoices] = useState<string[]>([]);
+  const [voiceName, setVoiceName] = useState("");
+  const voiceNameRef = useRef("");
   const voiceRef = useRef(false);
   const spoken = useRef(0);
 
@@ -70,12 +84,21 @@ export function AskDrin({ facts }: { facts: Facts }) {
   const read = (text: string) => {
     const mine = ++spoken.current;
     setSpeaking(text);
-    say(text, () => spoken.current === mine && setSpeaking(null));
+    say(text, () => spoken.current === mine && setSpeaking(null), voiceNameRef.current);
   };
   const hush = () => {
     spoken.current++;
     speech()?.cancel();
     setSpeaking(null);
+  };
+  /** The person picked a voice from the list ("" is the automatic choice): remember it and let them hear it. */
+  const chooseVoice = (name: string) => {
+    setVoiceName(name);
+    voiceNameRef.current = name;
+    try {
+      localStorage.setItem(VOICE_NAME_KEY, name);
+    } catch {}
+    read("Hi, I'm Drin. This is how I sound.");
   };
   const toggleVoice = () => {
     const on = !voiceOn;
@@ -88,20 +111,26 @@ export function AskDrin({ facts }: { facts: Facts }) {
   };
 
   useEffect(() => {
-    const ok = speech() !== null;
-    setCanSpeak(ok);
-    if (ok) {
-      speech()!.getVoices(); // some browsers load their voices late; asking once wakes the list up
+    const synth = speech();
+    const load = () => setVoices(goodVoices().map((v) => v.name)); // some browsers load their voices late
+    setCanSpeak(synth !== null);
+    if (synth) {
+      load();
+      synth.addEventListener?.("voiceschanged", load);
       try {
         const on = localStorage.getItem(VOICE_KEY) === "1";
         setVoiceOn(on);
         voiceRef.current = on;
+        const name = localStorage.getItem(VOICE_NAME_KEY) ?? "";
+        setVoiceName(name);
+        voiceNameRef.current = name;
       } catch {}
     }
     return () => {
       clearTimeout(timer.current);
       clearInterval(ticker.current);
-      speech()?.cancel();
+      synth?.removeEventListener?.("voiceschanged", load);
+      synth?.cancel();
     };
   }, []);
   useEffect(() => {
@@ -192,6 +221,27 @@ export function AskDrin({ facts }: { facts: Facts }) {
               <X size={20} aria-hidden="true" />
             </button>
           </header>
+
+          {canSpeak && voiceOn && voices.length > 0 && (
+            <div className="flex items-center gap-ds-2 bg-white px-ds-4 py-ds-2">
+              <label htmlFor="ask-drin-voice" className="shrink-0 text-caption">
+                Voice
+              </label>
+              <select
+                id="ask-drin-voice"
+                value={voiceName}
+                onChange={(e) => chooseVoice(e.target.value)}
+                className="min-w-0 flex-1 rounded-pill bg-gray-100 px-ds-3 py-1.5 text-body-sm outline-none focus-visible:outline-2 focus-visible:outline-blue-600"
+              >
+                <option value="">Automatic (best on this device)</option>
+                {voices.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div
             role="log"

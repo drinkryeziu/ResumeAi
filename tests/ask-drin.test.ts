@@ -64,3 +64,22 @@ describe("Ask Drin", () => {
     expect(tokens("Don't uploading")).toEqual(tokens("dont uploads"));
   });
 });
+
+describe("Ask Drin's speaking voice", () => {
+  it("spells out what people say letter by letter and cuts answers into sentences", async () => {
+    const { sentences, spokenForm } = await import("@/lib/ask-drin/speech-text");
+    expect(spokenForm("Will my CV pass the ATS as a PDF in ResumeAi?")).toBe("Will my C V pass the A T S as a P D F in Resume A I?");
+    expect(spokenForm("Starter is $9.99/month")).toBe("Starter is $9.99 a month");
+    const parts = sentences(
+      "No. We never apply for you. You download your resume and cover letter and apply on the company's own site. Tick Applied to remember.",
+    );
+    expect(parts.length).toBeGreaterThanOrEqual(2);
+    expect(parts.every((p) => p.length >= 10)).toBe(true);
+    expect(parts.join(" ")).toContain("never apply for you");
+  });
+
+  it("never loses a word when cutting up any answer", async () => {
+    const { sentences, spokenForm } = await import("@/lib/ask-drin/speech-text");
+    for (const e of ENTRIES) expect(sentences(e.answer(facts)).join(" ")).toBe(spokenForm(e.answer(facts)));
+  });
+});

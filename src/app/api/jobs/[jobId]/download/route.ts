@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod/v4";
+import { recordError } from "@/server/admin/record-error";
 import { currentUserId } from "@/server/auth/session";
 import { exportCoverLetter, exportPackage, exportResume, fileBase, MIME } from "@/server/documents/export";
 import { getStore } from "@/server/store";
@@ -33,21 +34,33 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ jobI
   let body: Buffer;
   let name: string;
   let type: string;
-  if (q.data.doc === "package") {
-    if (!resumeDoc) return NextResponse.json({ error: "Create your resume first" }, { status: 409 });
-    body = await exportPackage(resumeDoc, letterDoc, base);
-    name = `${base}-Application.zip`;
-    type = MIME.zip;
-  } else if (q.data.doc === "resume") {
-    if (!resumeDoc) return NextResponse.json({ error: "Create your resume first" }, { status: 409 });
-    body = await exportResume(resumeDoc, q.data.format);
-    name = `${base}-Resume.${q.data.format}`;
-    type = MIME[q.data.format];
-  } else {
-    if (!letterDoc) return NextResponse.json({ error: "Write your cover letter first" }, { status: 409 });
-    body = await exportCoverLetter(letterDoc, q.data.format);
-    name = `${base}-Cover-Letter.${q.data.format}`;
-    type = MIME[q.data.format];
+  try {
+    if (q.data.doc === "package") {
+      if (!resumeDoc) return NextResponse.json({ error: "Create your resume first" }, { status: 409 });
+      body = await exportPackage(resumeDoc, letterDoc, base);
+      name = `${base}-Application.zip`;
+      type = MIME.zip;
+    } else if (q.data.doc === "resume") {
+      if (!resumeDoc) return NextResponse.json({ error: "Create your resume first" }, { status: 409 });
+      body = await exportResume(resumeDoc, q.data.format);
+      name = `${base}-Resume.${q.data.format}`;
+      type = MIME[q.data.format];
+    } else {
+      if (!letterDoc) return NextResponse.json({ error: "Write your cover letter first" }, { status: 409 });
+      body = await exportCoverLetter(letterDoc, q.data.format);
+      name = `${base}-Cover-Letter.${q.data.format}`;
+      type = MIME[q.data.format];
+    }
+  } catch (e) {
+    // Building a file failed (not something the person did): say so plainly and keep the reason for the admin dashboard's error log.
+    console.error("[download]", e);
+    await recordError(store, {
+      source: "download",
+      code: `${q.data.doc}_${q.data.format}`,
+      message: e instanceof Error ? `${e.name}: ${e.message}` : "Unknown error",
+      userId,
+    });
+    return NextResponse.json({ error: "We couldn't build that file. Nothing was lost; try again, or download the Word version." }, { status: 500 });
   }
 
   return new NextResponse(new Uint8Array(body), {

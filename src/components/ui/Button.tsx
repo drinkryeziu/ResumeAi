@@ -16,7 +16,7 @@ const base =
 
 const variants: Record<Variant, string> = {
   primary:
-    "text-button py-ds-3 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-100 disabled:text-gray-400",
+    "text-button py-ds-3 bg-blue-600 au-grad text-white hover:brightness-110 disabled:bg-gray-100 disabled:[background-image:none] disabled:text-gray-400 disabled:brightness-100",
   secondary:
     "text-button py-ds-3 bg-white text-blue-600 shadow-[inset_0_0_0_2px_var(--blue-600)] hover:text-blue-700 hover:shadow-[inset_0_0_0_2px_var(--blue-700)] disabled:shadow-none disabled:bg-gray-100 disabled:text-gray-400",
   link: "text-body-sm text-blue-700 underline px-0 py-0",

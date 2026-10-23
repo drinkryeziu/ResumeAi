@@ -147,6 +147,9 @@
   --sky-50: #f4f0ff;
   --gray-100: #f4f0ff;
   --shadow-card: 0 20px 40px -24px rgba(60, 30, 160, 0.4);
+  --shadow-header: 0 1px 0 #e6defa;
+  --radius-md: 20px;
+  --radius-sm: 12px;
   background: #fbf8ff;
 }
 .au-grad {

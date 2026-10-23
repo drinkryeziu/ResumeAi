@@ -32,7 +32,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="aurora overflow-x-clip">
-      <PublicHeader aurora />
+      <PublicHeader />
       {(await searchParams)["account-deleted"] === "1" && (
         <p role="status" className="bg-sky-50 px-ds-4 py-ds-3 text-center text-body-sm">
           Your account and all your data were deleted.

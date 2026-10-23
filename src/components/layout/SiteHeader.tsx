@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { ChevronDown, Coins, LogOut, Settings, ShieldCheck } from "lucide-react";
 import { signOutAction } from "@/app/(auth)/actions";
+import { Wordmark } from "@/components/layout/PublicHeader";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
 
@@ -32,9 +33,9 @@ export function SiteHeader({ creditBalance, name, email, setup = false, admin = 
   const fromDocuments = useSearchParams().get("from") === "documents";
   if (setup) {
     return (
-      <header className="sticky top-0 z-20 bg-white shadow-header">
+      <header className="sticky top-0 z-20 bg-[#fbf8ff]/90 shadow-header backdrop-blur-md">
         <div className="mx-auto flex h-[60px] w-full max-w-[1120px] items-center justify-between px-ds-4 md:px-ds-5">
-          <span className="text-[20px] leading-none font-bold tracking-[-0.3px] text-blue-700">ResumeAi</span>
+          <Wordmark href="/onboarding" />
           <div className="flex items-center gap-ds-4">
             <span className="hidden text-body-sm sm:inline">Setting up {email}</span>
             <SignOutLink />
@@ -44,11 +45,9 @@ export function SiteHeader({ creditBalance, name, email, setup = false, admin = 
     );
   }
   return (
-    <header className="sticky top-0 z-20 bg-white shadow-header">
+    <header className="sticky top-0 z-20 bg-[#fbf8ff]/90 shadow-header backdrop-blur-md">
       <div className="mx-auto flex h-[60px] w-full max-w-[1120px] items-center justify-between px-ds-4 md:px-ds-5">
-        <Link href="/dashboard" className="text-[20px] leading-none font-bold tracking-[-0.3px] text-blue-700 no-underline">
-          ResumeAi
-        </Link>
+        <Wordmark href="/dashboard" />
         <nav aria-label="Main" className="hidden items-center gap-ds-5 md:flex">
           {NAV_ITEMS.map((item) => {
             const active = isActive(pathname, item.match, fromDocuments, item.href);

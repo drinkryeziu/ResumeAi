@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowUp, X } from "lucide-react";
+import { ArrowUp, Volume2, VolumeX, X } from "lucide-react";
 import type { Facts } from "@/lib/ask-drin/facts";
 import { byId, STARTERS } from "@/lib/ask-drin/knowledge";
 import { reply, type Reply } from "@/lib/ask-drin/match";
 import { cn } from "@/lib/cn";
+import { pickVoices } from "@/lib/tour-voices";
 import { DrinAvatar } from "./DrinAvatar";
 
 type Turn = { from: "you"; text: string } | { from: "drin"; reply: Reply };
@@ -18,6 +19,27 @@ const THINK_MAX_MS = 2000;
 const TICK_MS = 22;
 const CHARS_PER_TICK = 2;
 const prefersReducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+const VOICE_KEY = "ask-drin-voice";
+const speech = () =>
+  typeof window !== "undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined" ? window.speechSynthesis : null;
+
+/** Reads text aloud in the most natural man's voice the device has (the same picker the first-page tour uses). */
+function say(text: string, onEnd: () => void) {
+  const synth = speech();
+  if (!synth) return onEnd();
+  const pick = pickVoices(synth.getVoices());
+  const voice = pick.explains;
+  const u = new SpeechSynthesisUtterance(text);
+  if (voice) u.voice = voice;
+  u.lang = voice?.lang ?? "en-US";
+  u.rate = 0.98;
+  u.pitch = pick.distinct ? 1 : 0.9;
+  u.onend = onEnd;
+  u.onerror = onEnd;
+  synth.cancel();
+  synth.speak(u);
+}
 
 /**
  * "Ask Drin": a small helper on every page. Questions are answered from the app's own information (what the app does, what it
@@ -37,14 +59,51 @@ export function AskDrin({ facts }: { facts: Facts }) {
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const ticker = useRef<ReturnType<typeof setInterval>>(undefined);
   const busy = thinking || typing !== null;
+  /** Read aloud: the switch in the header (answers are read as they are typed), and which answer is being read now. */
+  const [canSpeak, setCanSpeak] = useState(false);
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [speaking, setSpeaking] = useState<string | null>(null);
+  const voiceRef = useRef(false);
+  const spoken = useRef(0);
 
-  useEffect(
-    () => () => {
+  /** Starts reading `text`; a newer reading (or a stop) makes the older one's "finished" signal harmless. */
+  const read = (text: string) => {
+    const mine = ++spoken.current;
+    setSpeaking(text);
+    say(text, () => spoken.current === mine && setSpeaking(null));
+  };
+  const hush = () => {
+    spoken.current++;
+    speech()?.cancel();
+    setSpeaking(null);
+  };
+  const toggleVoice = () => {
+    const on = !voiceOn;
+    setVoiceOn(on);
+    voiceRef.current = on;
+    try {
+      localStorage.setItem(VOICE_KEY, on ? "1" : "0");
+    } catch {}
+    if (!on) hush();
+  };
+
+  useEffect(() => {
+    const ok = speech() !== null;
+    setCanSpeak(ok);
+    if (ok) {
+      speech()!.getVoices(); // some browsers load their voices late; asking once wakes the list up
+      try {
+        const on = localStorage.getItem(VOICE_KEY) === "1";
+        setVoiceOn(on);
+        voiceRef.current = on;
+      } catch {}
+    }
+    return () => {
       clearTimeout(timer.current);
       clearInterval(ticker.current);
-    },
-    [],
-  );
+      speech()?.cancel();
+    };
+  }, []);
   useEffect(() => {
     if (open) input.current?.focus();
   }, [open]);
@@ -53,6 +112,7 @@ export function AskDrin({ facts }: { facts: Facts }) {
   }, [turns, thinking, typing?.shown, open]);
 
   const close = () => {
+    hush();
     setOpen(false);
     launcher.current?.focus();
   };
@@ -61,6 +121,7 @@ export function AskDrin({ facts }: { facts: Facts }) {
   const ask = (text: string) => {
     const q = text.trim().slice(0, 300);
     if (!q || busy) return;
+    hush();
     setTurns((t) => [...t, { from: "you", text: q }]);
     setDraft("");
     setThinking(true);
@@ -74,6 +135,7 @@ export function AskDrin({ facts }: { facts: Facts }) {
     timer.current = setTimeout(
       () => {
         setThinking(false);
+        if (voiceRef.current) read(answer.text);
         if (calm) return finish();
         setTyping({ reply: answer, shown: 0 });
         let shown = 0;
@@ -106,6 +168,21 @@ export function AskDrin({ facts }: { facts: Facts }) {
               <p className="text-card-title">Ask Drin</p>
               <p className="text-caption text-white/90">Questions about ResumeAi, answered from the app</p>
             </div>
+            {canSpeak && (
+              <button
+                type="button"
+                onClick={toggleVoice}
+                aria-pressed={voiceOn}
+                aria-label="Read answers aloud"
+                title={voiceOn ? "Reading answers aloud: on" : "Read answers aloud"}
+                className={cn(
+                  "grid size-10 shrink-0 place-items-center rounded-full hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white",
+                  voiceOn && "bg-white/25",
+                )}
+              >
+                {voiceOn ? <Volume2 size={20} aria-hidden="true" /> : <VolumeX size={20} aria-hidden="true" />}
+              </button>
+            )}
             <button
               type="button"
               onClick={close}
@@ -131,6 +208,16 @@ export function AskDrin({ facts }: { facts: Facts }) {
               ) : (
                 <div key={i} className="flex flex-col gap-ds-2">
                   <Bubble from="drin">{t.reply.text}</Bubble>
+                  {canSpeak && (
+                    <button
+                      type="button"
+                      onClick={() => (speaking === t.reply.text ? hush() : read(t.reply.text))}
+                      className="inline-flex items-center gap-1 self-start rounded-pill px-ds-2 py-1 text-caption text-blue-700 hover:bg-white focus-visible:outline-2 focus-visible:outline-blue-600"
+                    >
+                      {speaking === t.reply.text ? <VolumeX size={14} aria-hidden="true" /> : <Volume2 size={14} aria-hidden="true" />}
+                      {speaking === t.reply.text ? "Stop" : "Listen"}
+                    </button>
+                  )}
                   {t.reply.link && (
                     <Link
                       href={t.reply.link.href}

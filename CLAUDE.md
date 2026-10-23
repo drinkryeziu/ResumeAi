@@ -21,6 +21,7 @@ MongoDB (`mongodb` driver), @react-pdf/renderer + docx + jszip for exports, unpd
 - `src/components/ui/` — design-system kit (Button, Card, Field, Badge, ScoreRing, ScoreBar…). `features/` — feature components. The /profile page's sections are `ProfileSection`s (`features/profile/CollapsibleSections.tsx`): the first starts open, the rest closed, with Expand all / Collapse all above.
 - `src/server/ai/` — Career AI Agent: `workflows/` (one file per capability), `runner.ts` (credits → model → validate → guard → settle),
   `guard/fabrication-guard.ts`, `scoring.ts`, `routing.ts` (model per workflow), `providers/` (anthropic, openai, mock).
+- "Jobs to look for" (dashboard card, `ai/directions.ts` + `match/JobDirectionsCard`): each profession in the Master Resume's career analysis gets its share of the person's years (code, adds up to 100%; free, no AI call). It is worded as experience share, never as a chance of being hired.
 - `src/server/services/job-pipeline.ts` — business logic for every step. `src/server/store/` — `AppStore` interface + memory and MongoDB impls (`getStore()` picks by env).
 - `src/server/documents/` — `ResumeDocument` model, `templates/classic/` (pdf.tsx, docx.ts), `export.tsx`, `extract-text.ts`.
 - `src/server/credits/` — append-only ledger. Prices live in data (`billing/catalog.ts` seeds), never hard-coded in logic.

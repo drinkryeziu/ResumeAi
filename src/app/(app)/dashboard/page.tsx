@@ -3,6 +3,7 @@ import { ArrowRight, ClipboardPaste, FileCheck2, FileText, Mail, Target } from "
 import { DeleteApplicationButton } from "@/components/features/job-flow/DeleteApplicationButton";
 import { Badge } from "@/components/ui/Badge";
 import { NewJobCard } from "@/components/features/job-flow/NewJobCard";
+import { JobDirectionsCard } from "@/components/features/match/JobDirectionsCard";
 import { ButtonLink } from "@/components/ui/Button";
 import { ScoreBar } from "@/components/ui/ScoreBar";
 import { formatDate, formatNumber } from "@/lib/format";
@@ -76,6 +77,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       )}
 
       <NewJobCard cost={tailorCost} />
+
+      <JobDirectionsCard analysis={masterResume?.versions.find((v) => v.id === masterResume.currentVersionId)?.content.analysis} />
 
       <div className="grid items-start gap-ds-5 md:grid-cols-2">
         <section aria-labelledby="applications">

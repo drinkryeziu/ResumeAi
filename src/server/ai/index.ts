@@ -13,3 +13,4 @@ export { profileStrength } from "./profile-strength";
 export { CATEGORY_LABELS, MATCH_CATEGORIES, LABEL_TEXT, labelOf, type MatchLabel } from "./scoring";
 export { DIMENSION_LABELS, type FitLevel, type FitReport, type Strength } from "./fit";
 export { fmtYears, type CareerAnalysis, type ExperienceSummary } from "./experience";
+export { jobDirections, type Direction, type DirectionLevel } from "./directions";

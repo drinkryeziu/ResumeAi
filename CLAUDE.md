@@ -48,6 +48,7 @@ MongoDB (`mongodb` driver), @react-pdf/renderer + docx + jszip for exports, unpd
 - Buttons are pills, uppercase `text-button`. **One primary button per view**; second action = secondary (outline) or link.
 - Cards `rounded-md` + `shadow-card`, no hard borders. Use named type utilities (`text-heading-section`, `text-body`, `text-body-sm`, `text-label-bold`, `text-caption`…), not raw px.
 - Header: text links only, no filled button in the bar. Nav = Dashboard, Documents, Professional profile (jobs and applications open from the Dashboard; every resume and cover letter, master or per application, is listed under Documents with Edit, Download and Delete); credits/settings in the account menu; "Sign out" is a text link at the right of the bar (inside the Menu on mobile). While first-time setup is unfinished the header is just the wordmark and Sign out.
+- The first page (`src/app/page.tsx`) is the one exception: it wears the "aurora" look (violet → magenta → orange on a light lilac ground, Avenir). It is scoped to the `.aurora` wrapper in `globals.css`, which re-points `blue-*`, `sky-50`, `navy-900` for everything inside; the header there has a gradient "Get started" pill (`PublicHeader aurora`). The rest of the app keeps the colors above.
 - Plain language in the UI: "Optimize resume", "5 credits" — never "LLM", "tokens", "agent".
 - Sentence case everywhere except button labels. No emoji. Line icons from `lucide-react`.
 - Quality floor: responsive to 375px, visible focus, labels on every input, AA contrast.

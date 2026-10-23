@@ -7,6 +7,7 @@ import { requestPasswordResetAction, resetPasswordAction, signInWithPassword, si
 import { Button } from "@/components/ui/Button";
 import { LegalLinks } from "@/components/features/legal/LegalLinks";
 import { errorProps, Field, Input } from "@/components/ui/Field";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 function Submit({ label, pending: pendingLabel }: { label: string; pending: string }) {
   const { pending } = useFormStatus();
@@ -33,7 +34,7 @@ export function SignInForm() {
         <Input id="email" name="email" type="email" autoComplete="email" required />
       </Field>
       <Field label="Password" htmlFor="password" required>
-        <Input id="password" name="password" type="password" autoComplete="current-password" required />
+        <PasswordInput id="password" name="password" autoComplete="current-password" required />
       </Field>
       <Link href="/forgot-password" className="-mt-ds-2 self-end text-body-sm text-blue-700 underline">
         Forgot password?
@@ -70,10 +71,9 @@ function PasswordFields({ label, pair, confirmId }: { label: string; pair: Retur
   return (
     <>
       <Field label={label} htmlFor="password" required hint="At least 8 characters.">
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="new-password"
           minLength={8}
           required
@@ -82,10 +82,9 @@ function PasswordFields({ label, pair, confirmId }: { label: string; pair: Retur
         />
       </Field>
       <Field label="Confirm password" htmlFor={confirmId} required error={pair.mismatchText}>
-        <Input
+        <PasswordInput
           id={confirmId}
           name="confirmPassword"
-          type="password"
           autoComplete="new-password"
           required
           value={pair.confirm}

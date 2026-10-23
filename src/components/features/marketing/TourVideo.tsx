@@ -106,9 +106,9 @@ export function TourVideo() {
   const lines = started ? shownLines(i) : [];
 
   return (
-    <section aria-labelledby="tour-h" className="rounded-md bg-white p-ds-4 shadow-card md:p-ds-5">
+    <section aria-labelledby="tour-h" className="rounded-[34px] bg-white p-ds-4 shadow-[0_40px_80px_-30px_rgba(50,25,150,0.45)] md:p-9">
       <div className="mb-ds-4 flex flex-wrap items-baseline justify-between gap-x-ds-4 gap-y-ds-1">
-        <h2 id="tour-h" className="text-heading-section">
+        <h2 id="tour-h" className="text-[clamp(26px,3.2vw,40px)] leading-tight font-extrabold tracking-[-0.02em]">
           See how ResumeAi works
         </h2>
         <p className="text-body-sm">A short conversation, about {tourLength()}. Press play, or read it below.</p>
@@ -116,7 +116,7 @@ export function TourVideo() {
 
       <div className="grid gap-ds-4 lg:grid-cols-[1.15fr_1fr]">
         {/* The drawn screen */}
-        <div className="relative flex min-h-[260px] flex-col overflow-hidden rounded-md bg-sky-50">
+        <div className="relative flex min-h-[260px] flex-col overflow-hidden rounded-[24px] bg-gradient-to-br from-[#efe9ff] to-[#ffe6f3]">
           <p className="px-ds-4 pt-ds-3 text-label-bold text-blue-700">
             Step {sceneNow + 1} of {SCENES.length}
             <span className="font-normal text-navy-900"> · {SCENES[sceneNow]!.title}</span>
@@ -135,14 +135,14 @@ export function TourVideo() {
 
         {/* The conversation */}
         <div className="flex flex-col gap-ds-3">
-          <div role="log" aria-live="polite" aria-label="The conversation" className="flex min-h-[200px] flex-col gap-ds-3 rounded-md bg-gray-100 p-ds-3">
+          <div role="log" aria-live="polite" aria-label="The conversation" className="flex min-h-[200px] flex-col gap-ds-3 rounded-[24px] bg-sky-50 p-ds-4">
             {lines.length === 0 ? (
               <p className="m-auto max-w-[28ch] text-center text-body-sm">Listen in on a new user asking, and the ResumeAi guide explaining.</p>
             ) : (
               lines.map((l) => (
                 <div key={`${l.scene}-${l.line}`} className={cn("wt-in flex max-w-[92%] flex-col gap-0.5", l.speaker === "asks" ? "items-start" : "items-end self-end")}>
                   <span className="text-caption">{l.speaker === "asks" ? "New user" : "ResumeAi guide"}</span>
-                  <span className={cn("rounded-md px-ds-3 py-ds-2 text-body-sm", l.speaker === "asks" ? "bg-white text-navy-900 shadow-card" : "bg-blue-600 text-white")}>{l.text}</span>
+                  <span className={cn("px-ds-3 py-ds-2 text-body-sm", l.speaker === "asks" ? "rounded-[20px_20px_20px_6px] bg-white text-navy-900 shadow-card" : "au-grad rounded-[20px_20px_6px_20px] text-white")}>{l.text}</span>
                 </div>
               ))
             )}
@@ -197,7 +197,7 @@ export function TourVideo() {
               className="group flex w-full flex-col gap-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
             >
               <span className="block h-1.5 overflow-hidden rounded-pill bg-gray-100">
-                <span className="block h-full rounded-pill bg-blue-600" style={{ width: `${(started ? sceneProgress(n, i, elapsed) : 0) * 100}%` }} />
+                <span className="block h-full rounded-pill au-grad" style={{ width: `${(started ? sceneProgress(n, i, elapsed) : 0) * 100}%` }} />
               </span>
               <span className={cn("hidden text-caption group-hover:text-blue-700 lg:block", started && n === sceneNow && "font-bold text-blue-700")}>{s.title}</span>
             </button>

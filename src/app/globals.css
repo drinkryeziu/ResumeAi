@@ -131,3 +131,46 @@
     }
   }
 }
+
+/*
+ * The first page's "aurora" look: a violet-to-magenta-to-orange palette on a light lilac ground. It is scoped to the wrapper
+ * `.aurora`, which re-points the design-system colors (blue, sky, ink) for everything inside it, so the tour, buttons and
+ * links on that page turn violet while the rest of the app keeps the ApplyAiJobBoard colors.
+ */
+.aurora {
+  --au-violet: #6d4aff;
+  --au-magenta: #d6338f;
+  --au-orange: #ff8a3d;
+  --navy-900: #1b1340;
+  --blue-600: #6d4aff; /* 5:1 on white */
+  --blue-700: #5233e0;
+  --sky-50: #f4f0ff;
+  --gray-100: #f4f0ff;
+  --shadow-card: 0 20px 40px -24px rgba(60, 30, 160, 0.4);
+  background: #fbf8ff;
+}
+.au-grad {
+  background-image: linear-gradient(120deg, var(--au-violet), var(--au-magenta));
+}
+.au-grad-full {
+  background-image: linear-gradient(135deg, var(--au-violet), var(--au-magenta) 55%, var(--au-orange));
+}
+.au-grad-text {
+  background-image: linear-gradient(100deg, var(--au-violet), var(--au-magenta) 62%, #e8590c);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: var(--au-violet);
+  -webkit-text-fill-color: transparent;
+}
+.au-grad-text-light {
+  background-image: linear-gradient(90deg, #b9a8ff, #ff9ad0 60%, #ffc48a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: #ff9ad0;
+  -webkit-text-fill-color: transparent;
+}
+.au-blob {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+}

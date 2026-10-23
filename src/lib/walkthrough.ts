@@ -4,7 +4,7 @@
  * Keep it true to the app: plain words, no promises the product doesn't keep.
  */
 export type Speaker = "asks" | "explains";
-export type SceneId = "about" | "signup" | "profile" | "masters" | "job" | "match" | "questions" | "documents" | "download";
+export type SceneId = "about" | "signup" | "profile" | "masters" | "directions" | "job" | "match" | "questions" | "documents" | "download";
 
 export interface Line {
   speaker: Speaker;
@@ -50,6 +50,17 @@ export const SCENES: readonly Scene[] = [
     lines: [
       { speaker: "asks", text: "And then?" },
       { speaker: "explains", text: "Then we write your Master Resume and Master Cover Letter from it. That part is free, and every application you make starts from them." },
+    ],
+  },
+  {
+    id: "directions",
+    title: "See which jobs fit you",
+    lines: [
+      { speaker: "asks", text: "How do I know which jobs to look for?" },
+      {
+        speaker: "explains",
+        text: "Your dashboard shows Jobs to look for. It splits your work history by kind of work, like UX design or graphic design, so you search where your experience really fits. It's a guide, not a promise.",
+      },
     ],
   },
   {

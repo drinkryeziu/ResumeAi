@@ -12,7 +12,7 @@ export const metadata = { title: "ResumeAi — Tailor your resume to every job" 
 
 /** A genuine sequence, so the steps are numbered. */
 const STEPS = [
-  { title: "Create your profile once", body: "Type it in or upload your CV. We turn it into your Master Resume and Cover Letter.", icon: UserRound, card: "bg-[#efe9ff]", dot: "bg-[#6d4aff]", ink: "text-[#6d4aff]" },
+  { title: "Create your profile once", body: "Type it in or upload your CV. We turn it into your Master Resume and Cover Letter, and show which kinds of jobs your experience fits.", icon: UserRound, card: "bg-[#efe9ff]", dot: "bg-[#6d4aff]", ink: "text-[#6d4aff]" },
   { title: "Add a job", body: "Paste the job description or upload it as a file.", icon: FilePlus2, card: "bg-[#ffe6f3]", dot: "bg-[#d6338f]", ink: "text-[#b3216f]" },
   { title: "See how you match", body: "A Job Match Score with your matching skills, missing keywords and gaps.", icon: Gauge, card: "bg-[#ffebd9]", dot: "bg-[#c75a12]", ink: "text-[#a04a0b]" },
   { title: "Download and apply", body: "A resume and cover letter tailored to that job, as PDF or Word.", icon: Download, card: "bg-[#d9f6f1]", dot: "bg-[#0e8f7e]", ink: "text-[#0b6b5e]" },

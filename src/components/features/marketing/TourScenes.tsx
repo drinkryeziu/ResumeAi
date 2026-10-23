@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { AlertTriangle, ArrowRight, Check, FileText, FileUp, Mail, Pencil } from "lucide-react";
+import { AlertTriangle, ArrowRight, Check, Compass, FileText, FileUp, Mail, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { PdfIcon, WordIcon } from "@/components/ui/FileIcons";
 import { ScoreRing } from "@/components/ui/ScoreRing";
@@ -124,6 +124,33 @@ function Masters() {
       {doc(<FileText size={20} aria-hidden="true" />, "Master Resume", 0)}
       {doc(<Mail size={20} aria-hidden="true" />, "Master Cover Letter", 450)}
     </div>
+  );
+}
+
+function Directions() {
+  const row = (name: string, percent: number, tag: string, tone: "success" | "info", delay: number) => (
+    <Pop delay={delay} className="flex flex-col gap-1">
+      <span className="flex items-center justify-between gap-ds-2 text-body-sm">
+        <span className="text-label-bold">{name}</span>
+        <span className="flex items-center gap-ds-2">
+          <Badge tone={tone}>{tag}</Badge>
+          <span className="text-label-bold tabular-nums">{percent}%</span>
+        </span>
+      </span>
+      <span className="block h-2 rounded-pill bg-sky-50">
+        <Bar w={`${percent}%`} delay={delay + 250} tone="blue" />
+      </span>
+    </Pop>
+  );
+  return (
+    <Card className="flex w-full max-w-md flex-col gap-ds-3">
+      <span className="flex items-center gap-ds-2 text-label-bold">
+        <Compass size={18} className="text-blue-600" aria-hidden="true" /> Jobs to look for
+      </span>
+      {row("UX Designer", 60, "Where you are strongest", "success", 200)}
+      {row("Product Designer", 25, "Also a good fit", "info", 700)}
+      {row("Graphic Designer", 15, "Also a good fit", "info", 1200)}
+    </Card>
   );
 }
 
@@ -253,7 +280,7 @@ function Download() {
   );
 }
 
-const SCENE_ART: Record<SceneId, () => React.JSX.Element> = { about: About, signup: Signup, profile: Profile, masters: Masters, job: Job, match: Match, questions: Questions, documents: Documents, download: Download };
+const SCENE_ART: Record<SceneId, () => React.JSX.Element> = { about: About, signup: Signup, profile: Profile, masters: Masters, directions: Directions, job: Job, match: Match, questions: Questions, documents: Documents, download: Download };
 
 export function TourScene({ id }: { id: SceneId }) {
   const Art = SCENE_ART[id];

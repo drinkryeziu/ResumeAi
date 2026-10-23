@@ -17,7 +17,7 @@ describe("the first-page tour", () => {
   });
 
   it("covers the whole journey, in order", () => {
-    expect(SCENES.map((s) => s.id)).toEqual(["about", "signup", "profile", "masters", "job", "match", "questions", "documents", "download"]);
+    expect(SCENES.map((s) => s.id)).toEqual(["about", "signup", "profile", "masters", "directions", "job", "match", "questions", "documents", "download"]);
   });
 
   it("sounds like talking: contractions, short questions, and nothing stiff", () => {

@@ -236,28 +236,6 @@ export function storeContract(label: string, open: () => Promise<{ store: AppSto
       expect(c1.refunded - c0.refunded).toBe(15);
     });
 
-    it("keeps the job suggestions per person, replaces them, and removes them with the profile and with the account", async () => {
-      const a = await user("sug-a@example.com");
-      const b = await user("sug-b@example.com");
-      expect(await store.getJobSuggestions(a.id)).toBeNull();
-      const first = { query: "Designer jobs in Cornelius, NC", createdAt: new Date("2026-10-20T10:00:00Z"), jobs: [{ title: "Designer", company: "Northwind", location: "Charlotte, NC", url: "https://jobs.example.com/1", via: "LinkedIn" }] };
-      await store.saveJobSuggestions(a.id, first);
-      await store.saveJobSuggestions(b.id, { ...first, jobs: [] });
-      const got = (await store.getJobSuggestions(a.id))!;
-      expect(got.query).toBe(first.query);
-      expect(new Date(got.createdAt).toISOString()).toBe("2026-10-20T10:00:00.000Z");
-      expect(got.jobs).toEqual(first.jobs);
-
-      await store.saveJobSuggestions(a.id, { ...first, query: "Designer jobs", jobs: [] });
-      expect((await store.getJobSuggestions(a.id))!.query).toBe("Designer jobs"); // one set per person: replaced
-      expect((await store.getJobSuggestions(b.id))!.query).toBe(first.query); // someone else's is untouched
-
-      await store.deleteProfile(a.id);
-      expect(await store.getJobSuggestions(a.id)).toBeNull();
-      await store.deleteAccount(b.id);
-      expect(await store.getJobSuggestions(b.id)).toBeNull();
-    });
-
     it("keeps one answer per topic: a later answer replaces the earlier one", async () => {
       const u = await user("facts@example.com");
       await store.addApprovedFact(u.id, { topic: "WCAG", question: "q", answer: "first", status: "APPROVED", jobId: "j1" });

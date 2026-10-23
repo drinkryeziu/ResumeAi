@@ -20,8 +20,6 @@ export const RULES = {
   deleteUser: { name: "delete-user", limit: 8, windowMs: 60 * 60_000 },
   /** AI actions cost real money; credits already limit them, this stops a runaway loop. */
   aiUser: { name: "ai-user", limit: 40, windowMs: 10 * 60_000 },
-  /** The job search after the Master documents are made costs money per search, so each person gets only a few a day. */
-  jobSearchUser: { name: "job-search-user", limit: 5, windowMs: 24 * 60 * 60_000 },
   /** Browsers reporting that a page crashed. Anyone can send one, so they are counted per address. */
   errorReportIp: { name: "error-report-ip", limit: 30, windowMs: 60 * 60_000 },
   /** Adding or removing people who can open the admin dashboard. */

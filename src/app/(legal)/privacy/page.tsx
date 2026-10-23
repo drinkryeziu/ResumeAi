@@ -36,7 +36,6 @@ export default function PrivacyPage() {
             "Hosting: Vercel, which serves the website.",
             "Database: MongoDB Atlas, which stores your account, profile, documents and records.",
             "AI writing: Anthropic. When you read a CV, analyze a job or create a document, the relevant parts of your profile and the job description are sent to Anthropic to produce the result.",
-            "Job suggestions: SerpApi, which looks up openings on Google Jobs. When your Master documents are created we send it your job title and your city and state (and nothing else, no name, email or documents) to find openings, and we keep the five we show you so we don't search again for a week.",
             "Email: Resend, which delivers password reset emails (it receives your email address and the message).",
           ]}
         />

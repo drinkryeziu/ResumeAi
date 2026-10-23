@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { cityStateOf, headerLines, resumeFromProfile } from "@/server/documents/model";
-import { resumePlainText } from "@/server/documents/plain-text";
+import { cityStateOf, headerLines, resumeFromProfile, senderLines } from "@/server/documents/model";
+import { coverLetterPlainText, resumePlainText } from "@/server/documents/plain-text";
+import { toCoverLetterDocument } from "@/server/ai/workflows/cover-letter";
 import { TEST_PROFILE } from "./fixtures";
 
 vi.mock("server-only", () => ({}));
@@ -40,5 +41,39 @@ describe("the resume header", () => {
     expect(top[2]).toBe("+1 929 354 3643  |  alex.rivera@example.com");
     expect(top[3]).toBe("Cornelius, NC");
     expect(top[4]).toBe("linkedin.com/in/ana  |  ana.example.com");
+  });
+});
+
+describe("the cover letter's top block", () => {
+  const profile = { ...TEST_PROFILE, phone: "+1 929 354 3643", city: "Cornelius", state: "NC", country: "United States", links: { linkedin: "https://www.linkedin.com/in/ana", portfolio: "https://ana.example.com" } };
+  const resume = resumeFromProfile(profile);
+  const letter = (job: { title: string; company: string; description: string } | null = null) =>
+    toCoverLetterDocument({ profile, resume, job, analysis: null, tone: "PROFESSIONAL", mode: "generate" }, { paragraphs: [{ text: "Hello.", evidenceIds: ["summary"] }], organizationsMentioned: [] });
+
+  it("has the resume's own order and job title: name, title, phone | email, city and state, links", () => {
+    const from = senderLines(letter().sender);
+    expect(from.name).toBe("Alex Rivera");
+    expect(from.headline).toBe(resume.header.headline);
+    expect(from.contact).toBe("+1 929 354 3643  |  alex.rivera@example.com");
+    expect(from.place).toBe("Cornelius, NC");
+    expect(from.links).toEqual(["linkedin.com/in/ana", "ana.example.com"]);
+  });
+
+  it("is the same for the Master Cover Letter (no job) and one written for a job", () => {
+    const master = senderLines(letter(null).sender);
+    const forJob = senderLines(letter({ title: "Designer", company: "Northwind", description: "d" }).sender);
+    expect(master).toEqual(forJob);
+  });
+
+  it("is copied as text in that order, then the date and the letter", () => {
+    const lines = coverLetterPlainText(letter()).split("\n");
+    expect(lines.slice(0, 5)).toEqual(["Alex Rivera", resume.header.headline, "+1 929 354 3643  |  alex.rivera@example.com", "Cornelius, NC", "linkedin.com/in/ana  |  ana.example.com"]);
+    expect(lines[5]).toBe("");
+  });
+
+  it("still reads an older letter that has no job title line", () => {
+    const old = { ...letter().sender, headline: undefined };
+    expect(senderLines(old).headline).toBe("");
+    expect(coverLetterPlainText({ ...letter(), sender: old }).split("\n")[1]).toBe("+1 929 354 3643  |  alex.rivera@example.com");
   });
 });

@@ -1,5 +1,5 @@
 import { formatMonthYear } from "@/lib/format";
-import { displayUrl, headerLines, HEADER_SEPARATOR, senderContact, skillSections, type CoverLetterDocument, type ResumeDocument } from "@/server/documents/model";
+import { displayUrl, headerLines, HEADER_SEPARATOR, senderLines, skillSections, type CoverLetterDocument, type ResumeDocument } from "@/server/documents/model";
 
 /** On-screen rendering of the same ResumeDocument the PDF/DOCX exporters use. */
 export function ResumePreview({ doc }: { doc: ResumeDocument }) {
@@ -88,11 +88,17 @@ export function ResumePreview({ doc }: { doc: ResumeDocument }) {
 }
 
 export function CoverLetterPreview({ doc }: { doc: CoverLetterDocument }) {
+  const from = senderLines(doc.sender);
   return (
     <article aria-label="Cover letter preview" className="flex flex-col gap-ds-3 rounded-md bg-white p-ds-5 text-[14px] leading-[1.6] shadow-card">
       <div>
-        <h2 className="text-[20px] font-bold">{doc.sender.name}</h2>
-        <p className="text-[12px]">{senderContact(doc.sender).join("  ·  ")}</p>
+        <h2 className="text-[20px] font-bold">{from.name}</h2>
+        {from.headline && <p className="text-[13px] text-blue-700">{from.headline}</p>}
+        <div className="mt-1 flex flex-col text-[12px]">
+          {from.contact && <p>{from.contact}</p>}
+          {from.place && <p>{from.place}</p>}
+          {from.links.length > 0 && <p>{from.links.join(HEADER_SEPARATOR)}</p>}
+        </div>
       </div>
       <p>{new Date(`${doc.date}T12:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</p>
       <p>{doc.greeting}</p>

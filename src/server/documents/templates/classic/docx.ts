@@ -1,6 +1,6 @@
 import { AlignmentType, BorderStyle, Document, ExternalHyperlink, LevelFormat, Packer, Paragraph, TabStopType, TextRun } from "docx";
 import { formatMonthYear } from "@/lib/format";
-import { headerLines, HEADER_SEPARATOR, senderContact, skillSections, type CoverLetterDocument, type ResumeDocument } from "../../model";
+import { headerLines, HEADER_SEPARATOR, senderLines, skillSections, type CoverLetterDocument, type ResumeDocument } from "../../model";
 import { classicTheme as t } from "./theme";
 
 /**
@@ -111,6 +111,8 @@ export async function resumeDocx(doc: ResumeDocument): Promise<Buffer> {
 
 export async function coverLetterDocx(doc: CoverLetterDocument): Promise<Buffer> {
   const p = (text: string, after = 200) => new Paragraph({ spacing: { after, line: 300 }, children: [run(text)] });
+  const from = senderLines(doc.sender);
+  const fromLines = [from.contact, from.place, from.links.join(HEADER_SEPARATOR)].filter(Boolean);
   const date = new Date(`${doc.date}T12:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   const file = new Document({
     creator: doc.sender.name,
@@ -119,8 +121,10 @@ export async function coverLetterDocx(doc: CoverLetterDocument): Promise<Buffer>
       {
         properties: { page: { margin: { top: 1080, bottom: 1080, left: 1080, right: 1080 } } },
         children: [
-          new Paragraph({ children: [run(doc.sender.name, { bold: true, size: t.size.name })] }),
-          new Paragraph({ spacing: { after: 360 }, children: [run(senderContact(doc.sender).join("  ·  "), { color: t.muted, size: t.size.small })] }),
+          new Paragraph({ children: [run(from.name, { bold: true, size: t.size.name })] }),
+          ...(from.headline ? [new Paragraph({ children: [run(from.headline, { color: t.accent, size: t.size.headline })] })] : []),
+          ...fromLines.map((line, i) => new Paragraph({ spacing: i === fromLines.length - 1 ? { after: 360 } : undefined, children: [run(line, { color: t.muted, size: t.size.small })] })),
+          ...(fromLines.length === 0 ? [new Paragraph({ spacing: { after: 360 }, children: [] })] : []),
           p(date, 280),
           p(doc.greeting),
           ...doc.paragraphs.map((x) => p(x)),

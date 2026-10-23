@@ -1,5 +1,5 @@
 import { formatMonthYear } from "@/lib/format";
-import { headerLines, HEADER_SEPARATOR, senderContact, skillSections, type CoverLetterDocument, type ResumeDocument } from "./model";
+import { headerLines, HEADER_SEPARATOR, senderLines, skillSections, type CoverLetterDocument, type ResumeDocument } from "./model";
 
 /**
  * Readable plain text for pasting into an application form ("Copy as text").
@@ -30,7 +30,7 @@ export function resumePlainText(doc: ResumeDocument): string {
 
 export function coverLetterPlainText(doc: CoverLetterDocument): string {
   const date = new Date(`${doc.date}T12:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  return [doc.sender.name, senderContact(doc.sender).join(" | "), "", date, "", doc.greeting, "", doc.paragraphs.join("\n\n"), "", doc.closing, doc.signature]
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n");
+  const from = senderLines(doc.sender);
+  const top = [from.name, from.headline, from.contact, from.place, from.links.join(HEADER_SEPARATOR)].filter(Boolean);
+  return [...top, "", date, "", doc.greeting, "", doc.paragraphs.join("\n\n"), "", doc.closing, doc.signature].join("\n").replace(/\n{3,}/g, "\n\n");
 }

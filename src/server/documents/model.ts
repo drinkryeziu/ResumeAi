@@ -41,7 +41,8 @@ export interface ResumeDocument {
 
 export interface CoverLetterDocument {
   /** `links`: readable LinkedIn / portfolio addresses, when the profile has them. */
-  sender: { name: string; email: string; phone?: string | null; location?: string | null; links?: string[] };
+  /** `headline`: the job title line under the name, the same as on the resume. Absent on letters written before it existed. */
+  sender: { name: string; headline?: string | null; email: string; phone?: string | null; location?: string | null; links?: string[] };
   recipient: { company: string; jobTitle: string };
   date: string; // ISO date
   greeting: string;
@@ -78,8 +79,19 @@ const LINK_LABELS: Record<string, string> = {
  */
 export const displayUrl = (url: string) => url.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "");
 
-/** The sender's contact line on a cover letter: email, phone, location, then LinkedIn and portfolio. Nothing missing is invented. */
-export const senderContact = (s: CoverLetterDocument["sender"]) => [s.email, s.phone, s.location, ...(s.links ?? [])].filter(Boolean) as string[];
+/**
+ * The cover letter's top block, the same order as the resume's header: name, job title, phone and email, city and state, links.
+ * Empty lines are left out. Nothing missing is invented.
+ */
+export function senderLines(s: CoverLetterDocument["sender"]) {
+  return {
+    name: s.name,
+    headline: s.headline ?? "",
+    contact: [s.phone, s.email].filter(Boolean).join(HEADER_SEPARATOR),
+    place: s.location ?? "",
+    links: s.links ?? [],
+  };
+}
 
 /** "Cornelius, NC" for the resume header: city and state, or the city and country when there is no state, or just what there is. */
 export function cityStateOf(p: Pick<ProfileSnapshot, "city" | "state" | "country">) {

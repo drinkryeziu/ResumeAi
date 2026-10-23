@@ -1,7 +1,7 @@
 import { z } from "zod/v4";
 import type { ProfileSnapshot } from "@/server/domain/profile";
 import type { CoverLetterDocument, ResumeDocument } from "@/server/documents/model";
-import { displayUrl, locationOf } from "@/server/documents/model";
+import { cityStateOf, displayUrl } from "@/server/documents/model";
 import { buildEvidence, claimableTerms, evidenceBlock } from "../evidence";
 import { inventedNumbers, overlongYears, unknownEvidence, unknownOrganizations } from "../guard/fabrication-guard";
 import { normalize } from "../text";
@@ -145,9 +145,10 @@ export function toCoverLetterDocument(input: CoverLetterInput, out: CoverLetterO
   return {
     sender: {
       name,
+      headline: input.resume.header.headline || input.profile.headline,
       email: input.profile.email,
       phone: input.profile.phone,
-      location: locationOf(input.profile),
+      location: cityStateOf(input.profile),
       links: (["linkedin", "portfolio"] as const).flatMap((k) => (input.profile.links[k] ? [displayUrl(input.profile.links[k]!)] : [])),
     },
     recipient: { company: input.job?.company ?? "", jobTitle: input.job?.title ?? "" },

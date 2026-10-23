@@ -1,6 +1,6 @@
 import { Document, Link, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { formatMonthYear } from "@/lib/format";
-import { headerLines, HEADER_SEPARATOR, senderContact, skillSections, type CoverLetterDocument, type ResumeDocument } from "../../model";
+import { headerLines, HEADER_SEPARATOR, senderLines, skillSections, type CoverLetterDocument, type ResumeDocument } from "../../model";
 import { classicTheme as t } from "./theme";
 
 const s = StyleSheet.create({
@@ -129,12 +129,15 @@ export function ResumePdf({ doc }: { doc: ResumeDocument }) {
 }
 
 export function CoverLetterPdf({ doc }: { doc: CoverLetterDocument }) {
-  const contact = senderContact(doc.sender).join("  ·  ");
+  const from = senderLines(doc.sender);
   return (
     <Document title={`${doc.sender.name} — Cover letter`} author={doc.sender.name}>
       <Page size="LETTER" style={{ ...s.page, lineHeight: 1.5 }}>
-        <Text style={s.name}>{doc.sender.name}</Text>
-        <Text style={s.contact}>{contact}</Text>
+        <Text style={s.name}>{from.name}</Text>
+        {from.headline && <Text style={s.headline}>{from.headline}</Text>}
+        {from.contact && <Text style={s.contactLine}>{from.contact}</Text>}
+        {from.place && <Text style={s.contactLine}>{from.place}</Text>}
+        {from.links.length > 0 && <Text style={s.contactLine}>{from.links.join(HEADER_SEPARATOR)}</Text>}
         <Text style={{ marginTop: 24, marginBottom: 16 }}>
           {new Date(`${doc.date}T12:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
         </Text>

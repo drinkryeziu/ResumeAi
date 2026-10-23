@@ -186,11 +186,11 @@ export class MongoAppStore implements AppStore {
     return this.creditStore.totalsSince(since);
   }
   async listRunningCosts() {
-    return (await this.runningCosts.find({}).sort({ _id: 1 }).toArray()).map((r) => row<RunningCost>(r)!);
+    return (await this.runningCosts.find({}).sort({ ts: 1 }).toArray()).map((r) => row<RunningCost>(r, ["ts"])!); // in the order they were added
   }
   async addRunningCost(label: string, cents: number) {
     const rec = { id: newId("cost"), label, cents };
-    await this.runningCosts.insertOne({ _id: rec.id as never, label, cents });
+    await this.runningCosts.insertOne({ _id: rec.id as never, label, cents, ts: tick() });
     return rec;
   }
   async removeRunningCost(costId: string) {

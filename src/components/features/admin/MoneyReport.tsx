@@ -1,6 +1,7 @@
 import { PiggyBank, Receipt, Scale, Wallet } from "lucide-react";
 import { removeRunningCost } from "@/app/(app)/admin/actions";
-import { Card, CardHeader, SoftPanel } from "@/components/ui/Card";
+import { SoftPanel } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { DataTable } from "@/components/ui/DataTable";
 import { StatCard } from "@/components/ui/StatCard";
 import { formatDate, formatNumber } from "@/lib/format";
@@ -64,15 +65,39 @@ export function MoneyReport({
         />
       </div>
 
-      <Card aria-labelledby="plans-money-h">
-        <CardHeader
-          title={<span id="plans-money-h">Each plan and pack</span>}
-          subtitle={
-            perCredit === null
-              ? "The AI cost appears once people have used the AI. Until then only your 20% and the rest are shown."
-              : `One credit costs about ${moneyFine(perCredit)} in AI, from real use in the last ${days} days. If every credit bought is used, this is what each sale leaves.`
-          }
-        />
+      <CollapsibleCard id="buys-h" title="Purchases" subtitle="Each one split the same way. Nothing here says who bought.">
+        {purchases.length === 0 ? (
+          <SoftPanel>
+            <p className="text-body-sm">No purchases yet. Checkout isn&apos;t open, so nothing has been sold. Every purchase will appear here with its split.</p>
+          </SoftPanel>
+        ) : (
+          <DataTable
+            caption="Purchases in the last 30 days"
+            columns={[
+              { key: "when", label: "Date" },
+              { key: "what", label: "What" },
+              { key: "price", label: "Price", align: "right" },
+              { key: "owner", label: `Your ${OWNER_SHARE_PCT}%`, align: "right" },
+              { key: "rest", label: "For costs", align: "right" },
+              { key: "ai", label: "AI cost of its credits", align: "right" },
+            ]}
+            rows={purchases.map((p) => {
+              const b = breakdown(p, perCredit);
+              return { id: p.id, cells: { when: formatDate(p.at), what: p.name, price: money(b.price), owner: money(b.owner), rest: money(b.toCosts), ai: orDash(b.ai) } };
+            })}
+          />
+        )}
+      </CollapsibleCard>
+
+      <CollapsibleCard
+        id="plans-money-h"
+        title="Each plan and pack"
+        subtitle={
+          perCredit === null
+            ? "The AI cost appears once people have used the AI. Until then only your 20% and the rest are shown."
+            : `One credit costs about ${moneyFine(perCredit)} in AI, from real use in the last ${days} days. If every credit bought is used, this is what each sale leaves.`
+        }
+      >
         <DataTable
           caption="What each plan and pack leaves after your share and the AI"
           columns={[
@@ -101,10 +126,9 @@ export function MoneyReport({
             };
           })}
         />
-      </Card>
+      </CollapsibleCard>
 
-      <Card aria-labelledby="running-h">
-        <CardHeader title={<span id="running-h">Fixed monthly costs</span>} subtitle="What it costs each month just to keep the app online, whether or not anyone buys: hosting, database, email, domain." />
+      <CollapsibleCard id="running-h" title="Fixed monthly costs" subtitle="What it costs each month just to keep the app online, whether or not anyone buys: hosting, database, email, domain.">
         <div className="flex flex-col gap-ds-4">
           {runningCosts.length === 0 ? (
             <p className="text-body-sm">None entered yet. Add them so the report can tell whether the {100 - OWNER_SHARE_PCT}% is enough.</p>
@@ -132,32 +156,7 @@ export function MoneyReport({
           )}
           <AddRunningCostForm />
         </div>
-      </Card>
-
-      <Card aria-labelledby="buys-h">
-        <CardHeader title={<span id="buys-h">Purchases</span>} subtitle="Each one split the same way. Nothing here says who bought." />
-        {purchases.length === 0 ? (
-          <SoftPanel>
-            <p className="text-body-sm">No purchases yet. Checkout isn&apos;t open, so nothing has been sold. Every purchase will appear here with its split.</p>
-          </SoftPanel>
-        ) : (
-          <DataTable
-            caption="Purchases in the last 30 days"
-            columns={[
-              { key: "when", label: "Date" },
-              { key: "what", label: "What" },
-              { key: "price", label: "Price", align: "right" },
-              { key: "owner", label: `Your ${OWNER_SHARE_PCT}%`, align: "right" },
-              { key: "rest", label: "For costs", align: "right" },
-              { key: "ai", label: "AI cost of its credits", align: "right" },
-            ]}
-            rows={purchases.map((p) => {
-              const b = breakdown(p, perCredit);
-              return { id: p.id, cells: { when: formatDate(p.at), what: p.name, price: money(b.price), owner: money(b.owner), rest: money(b.toCosts), ai: orDash(b.ai) } };
-            })}
-          />
-        )}
-      </Card>
+      </CollapsibleCard>
     </section>
   );
 }

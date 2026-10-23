@@ -3,6 +3,7 @@ import { AddViewerForm } from "@/components/features/admin/AddViewerForm";
 import { LocalTime } from "@/components/features/admin/LocalTime";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, SoftPanel } from "@/components/ui/Card";
+import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { formatDate, formatNumber } from "@/lib/format";
@@ -124,8 +125,42 @@ export default async function AdminPage() {
           </div>
         </section>
 
-        <Card aria-labelledby="events-h">
-          <CardHeader title={<span id="events-h">Security events</span>} subtitle="Wrong passwords and requests turned away because of too many tries. No names, emails or addresses are kept." />
+        <Card aria-labelledby="people-h">
+          <CardHeader
+            title={<span id="people-h">People using ResumeAi</span>}
+            subtitle={`Most recently active first; press a column heading to sort. Active means any activity in the last ${ACTIVE_DAYS} days. Application counts only include jobs with a tailored resume or cover letter.`}
+          />
+          {rows.length === 0 ? (
+            <p className="text-body-sm">Nobody has signed up yet.</p>
+          ) : (
+            <PeopleTable rows={people} canRemove={role === "owner"} ownerEmail={ownerEmail()} />
+          )}
+        </Card>
+
+        {money && (
+          <MoneyReport
+            report={monthReport({ purchases: money[0], aiCostUsd: money[1].costUsd, runningCosts: money[3] })}
+            perCredit={aiCentsPerCredit(money[1].costUsd, money[2].consumed, money[2].refunded)}
+            purchases={money[0]}
+            runningCosts={money[3]}
+            days={MONEY_DAYS}
+          />
+        )}
+
+        <ErrorLogs
+          total={errorLog.total}
+          entries={errorLog.entries}
+          who={new Map(snapshot.users.map((u) => [u.id, { name: u.name, email: u.email }]))}
+          canClear={role === "owner"}
+          days={ERROR_DAYS}
+        />
+
+        <CollapsibleCard
+          id="events-h"
+          title="Security events"
+          badge={<Badge tone={security.recent.length === 0 ? "success" : "warning"}>{security.recent.length === 0 ? "Nothing unusual" : count(security.recent.length, "event")}</Badge>}
+          subtitle="Wrong passwords and requests turned away because of too many tries. No names, emails or addresses are kept."
+        >
           {security.recent.length === 0 ? (
             <p className="text-body-sm">Nothing unusual in the last 24 hours.</p>
           ) : (
@@ -143,19 +178,7 @@ export default async function AdminPage() {
               ))}
             </ul>
           )}
-        </Card>
-
-        <Card aria-labelledby="people-h">
-          <CardHeader
-            title={<span id="people-h">People using ResumeAi</span>}
-            subtitle={`Most recently active first; press a column heading to sort. Active means any activity in the last ${ACTIVE_DAYS} days. Application counts only include jobs with a tailored resume or cover letter.`}
-          />
-          {rows.length === 0 ? (
-            <p className="text-body-sm">Nobody has signed up yet.</p>
-          ) : (
-            <PeopleTable rows={people} canRemove={role === "owner"} ownerEmail={ownerEmail()} />
-          )}
-        </Card>
+        </CollapsibleCard>
 
         {role === "owner" && (
           <Card aria-labelledby="access-h">
@@ -190,24 +213,6 @@ export default async function AdminPage() {
             </div>
           </Card>
         )}
-
-        {money && (
-          <MoneyReport
-            report={monthReport({ purchases: money[0], aiCostUsd: money[1].costUsd, runningCosts: money[3] })}
-            perCredit={aiCentsPerCredit(money[1].costUsd, money[2].consumed, money[2].refunded)}
-            purchases={money[0]}
-            runningCosts={money[3]}
-            days={MONEY_DAYS}
-          />
-        )}
-
-        <ErrorLogs
-          total={errorLog.total}
-          entries={errorLog.entries}
-          who={new Map(snapshot.users.map((u) => [u.id, { name: u.name, email: u.email }]))}
-          canClear={role === "owner"}
-          days={ERROR_DAYS}
-        />
       </div>
     </>
   );

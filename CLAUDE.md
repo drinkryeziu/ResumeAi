@@ -22,6 +22,7 @@ MongoDB (`mongodb` driver), @react-pdf/renderer + docx + jszip for exports, unpd
 - `src/server/ai/` — Career AI Agent: `workflows/` (one file per capability), `runner.ts` (credits → model → validate → guard → settle),
   `guard/fabrication-guard.ts`, `scoring.ts`, `routing.ts` (model per workflow), `providers/` (anthropic, openai, mock).
 - "Jobs to look for" (dashboard card, `ai/directions.ts` + `match/JobDirectionsCard`): each profession in the Master Resume's career analysis gets its share of the person's years (code, adds up to 100%; free, no AI call). It is worded as experience share, never as a chance of being hired.
+- "Ask Drin" (floating chat on every page, `components/features/chat/`, `lib/ask-drin/`): answers questions about the app from a written knowledge base (`knowledge.ts`), matched by the words of the question in the browser (no AI call, no cost, nothing sent anywhere); numbers come from the price list (`server/ask-drin-facts.ts`). When the app changes (steps, prices, rules), change the entry too; `tests/ask-drin.test.ts` checks each ready-made question finds its own answer. Drin says so when he doesn't know.
 - `src/server/services/job-pipeline.ts` — business logic for every step. `src/server/store/` — `AppStore` interface + memory and MongoDB impls (`getStore()` picks by env).
 - `src/server/documents/` — `ResumeDocument` model, `templates/classic/` (pdf.tsx, docx.ts), `export.tsx`, `extract-text.ts`.
 - `src/server/credits/` — append-only ledger. Prices live in data (`billing/catalog.ts` seeds), never hard-coded in logic.

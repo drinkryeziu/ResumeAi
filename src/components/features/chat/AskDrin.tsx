@@ -28,6 +28,8 @@ const speech = () =>
 const VOICE_NAME_KEY = "ask-drin-voice-name";
 /** The voice Drin uses when nobody has picked one, if the device has it ("Alex" comes with every Mac); otherwise the best one found. */
 const PREFERRED_VOICE = "Alex";
+/** How fast he talks: a little quicker than the default, which sounds drawn out for a helper. */
+const RATE = 1.1;
 /** The voices worth offering: English, without the novelty ones, best first. */
 const goodVoices = () => (speech()?.getVoices() ?? []).filter((v) => voiceScore(v) > -10).sort((a, b) => voiceScore(b) - voiceScore(a));
 
@@ -49,7 +51,7 @@ function say(text: string, onEnd: () => void, voiceName?: string, onStart?: () =
     const u = new SpeechSynthesisUtterance(part);
     if (voice) u.voice = voice;
     u.lang = voice?.lang ?? "en-US";
-    u.rate = 0.95;
+    u.rate = RATE;
     u.pitch = voice?.name === PREFERRED_VOICE || voiceName || pick.distinct ? 1 : 0.92;
     if (i === 0) u.onstart = () => onStart?.();
     if (i === parts.length - 1) u.onend = onEnd;

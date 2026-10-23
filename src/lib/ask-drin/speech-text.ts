@@ -21,8 +21,24 @@ export function spokenForm(text: string): string {
     .trim();
 }
 
-/** The answer in sentences, with very short ones joined to the next so the voice doesn't stop after every few words. */
+/** Longest phrase handed to the voice at once: long enough to flow like speech, short enough that no browser cuts it off. */
+const PHRASE_MAX = 170;
+
+/**
+ * The answer in phrases of one or two sentences. Every phrase is a separate utterance and the voice pauses between them, so too many
+ * short ones sound chopped; very short sentences are joined to the next and neighbours are merged up to a comfortable length.
+ */
 export function sentences(text: string): string[] {
+  const merged: string[] = [];
+  for (const piece of pieces(text)) {
+    const last = merged[merged.length - 1];
+    if (last !== undefined && last.length + 1 + piece.length <= PHRASE_MAX) merged[merged.length - 1] = `${last} ${piece}`;
+    else merged.push(piece);
+  }
+  return merged;
+}
+
+function pieces(text: string): string[] {
   const parts = spokenForm(text)
     .split(/(?<=[.!?])\s+/)
     .map((s) => s.trim())

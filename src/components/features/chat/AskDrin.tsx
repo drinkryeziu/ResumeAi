@@ -29,7 +29,7 @@ const VOICE_NAME_KEY = "ask-drin-voice-name";
 /** The voice Drin uses when nobody has picked one, if the device has it ("Alex" comes with every Mac); otherwise the best one found. */
 const PREFERRED_VOICE = "Alex";
 /** How fast he talks: a little quicker than the default, which sounds drawn out for a helper. */
-const RATE = 1.1;
+const RATE = 1.02;
 /** The voices worth offering: English, without the novelty ones, best first. */
 const goodVoices = () => (speech()?.getVoices() ?? []).filter((v) => voiceScore(v) > -10).sort((a, b) => voiceScore(b) - voiceScore(a));
 

@@ -1,5 +1,5 @@
 import { formatMonthYear } from "@/lib/format";
-import { displayUrl, senderContact, skillSections, type CoverLetterDocument, type ResumeDocument } from "./model";
+import { headerLines, HEADER_SEPARATOR, senderContact, skillSections, type CoverLetterDocument, type ResumeDocument } from "./model";
 
 /**
  * Readable plain text for pasting into an application form ("Copy as text").
@@ -7,9 +7,9 @@ import { displayUrl, senderContact, skillSections, type CoverLetterDocument, typ
  */
 export function resumePlainText(doc: ResumeDocument): string {
   const heading = (t: string) => `\n${t.toUpperCase()}`;
-  const lines: string[] = [doc.header.name, doc.header.headline];
-  const contact = [doc.header.email, doc.header.phone, doc.header.location, ...doc.header.links.map((l) => displayUrl(l.url))].filter(Boolean).join(" | ");
-  if (contact) lines.push(contact);
+  const head = headerLines(doc.header);
+  const lines: string[] = [head.name, head.headline];
+  for (const line of [head.contact, head.place, head.links.map((l) => l.text).join(HEADER_SEPARATOR)]) if (line) lines.push(line);
   if (doc.summary) lines.push(heading("Summary"), doc.summary);
   lines.push(heading("Experience"));
   doc.experience.forEach((e, i) => {

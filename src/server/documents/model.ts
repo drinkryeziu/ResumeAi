@@ -81,6 +81,27 @@ export const displayUrl = (url: string) => url.replace(/^https?:\/\//, "").repla
 /** The sender's contact line on a cover letter: email, phone, location, then LinkedIn and portfolio. Nothing missing is invented. */
 export const senderContact = (s: CoverLetterDocument["sender"]) => [s.email, s.phone, s.location, ...(s.links ?? [])].filter(Boolean) as string[];
 
+/** "Cornelius, NC" for the resume header: city and state, or the city and country when there is no state, or just what there is. */
+export function cityStateOf(p: Pick<ProfileSnapshot, "city" | "state" | "country">) {
+  const parts = p.city && !p.state && p.country ? [p.city, p.country] : [p.city, p.state];
+  return parts.filter(Boolean).join(", ") || p.country || null;
+}
+
+/**
+ * The resume header, one fact per line in this order: name, job title, phone and email, city and state, then the links.
+ * Empty lines are left out. Every renderer (preview, PDF, Word, plain text) uses this, so they never disagree.
+ */
+export const HEADER_SEPARATOR = "  |  ";
+export function headerLines(h: ResumeDocument["header"]) {
+  return {
+    name: h.name,
+    headline: h.headline,
+    contact: [h.phone, h.email].filter(Boolean).join(HEADER_SEPARATOR),
+    place: h.location ?? "",
+    links: h.links.map((l) => ({ label: l.label, url: l.url, text: displayUrl(l.url) })),
+  };
+}
+
 export function locationOf(p: Pick<ProfileSnapshot, "city" | "state" | "country">) {
   return [p.city, p.state, p.country].filter(Boolean).join(", ") || null;
 }
@@ -100,7 +121,7 @@ export function assembleResume(profile: ProfileSnapshot, draft: ResumeDraft, tem
       headline: draft.headline,
       email: profile.email,
       phone: profile.phone,
-      location: locationOf(profile),
+      location: cityStateOf(profile),
       links: Object.entries(profile.links)
         .filter(([, url]) => Boolean(url))
         .map(([k, url]) => ({ label: LINK_LABELS[k] ?? k, url: url as string })),

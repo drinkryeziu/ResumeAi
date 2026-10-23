@@ -1,6 +1,6 @@
 import { AlignmentType, BorderStyle, Document, ExternalHyperlink, LevelFormat, Packer, Paragraph, TabStopType, TextRun } from "docx";
 import { formatMonthYear } from "@/lib/format";
-import { displayUrl, senderContact, skillSections, type CoverLetterDocument, type ResumeDocument } from "../../model";
+import { headerLines, HEADER_SEPARATOR, senderContact, skillSections, type CoverLetterDocument, type ResumeDocument } from "../../model";
 import { classicTheme as t } from "./theme";
 
 /**
@@ -31,20 +31,26 @@ const numbering = {
 };
 
 export async function resumeDocx(doc: ResumeDocument): Promise<Buffer> {
-  const contact = [doc.header.email, doc.header.phone, doc.header.location].filter(Boolean).join("  ·  ");
+  const head = headerLines(doc.header);
+  // One line each, in order: name, job title, phone and email, city and state, links. The last line leaves the gap before the body.
+  const muted = (text: string, after?: number) => new Paragraph({ spacing: after ? { after } : undefined, children: [run(text, { color: t.muted, size: t.size.small })] });
+  const lastIsLinks = head.links.length > 0;
   const children: Paragraph[] = [
-    new Paragraph({ children: [run(doc.header.name, { bold: true, size: t.size.name })] }),
-    new Paragraph({ children: [run(doc.header.headline, { color: t.accent, size: t.size.headline })] }),
-    new Paragraph({
-      spacing: { after: 120 },
-      children: [
-        run(contact, { color: t.muted, size: t.size.small }),
-        ...doc.header.links.flatMap((l) => [
-          run("  ·  ", { color: t.muted, size: t.size.small }),
-          new ExternalHyperlink({ link: l.url, children: [run(displayUrl(l.url), { color: t.accent, size: t.size.small })] }),
-        ]),
-      ],
-    }),
+    new Paragraph({ children: [run(head.name, { bold: true, size: t.size.name })] }),
+    new Paragraph({ children: [run(head.headline, { color: t.accent, size: t.size.headline })] }),
+    ...(head.contact ? [muted(head.contact, head.place || lastIsLinks ? undefined : 120)] : []),
+    ...(head.place ? [muted(head.place, lastIsLinks ? undefined : 120)] : []),
+    ...(lastIsLinks
+      ? [
+          new Paragraph({
+            spacing: { after: 120 },
+            children: head.links.flatMap((l, i) => [
+              ...(i > 0 ? [run(HEADER_SEPARATOR, { color: t.muted, size: t.size.small })] : []),
+              new ExternalHyperlink({ link: l.url, children: [run(l.text, { color: t.accent, size: t.size.small })] }),
+            ]),
+          }),
+        ]
+      : []),
   ];
 
   if (doc.summary) children.push(sectionTitle("Summary"), new Paragraph({ children: [run(doc.summary)] }));

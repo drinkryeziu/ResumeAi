@@ -1,13 +1,14 @@
 import { Document, Link, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { formatMonthYear } from "@/lib/format";
-import { displayUrl, senderContact, skillSections, type CoverLetterDocument, type ResumeDocument } from "../../model";
+import { headerLines, HEADER_SEPARATOR, senderContact, skillSections, type CoverLetterDocument, type ResumeDocument } from "../../model";
 import { classicTheme as t } from "./theme";
 
 const s = StyleSheet.create({
   page: { padding: t.margin, fontFamily: t.font, fontSize: t.size.body, color: t.ink, lineHeight: 1.35 },
   name: { fontFamily: t.fontBold, fontSize: t.size.name, lineHeight: 1.2 },
-  headline: { fontSize: t.size.headline, color: t.accent, marginTop: 4 },
-  contact: { fontSize: t.size.small, color: t.muted, marginTop: 6 },
+  headline: { fontSize: t.size.headline, color: t.accent, marginTop: 4, marginBottom: 3 },
+  contactLine: { fontSize: t.size.small, color: t.muted, marginTop: 3 },
+  contact: { fontSize: t.size.small, color: t.muted, marginTop: 3 },
   section: { marginTop: 14 },
   sectionTitle: { fontFamily: t.fontBold, fontSize: t.size.section, color: t.accent, textTransform: "uppercase", letterSpacing: 0.6, borderBottomWidth: 0.75, borderBottomColor: t.rule, paddingBottom: 3, marginBottom: 6 },
   row: { flexDirection: "row", justifyContent: "space-between" },
@@ -22,21 +23,24 @@ const s = StyleSheet.create({
 const range = (start?: string | null, end?: string | null) => `${formatMonthYear(start ?? undefined)} – ${formatMonthYear(end ?? undefined)}`;
 
 export function ResumePdf({ doc }: { doc: ResumeDocument }) {
-  const contact = [doc.header.email, doc.header.phone, doc.header.location].filter(Boolean).join("  ·  ");
+  const head = headerLines(doc.header);
   return (
     <Document title={`${doc.header.name} — Resume`} author={doc.header.name}>
       <Page size="LETTER" style={s.page}>
-        <Text style={s.name}>{doc.header.name}</Text>
-        <Text style={s.headline}>{doc.header.headline}</Text>
-        <Text style={s.contact}>
-          {contact}
-          {doc.header.links.map((l) => (
-            <Text key={l.url}>
-              {"  ·  "}
-              <Link src={l.url}>{displayUrl(l.url)}</Link>
-            </Text>
-          ))}
-        </Text>
+        <Text style={s.name}>{head.name}</Text>
+        <Text style={s.headline}>{head.headline}</Text>
+        {head.contact && <Text style={s.contactLine}>{head.contact}</Text>}
+        {head.place && <Text style={s.contactLine}>{head.place}</Text>}
+        {head.links.length > 0 && (
+          <Text style={s.contact}>
+            {head.links.map((l, i) => (
+              <Text key={l.url}>
+                {i > 0 ? HEADER_SEPARATOR : ""}
+                <Link src={l.url}>{l.text}</Link>
+              </Text>
+            ))}
+          </Text>
+        )}
 
         {doc.summary && (
           <View style={s.section} wrap={false}>

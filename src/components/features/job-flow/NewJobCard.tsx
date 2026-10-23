@@ -14,7 +14,7 @@ export function NewJobCard({ cost }: { cost: number }) {
     <section id="tailor" aria-labelledby="tailor-h" className="scroll-mt-[84px]">
       {/* The dashboard's one sand-300 moment: a strip across the top of the main action. */}
       <Card className="relative flex flex-col gap-ds-4 overflow-hidden pt-ds-5">
-        <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-sand-300" />
+        <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 au-grad-full" />
         <div className="flex flex-wrap items-start justify-between gap-ds-3">
           <div className="flex items-start gap-ds-3">
             <span aria-hidden="true" className="grid size-12 shrink-0 place-items-center rounded-full bg-sky-50 text-blue-600">

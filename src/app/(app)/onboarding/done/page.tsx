@@ -1,20 +1,24 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { Download } from "lucide-react";
 import { CoverLetterPreview, ResumePreview } from "@/components/features/documents/ResumePreview";
+import { JobSuggestionsLoading, JobSuggestionsSection } from "@/components/features/jobs/JobSuggestions";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { cn } from "@/lib/cn";
 import { formatNumber } from "@/lib/format";
 import { requireProfile } from "@/server/auth/session";
+import { queryFor } from "@/server/jobs/search";
+import { jobSearchConfigured } from "@/server/jobs/suggest";
 import { getStore } from "@/server/store";
 
 export const metadata = { title: "Your master documents" };
 
 /** Shown right after the first save: both Master documents, ready to read, with the next step. */
 export default async function OnboardingDonePage({ searchParams }: { searchParams: Promise<{ doc?: string }> }) {
-  const { user } = await requireProfile();
+  const { user, profile } = await requireProfile();
   const store = await getStore();
   const [resume, letter, balance] = await Promise.all([store.resumeForJob(user.id, null), store.coverLetterForJob(user.id, null), store.credits.balance(user.id)]);
   const resumeV = resume?.versions.find((v) => v.id === resume.currentVersionId);
@@ -81,6 +85,14 @@ export default async function OnboardingDonePage({ searchParams }: { searchParam
           </Card>
         </aside>
       </div>
+      {/* Searched while the page is already showing: the first visit can take a few seconds, later ones use what was found. */}
+      {jobSearchConfigured() && queryFor(profile) && (
+        <div className="mt-ds-4">
+          <Suspense fallback={<JobSuggestionsLoading />}>
+            <JobSuggestionsSection store={store} userId={user.id} profile={profile} />
+          </Suspense>
+        </div>
+      )}
     </>
   );
 }

@@ -6,7 +6,7 @@ import type { ProfileSnapshot } from "@/server/domain/profile";
 import type { ErrorEntry, ErrorInput, ErrorSummary } from "@/server/admin/errors";
 import type { Purchase, PurchaseInput, RunningCost } from "@/server/admin/money";
 import type { AdminSnapshot, SecurityEvent, SecuritySummary } from "@/server/admin/overview";
-import type { AdminRecord, AnalysisRecord, AppStore, AtsRecord, CoverLetterRecord, CvImport, JobRecord, MatchRecord, ResumeRecord, UserRecord } from "./types";
+import type { AdminRecord, AnalysisRecord, AppStore, StoredJobSuggestions, AtsRecord, CoverLetterRecord, CvImport, JobRecord, MatchRecord, ResumeRecord, UserRecord } from "./types";
 
 const id = (prefix: string) => `${prefix}_${randomUUID().slice(0, 8)}`;
 const latest = <T extends { createdAt: Date }>(rows: T[]) => rows.sort((a, b) => +b.createdAt - +a.createdAt)[0] ?? null;
@@ -32,6 +32,7 @@ export class MemoryAppStore implements AppStore {
   private events: SecurityEvent[] = [];
   private errors: ErrorEntry[] = [];
   private purchases: Purchase[] = [];
+  private suggestions = new Map<string, StoredJobSuggestions>();
   private runningCosts: RunningCost[] = [];
 
   aiRuns = {
@@ -71,6 +72,13 @@ export class MemoryAppStore implements AppStore {
       },
       recent: rows.slice(0, recentLimit).map((e) => ({ ...e })),
     };
+  }
+  async getJobSuggestions(userId: string) {
+    const s = this.suggestions.get(userId);
+    return s ? structuredClone(s) : null;
+  }
+  async saveJobSuggestions(userId: string, value: StoredJobSuggestions) {
+    this.suggestions.set(userId, structuredClone(value));
   }
   async recordPurchase(p: PurchaseInput) {
     this.purchases.push({ ...p, id: id("buy") });
@@ -157,6 +165,7 @@ export class MemoryAppStore implements AppStore {
   }
 
   async deleteProfile(userId: string) {
+    this.suggestions.delete(userId); // they were found from this profile's title and city
     this.profiles.delete(userId);
     this.cvImports.delete(userId);
     this.resumes = this.resumes.filter((r) => !(r.userId === userId && r.jobId === null));
@@ -173,6 +182,7 @@ export class MemoryAppStore implements AppStore {
     this.letters = this.letters.filter((l) => l.userId !== userId);
     this.runs = this.runs.filter((r) => r.userId !== userId);
     this.admins = this.admins.filter((a) => a.userId !== userId);
+    this.suggestions.delete(userId);
     this.errors = this.errors.filter((e) => e.userId !== userId);
     this.profiles.delete(userId);
     this.cvImports.delete(userId);

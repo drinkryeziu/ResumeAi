@@ -4,6 +4,7 @@ import type { CreditService } from "@/server/credits/service";
 import type { CoverLetterDocument, ResumeDocument } from "@/server/documents/model";
 import type { ErrorEntry, ErrorInput, ErrorSummary } from "@/server/admin/errors";
 import type { Purchase, PurchaseInput, RunningCost } from "@/server/admin/money";
+import type { JobSuggestion } from "@/server/jobs/search";
 import type { AdminSnapshot, SecurityEvent, SecuritySummary } from "@/server/admin/overview";
 import type { ApprovedFactItem, JobInput, ProfileSnapshot } from "@/server/domain/profile";
 
@@ -22,6 +23,13 @@ export interface UserRecord {
   name: string;
   passwordHash: string | null; // null for Google / LinkedIn accounts
   createdAt: Date;
+}
+
+export interface StoredJobSuggestions {
+  /** What was searched for, so a changed title or city searches again. */
+  query: string;
+  createdAt: Date;
+  jobs: JobSuggestion[];
 }
 
 export interface AdminRecord {
@@ -144,6 +152,10 @@ export interface AppStore {
   /** Idempotent. */
   addAdminUser(userId: string, addedBy: string): Promise<void>;
   removeAdminUser(userId: string): Promise<boolean>;
+
+  /** The openings shown after the Master documents are made (found once, kept so the page does not search again). One set per person. */
+  getJobSuggestions(userId: string): Promise<StoredJobSuggestions | null>;
+  saveJobSuggestions(userId: string, value: StoredJobSuggestions): Promise<void>;
 
   createUser(u: { email: string; name: string; passwordHash: string | null }): Promise<UserRecord>;
   findUserByEmail(email: string): Promise<UserRecord | null>;

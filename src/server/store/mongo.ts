@@ -6,7 +6,7 @@ import type { ProfileSnapshot } from "@/server/domain/profile";
 import type { ErrorEntry, ErrorInput, ErrorSummary } from "@/server/admin/errors";
 import type { Purchase, PurchaseInput, RunningCost } from "@/server/admin/money";
 import type { AdminSnapshot, SecurityEvent, SecuritySummary } from "@/server/admin/overview";
-import type { AdminRecord, AnalysisRecord, AppStore, AtsRecord, CoverLetterRecord, CvImport, JobRecord, MatchRecord, ResumeRecord, UserRecord } from "./types";
+import type { AdminRecord, AnalysisRecord, AppStore, StoredJobSuggestions, AtsRecord, CoverLetterRecord, CvImport, JobRecord, MatchRecord, ResumeRecord, UserRecord } from "./types";
 
 type Doc = Document;
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
@@ -50,6 +50,7 @@ export class MongoAppStore implements AppStore {
   private events: Collection<Doc>;
   private errorLog: Collection<Doc>;
   private purchases: Collection<Doc>;
+  private suggestions: Collection<Doc>;
   private runningCosts: Collection<Doc>;
 
   constructor(
@@ -74,6 +75,7 @@ export class MongoAppStore implements AppStore {
     this.events = db.collection("security_events");
     this.errorLog = db.collection("error_logs");
     this.purchases = db.collection("purchases");
+    this.suggestions = db.collection("job_suggestions");
     this.runningCosts = db.collection("running_costs");
   }
 
@@ -172,6 +174,13 @@ export class MongoAppStore implements AppStore {
     ]);
     return { counts: { sign_in_failed: failed, rate_limited: limited, account_removed: removed }, recent: recent.map((e) => ({ type: e.type, ...(e.rule ? { rule: e.rule } : {}), at: e.at })) };
   }
+  async getJobSuggestions(userId: string) {
+    const d = await this.suggestions.findOne({ _id: userId as never });
+    return d ? ({ query: d.query, createdAt: d.createdAt, jobs: d.jobs } as StoredJobSuggestions) : null;
+  }
+  async saveJobSuggestions(userId: string, value: StoredJobSuggestions) {
+    await this.suggestions.replaceOne({ _id: userId as never }, { query: value.query, createdAt: value.createdAt, jobs: value.jobs }, { upsert: true });
+  }
   async recordPurchase(p: PurchaseInput) {
     await this.purchases.insertOne({ _id: newId("buy") as never, at: p.at, kind: p.kind, name: p.name, cents: p.cents, credits: p.credits });
   }
@@ -230,7 +239,7 @@ export class MongoAppStore implements AppStore {
 
   async deleteProfile(userId: string) {
     await Promise.all([this.resumes.deleteMany({ userId, jobId: null }), this.letters.deleteMany({ userId, jobId: null })]);
-    await Promise.all([this.profiles.deleteOne({ _id: userId as never }), this.cvImports.deleteOne({ _id: userId as never })]); // profile last: if anything above failed it still exists and can be deleted again
+    await Promise.all([this.suggestions.deleteOne({ _id: userId as never }), this.profiles.deleteOne({ _id: userId as never }), this.cvImports.deleteOne({ _id: userId as never })]); // profile last: if anything above failed it still exists and can be deleted again
   }
 
   async deleteAccount(userId: string) {
@@ -238,6 +247,7 @@ export class MongoAppStore implements AppStore {
     await Promise.all([this.profiles.deleteOne({ _id: userId as never }), this.cvImports.deleteOne({ _id: userId as never })]);
     await this.creditStore.deleteForUser(userId);
     await this.admins.deleteOne({ _id: userId as never });
+    await this.suggestions.deleteOne({ _id: userId as never });
     await this.errorLog.deleteMany({ userId });
     await this.users.deleteOne({ _id: userId as never }); // last: if anything above failed, the account still exists and the user can try again
   }

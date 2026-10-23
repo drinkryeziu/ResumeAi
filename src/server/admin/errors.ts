@@ -32,6 +32,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   save_cover_letter: "Saving a cover letter",
   master_documents: "Master documents",
   save_profile: "Saving the profile",
+  job_suggestions: "Job suggestions",
   page: "A page in the browser",
 };
 export const sourceLabel = (s: string) => SOURCE_LABELS[s] ?? s;

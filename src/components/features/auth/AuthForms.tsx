@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useActionState, useState, type FormEvent } from "react";
 import { useFormStatus } from "react-dom";
 import { requestPasswordResetAction, resetPasswordAction, signInWithPassword, signUpWithPassword, type AuthState } from "@/app/(auth)/actions";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { LegalLinks } from "@/components/features/legal/LegalLinks";
 import { errorProps, Field, Input } from "@/components/ui/Field";
 import { PasswordInput } from "@/components/ui/PasswordInput";
@@ -15,6 +15,15 @@ function Submit({ label, pending: pendingLabel }: { label: string; pending: stri
     <Button type="submit" disabled={pending} className="w-full">
       {pending ? pendingLabel : label}
     </Button>
+  );
+}
+
+/** "Cancel" on sign in and sign up: back to the first page. A link, so it works without the form being filled in. */
+function Cancel() {
+  return (
+    <ButtonLink href="/" variant="secondary" className="w-full">
+      Cancel
+    </ButtonLink>
   );
 }
 
@@ -41,6 +50,7 @@ export function SignInForm() {
       </Link>
       <ErrorLine state={state} />
       <Submit label="Sign in" pending="Signing in…" />
+      <Cancel />
       <p className="text-body-sm text-center">
         New here?{" "}
         <Link href="/sign-up" className="text-blue-700 underline">
@@ -110,6 +120,7 @@ export function SignUpForm() {
       <PasswordFields label="Password" pair={pair} confirmId="confirm-password" />
       <ErrorLine state={state} />
       <Submit label="Create account" pending="Creating your account…" />
+      <Cancel />
       <p className="text-caption text-center">
         By creating an account you agree to the <LegalLinks />.
       </p>

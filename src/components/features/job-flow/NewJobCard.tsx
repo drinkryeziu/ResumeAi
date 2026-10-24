@@ -40,6 +40,7 @@ export function NewJobCard({ cost }: { cost: number }) {
             all: [
               { name: "title", label: "the job title" },
               { name: "company", label: "the company name" },
+              { name: "location", label: "the location" },
             ],
           }}
         >
@@ -55,8 +56,8 @@ export function NewJobCard({ cost }: { cost: number }) {
               <Field label="Link to the job posting" htmlFor="url">
                 <Input id="url" name="url" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="https://" />
               </Field>
-              <Field label="Location" htmlFor="location">
-                <Input id="location" name="location" placeholder="City, remote or hybrid" />
+              <Field label="Location" htmlFor="location" required plain>
+                <Input id="location" name="location" autoComplete="off" placeholder="City, remote or hybrid" />
               </Field>
             </div>
           </div>

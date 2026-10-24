@@ -62,7 +62,7 @@ export const SCENES: readonly Scene[] = [
       { speaker: "asks", text: "How do I know which jobs to look for?" },
       {
         speaker: "explains",
-        text: "Your dashboard shows Jobs to look for. It splits your work history by kind of work, like UX design or graphic design, so you search where your experience really fits. It's a guide, not a promise.",
+        text: "Your profile page shows Jobs to look for. It splits your work history by kind of work, like UX design or graphic design, so you search where your experience really fits. It's a guide, not a promise.",
       },
     ],
   },

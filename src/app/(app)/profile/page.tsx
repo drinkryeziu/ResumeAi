@@ -1,12 +1,13 @@
 import { DeleteProfileDialog } from "@/components/features/profile/DeleteProfileDialog";
 import { Badge } from "@/components/ui/Badge";
 import { CareerAnalysisBody, careerSubtitle } from "@/components/features/match/CareerAtAGlance";
+import { DIRECTIONS_SUBTITLE, JobDirectionsBody } from "@/components/features/match/JobDirections";
 import { ProfileSection, ProfileSections } from "@/components/features/profile/CollapsibleSections";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ScoreBar } from "@/components/ui/ScoreBar";
 import { formatMonthYear } from "@/lib/format";
-import { profileStrength } from "@/server/ai";
+import { jobDirections, profileStrength } from "@/server/ai";
 import { requireProfile } from "@/server/auth/session";
 import { locationOf } from "@/server/documents/model";
 import { givenAnswers } from "@/server/domain/application-answers";
@@ -29,10 +30,12 @@ export default async function ProfilePage() {
   const resume = await (await getStore()).resumeForJob(user.id, null);
   const career = resume?.versions.find((v) => v.id === resume.currentVersionId)?.content.analysis;
   const strength = profileStrength(p);
+  const directions = jobDirections(career);
   const answers = givenAnswers(p.application);
   // Every section on the page in reading order (main column, then the side column). The first one starts open.
   const ids = [
     "strength",
+    ...(directions.length ? ["directions"] : []),
     ...(career ? ["career"] : []),
     "summary",
     "experience",
@@ -69,6 +72,11 @@ export default async function ProfilePage() {
               </ul>
             )}
           </ProfileSection>
+          {directions.length > 0 && (
+            <ProfileSection id="directions" title="Jobs to look for" subtitle={DIRECTIONS_SUBTITLE}>
+              <JobDirectionsBody rows={directions} />
+            </ProfileSection>
+          )}
           {career && (
             <ProfileSection id="career" tone="aurora" title="Your career at a glance" subtitle={careerSubtitle(career)}>
               <CareerAnalysisBody analysis={career} />

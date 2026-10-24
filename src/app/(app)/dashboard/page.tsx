@@ -3,7 +3,6 @@ import { ArrowRight, ClipboardPaste, FileCheck2, Target } from "lucide-react";
 import { DeleteApplicationButton } from "@/components/features/job-flow/DeleteApplicationButton";
 import { Badge } from "@/components/ui/Badge";
 import { NewJobCard } from "@/components/features/job-flow/NewJobCard";
-import { JobDirectionsCard } from "@/components/features/match/JobDirectionsCard";
 import { ButtonLink } from "@/components/ui/Button";
 import { ScoreBar } from "@/components/ui/ScoreBar";
 import { formatDate, formatNumber } from "@/lib/format";
@@ -30,10 +29,9 @@ function unfinishedStep(jobs: Summary[]): { title: string; detail: string; href:
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const { user, profile } = await requireProfile();
   const store = await getStore();
-  const [balance, jobs, masterResume, prices] = await Promise.all([
+  const [balance, jobs, prices] = await Promise.all([
     store.credits.balance(user.id),
     jobSummaries(store, user.id),
-    store.resumeForJob(user.id, null),
     store.credits.listPrices(),
   ]);
   const strength = profileStrength(profile);
@@ -72,7 +70,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       <NewJobCard cost={tailorCost} />
 
-      <JobDirectionsCard analysis={masterResume?.versions.find((v) => v.id === masterResume.currentVersionId)?.content.analysis} />
 
       <div className="grid items-start gap-ds-5">
         <section aria-labelledby="applications">

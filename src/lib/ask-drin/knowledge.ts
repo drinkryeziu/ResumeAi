@@ -275,8 +275,8 @@ export const ENTRIES: Entry[] = [
     ask: ["which jobs should i look for", "what jobs can i apply for", "what jobs fit me", "jobs to look for", "what kind of jobs", "am i qualified"],
     words: ["jobs", "look", "suggest", "recommend", "fit", "kind", "career", "field", "profession", "qualified", "direction"],
     answer: () =>
-      "Your dashboard has a Jobs to look for card. It splits your work history by kind of work, for example UX design or graphic design, and shows each one's share of your experience, so you search where your experience really fits. It's added up from the dates in your profile, and it is a guide, not a promise of getting hired.",
-    link: { href: "/dashboard", label: "Go to my dashboard" },
+      "Your profile page has a Jobs to look for section. It splits your work history by kind of work, for example UX design or graphic design, and shows each one's share of your experience, so you search where your experience really fits. It's added up from the dates in your profile, and it is a guide, not a promise of getting hired.",
+    link: { href: "/profile", label: "Open my profile" },
   },
   {
     id: "privacy",

@@ -1,8 +1,6 @@
-import { Compass } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
-import { Card, CardHeader } from "@/components/ui/Card";
-import { fmtYears, jobDirections, type DirectionLevel } from "@/server/ai";
-import type { CareerAnalysis } from "@/server/ai";
+import { ButtonLink } from "@/components/ui/Button";
+import { fmtYears, type Direction, type DirectionLevel } from "@/server/ai";
 
 const LEVEL: Record<DirectionLevel, { label: string; tone: "success" | "info" | "neutral" }> = {
   best: { label: "Where you are strongest", tone: "success" },
@@ -10,24 +8,19 @@ const LEVEL: Record<DirectionLevel, { label: string; tone: "success" | "info" | 
   small: { label: "A long shot", tone: "neutral" },
 };
 
+/** The subtitle of the "Jobs to look for" section on the profile page. */
+export const DIRECTIONS_SUBTITLE =
+  "Where your work history is strongest, so you can search where your experience really fits. It is a guide, not a promise of getting hired.";
+
 /**
- * "Jobs to look for", on the dashboard: which kinds of work the person's history points to, so they search where they have a
- * real chance. Free (read from the Master Resume's career analysis) and never worded as a chance of being hired.
+ * The body of "Jobs to look for" on the profile page: which kinds of work the person's history points to, so they search where
+ * they have a real chance, and a long button to start tailoring a resume to a job they found. Free (read from the career analysis)
+ * and never worded as a chance of being hired.
  */
-export function JobDirectionsCard({ analysis }: { analysis: Pick<CareerAnalysis, "byProfession" | "totalYears"> | null | undefined }) {
-  const rows = jobDirections(analysis);
-  if (rows.length === 0) return null;
+export function JobDirectionsBody({ rows }: { rows: Direction[] }) {
   const small = rows.some((r) => r.level === "small");
   return (
-    <Card aria-labelledby="directions-h">
-      <CardHeader
-        title={
-          <span id="directions-h" className="flex items-center gap-ds-2">
-            <Compass size={20} aria-hidden="true" className="text-blue-600" /> Jobs to look for
-          </span>
-        }
-        subtitle="Where your work history is strongest, so you can search where your experience really fits. It is a guide, not a promise of getting hired."
-      />
+    <div className="flex flex-col gap-ds-4">
       <ul className="flex flex-col gap-ds-3">
         {rows.map((r) => (
           <li key={r.name} className="flex flex-col gap-1">
@@ -45,10 +38,13 @@ export function JobDirectionsCard({ analysis }: { analysis: Pick<CareerAnalysis,
           </li>
         ))}
       </ul>
-      <p className="mt-ds-3 text-caption">
+      <p className="text-caption">
         The percentages are each field&apos;s share of the time you have worked, added up from the dates in your profile.
         {small ? " A field marked as a long shot is a small part of your history: apply there only if the job is one you are ready to stretch for." : ""}
       </p>
-    </Card>
+      <ButtonLink href="/dashboard#tailor" className="w-full">
+        Tailor your resume to a job
+      </ButtonLink>
+    </div>
   );
 }

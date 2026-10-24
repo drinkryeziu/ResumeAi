@@ -63,7 +63,13 @@ export default async function ProfilePage() {
             <p className="text-card-title text-blue-600">{p.headline}</p>
             <p className="text-body-sm mt-ds-2">{[p.email, p.phone, locationOf(p)].filter(Boolean).join(" · ")}</p>
           </Card>
-          <ProfileSection id="strength" title="Profile strength">
+          <ButtonLink href="/dashboard#tailor" className="w-full">
+            Tailor your resume to a job
+          </ButtonLink>
+          <h2 id="overview-h" className="mt-ds-2 text-heading-section">
+            Overview
+          </h2>
+          <ProfileSection id="strength" tone="aurora" title="Profile strength">
             <ScoreBar label="Complete" value={strength.score} />
             {strength.nextSteps.length > 0 && (
               <ul className="mt-ds-3 list-disc pl-5 text-body-sm">
@@ -74,7 +80,7 @@ export default async function ProfilePage() {
             )}
           </ProfileSection>
           {directions.length > 0 && (
-            <ProfileSection id="directions" title="Jobs to look for" subtitle={DIRECTIONS_SUBTITLE}>
+            <ProfileSection id="directions" tone="aurora" title="Jobs to look for" subtitle={DIRECTIONS_SUBTITLE}>
               <JobDirectionsBody rows={directions} />
             </ProfileSection>
           )}
@@ -83,6 +89,12 @@ export default async function ProfilePage() {
               <CareerAnalysisBody analysis={career} />
             </ProfileSection>
           )}
+          <div className="mt-ds-3 flex flex-col gap-ds-1">
+            <h2 id="details-h" className="text-heading-section">
+              Your details
+            </h2>
+            <p className="text-body-sm">What your resumes are built from. Use Edit on a section to change it.</p>
+          </div>
           <ProfileSection id="summary" editHref="/profile/edit#summary" title="Professional summary">
             {p.summary ? <p className="text-body">{p.summary}</p> : <p className="text-body-sm">No summary yet. A short one makes a stronger resume.</p>}
           </ProfileSection>
@@ -205,12 +217,6 @@ export default async function ProfilePage() {
           <DeleteProfileDialog />
         </div>
       </ProfileSections>
-      {/* Stuck to the bottom of the screen while the page scrolls. The right side is left free for the Ask Drin button. */}
-      <div className="sticky bottom-3 z-30 mt-ds-5 pr-[152px] sm:bottom-5 sm:pr-[176px]">
-        <ButtonLink href="/dashboard#tailor" className="w-full text-center leading-tight shadow-[0_16px_36px_-10px_rgba(109,74,255,0.6)]">
-          Tailor your resume to a job
-        </ButtonLink>
-      </div>
     </>
   );
 }

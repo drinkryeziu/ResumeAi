@@ -64,7 +64,7 @@ export function ProfileSection({
   return (
     <Card aria-labelledby={`${uid}-h`} className={className} tone={tone}>
       <div className="relative">
-        <h2 id={`${uid}-h`} className="text-card-title">
+        <h3 id={`${uid}-h`} className="text-card-title">
           <button
             type="button"
             onClick={() => ctx.toggle(id)}
@@ -79,7 +79,7 @@ export function ProfileSection({
               className={cn("shrink-0 text-blue-600 transition-transform duration-200 motion-reduce:transition-none", expanded && "rotate-180")}
             />
           </button>
-        </h2>
+        </h3>
         {editHref && (
           <Link
             href={editHref}

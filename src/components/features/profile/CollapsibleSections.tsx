@@ -10,8 +10,16 @@ import { allOpen, initialOpen, noneOpen, setAllSections, toggleSection, type Ope
 const Ctx = createContext<{ open: OpenSections; toggle: (id: string) => void } | null>(null);
 
 /** Holds which profile sections are open. `ids` lists every section on the page, in reading order: the first starts open, the rest closed. */
-export function ProfileSections({ ids, children }: { ids: readonly string[]; children: ReactNode }) {
-  const [open, setOpen] = useState<OpenSections>(() => initialOpen(ids));
+export function ProfileSections({
+  ids,
+  alsoOpen = [],
+  children,
+}: {
+  ids: readonly string[];
+  /** Sections that start open as well as the first one. */ alsoOpen?: readonly string[];
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState<OpenSections>(() => new Set([...initialOpen(ids), ...alsoOpen.filter((id) => ids.includes(id))]));
   const toggle = (id: string) => setOpen((o) => toggleSection(o, id));
   const all = allOpen(open, ids);
   const none = noneOpen(open, ids);

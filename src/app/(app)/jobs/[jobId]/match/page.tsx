@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { ActionForm } from "@/components/features/job-flow/ActionForm";
 import { StepProgress } from "@/components/features/job-flow/StepProgress";
 import { ExperienceSummaryCard } from "@/components/features/match/ExperienceSummaryCard";
+import { JobMatchHelp } from "@/components/features/match/ScoreHelp";
 import { FitSummary } from "@/components/features/match/FitSummary";
 import { GapQuestion } from "@/components/features/match/GapQuestion";
 import { RequirementScorecard } from "@/components/features/match/RequirementScorecard";
@@ -104,7 +105,7 @@ export default async function MatchPage({ params }: { params: Promise<{ jobId: s
           className="flex flex-col gap-ds-4 [@media(min-width:1024px)_and_(min-height:820px)]:sticky [@media(min-width:1024px)_and_(min-height:820px)]:top-[84px]"
         >
           <Card id="create" className="flex scroll-mt-[84px] flex-col items-center gap-ds-4">
-            <ScoreRing value={m.scores.overall} label="Job Match Score" banded />
+            <ScoreRing value={m.scores.overall} label="Job Match Score" banded help={<JobMatchHelp />} />
             <p className="text-body-sm text-center">{explain(m)}</p>
 
             <div className="flex w-full flex-col gap-ds-2">

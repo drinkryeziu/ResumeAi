@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { AlertTriangle, ExternalLink } from "lucide-react";
 import { ActionForm } from "@/components/features/job-flow/ActionForm";
+import { AtsHelp } from "@/components/features/match/ScoreHelp";
 import { StepProgress } from "@/components/features/job-flow/StepProgress";
 import { MatchMetricsCard } from "@/components/features/match/MatchMetricsCard";
 import { DocumentWorkspace, type DocTab } from "@/components/features/documents/DocumentWorkspace";
@@ -90,7 +91,13 @@ export default async function JobApplicationPage({
     <>
       {matchCard}
       <Card id="ats" className="scroll-mt-[84px]">
-        <CardHeader title="ATS compatibility" subtitle="Optional: check how this version's structure and keywords line up with the job." />
+        <CardHeader
+          title={
+            <span className="inline-flex items-center gap-1">
+              ATS compatibility <AtsHelp />
+            </span>
+          }
+          subtitle="Optional: check how this version's structure and keywords line up with the job." />
         {ats ? (
           <div className="flex flex-col gap-ds-4">
             <ScoreRing value={ats.overallScore} label="ATS Compatibility Score" size={112} />

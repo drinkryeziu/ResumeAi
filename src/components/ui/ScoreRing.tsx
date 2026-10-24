@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 /** Score bands for the ring: 0–33 red, 34–66 amber, 67–100 green. Class names are written out so Tailwind sees them. */
 function bandStroke(score: number): string {
   if (score <= 33) return "stroke-danger";
@@ -9,7 +11,19 @@ function bandStroke(score: number): string {
  * Circular score (0–100). With `banded` the arc is red, amber or green by score; otherwise it is blue-600.
  * The number is always printed in the middle, so color never carries the meaning alone.
  */
-export function ScoreRing({ value, label, size = 132, banded = false }: { value: number; label: string; size?: number; banded?: boolean }) {
+export function ScoreRing({
+  value,
+  label,
+  size = 132,
+  banded = false,
+  help,
+}: {
+  value: number;
+  label: string;
+  size?: number;
+  banded?: boolean;
+  help?: ReactNode;
+}) {
   const stroke = 10;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
@@ -33,7 +47,10 @@ export function ScoreRing({ value, label, size = 132, banded = false }: { value:
           {clamped}%
         </text>
       </svg>
-      <figcaption className="text-label-bold">{label}</figcaption>
+      <figcaption className="inline-flex items-center gap-1 text-label-bold">
+        {label}
+        {help}
+      </figcaption>
     </figure>
   );
 }

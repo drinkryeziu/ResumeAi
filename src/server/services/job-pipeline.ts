@@ -186,7 +186,7 @@ export async function optimizeResume(store: AppStore, userId: string, jobId: str
       label: "ORIGINAL",
       // The career analysis belongs to the Master Resume only; a job's resume is a document, not an analysis.
       content: master ? (({ analysis: _analysis, ...doc }) => structuredClone(doc))(master.content) : resumeFromProfile(profile),
-      changeNotes: [master ? "Copy of your Master Resume" : "Built from your profile"],
+      changeNotes: [master ? "Copy of your starting resume" : "Built from your profile"],
       name,
     });
   }

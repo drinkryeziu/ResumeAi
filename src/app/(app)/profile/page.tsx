@@ -54,7 +54,7 @@ export default async function ProfilePage() {
         title="Your professional profile"
         description="Your source of truth. Every tailored resume and cover letter is built from this — tailoring never changes it."
       />
-      <ProfileSections ids={ids}>
+      <ProfileSections ids={ids} alsoOpen={["directions"]}>
         <div className="flex flex-col gap-ds-4">
           <Card>
             <h2 className="text-heading-section">

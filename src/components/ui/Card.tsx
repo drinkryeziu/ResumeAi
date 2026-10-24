@@ -9,6 +9,8 @@ const TONES = {
   yellow: "bg-cards-yellow",
   orange: "bg-cards-orange",
   red: "bg-cards-red",
+  /** The first page's lilac-to-pink wash, for the one card that should stand out on a page. */
+  aurora: "bg-gradient-to-br from-[#efe9ff] to-[#ffe6f3]",
 } as const;
 
 /** radius-md + shadow-card, no hard borders — the design system's card treatment. */

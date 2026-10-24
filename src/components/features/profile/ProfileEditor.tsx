@@ -97,6 +97,19 @@ export function ProfileEditor({
 
   // First-time setup runs as steps; later edits use the single-page editor.
   const wizard = firstTime;
+
+  // "Edit" on the profile page opens this page at one section (…/profile/edit#experience): scroll to it once the page is ready.
+  useEffect(() => {
+    if (wizard) return;
+    const id = decodeURIComponent(window.location.hash.slice(1));
+    if (!id) return;
+    const t = setTimeout(() => {
+      const el = document.getElementById(id);
+      el?.scrollIntoView({ block: "start" });
+      el?.focus({ preventScroll: true });
+    }, 80);
+    return () => clearTimeout(t);
+  }, [wizard]);
   const [step, setStep] = useState(0);
   const lastStep = SETUP_STEPS.length - 1;
   const stepIssues = wizard ? issuesForStep(progress, step) : progress.issues;

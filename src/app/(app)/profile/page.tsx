@@ -1,5 +1,4 @@
 import { DeleteProfileDialog } from "@/components/features/profile/DeleteProfileDialog";
-import { ButtonLink } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { CareerAnalysisBody, careerSubtitle } from "@/components/features/match/CareerAtAGlance";
 import { ProfileSection, ProfileSections } from "@/components/features/profile/CollapsibleSections";
@@ -50,7 +49,6 @@ export default async function ProfilePage() {
       <PageHeader
         title="Your professional profile"
         description="Your source of truth. Every tailored resume and cover letter is built from this — tailoring never changes it."
-        actions={<ButtonLink href="/profile/edit">Update profile</ButtonLink>}
       />
       <ProfileSections ids={ids}>
         <div className="flex flex-col gap-ds-4">
@@ -72,14 +70,14 @@ export default async function ProfilePage() {
             )}
           </ProfileSection>
           {career && (
-            <ProfileSection id="career" title="Your career at a glance" subtitle={careerSubtitle(career)}>
+            <ProfileSection id="career" tone="aurora" title="Your career at a glance" subtitle={careerSubtitle(career)}>
               <CareerAnalysisBody analysis={career} />
             </ProfileSection>
           )}
-          <ProfileSection id="summary" title="Professional summary">
+          <ProfileSection id="summary" editHref="/profile/edit#summary" title="Professional summary">
             {p.summary ? <p className="text-body">{p.summary}</p> : <p className="text-body-sm">No summary yet. A short one makes a stronger resume.</p>}
           </ProfileSection>
-          <ProfileSection id="experience" title="Work experience">
+          <ProfileSection id="experience" editHref="/profile/edit#experience" title="Work experience">
             <ol className="flex flex-col gap-ds-4">
               {p.experiences.map((e) => (
                 <li key={e.id}>
@@ -102,7 +100,7 @@ export default async function ProfilePage() {
             </ol>
           </ProfileSection>
           {p.projects.length > 0 && (
-            <ProfileSection id="projects" title="Projects">
+            <ProfileSection id="projects" editHref="/profile/edit#projects" title="Projects">
               <ol className="flex flex-col gap-ds-4">
                 {p.projects.map((x) => (
                   <li key={x.id}>
@@ -121,7 +119,7 @@ export default async function ProfilePage() {
               </ol>
             </ProfileSection>
           )}
-          <ProfileSection id="education" title="Education">
+          <ProfileSection id="education" editHref="/profile/edit#education" title="Education">
             {p.education.map((e) => (
               <p key={e.id} className="text-body-sm">
                 <strong>{[e.degree, e.field].filter(Boolean).join(", ")}</strong>
@@ -130,7 +128,7 @@ export default async function ProfilePage() {
               </p>
             ))}
           </ProfileSection>
-          <ProfileSection id="skills" title="Skills">
+          <ProfileSection id="skills" editHref="/profile/edit#skills" title="Skills">
             <div className="flex flex-col gap-ds-3">
               {SKILL_GROUPS.map(([cat, title]) => {
                 const items = p.skills.filter((s) => s.category === cat);
@@ -149,7 +147,7 @@ export default async function ProfilePage() {
               })}
             </div>
           </ProfileSection>
-          <ProfileSection id="certifications" title="Certifications">
+          <ProfileSection id="certifications" editHref="/profile/edit#certifications" title="Certifications">
             {p.certifications.map((c) => (
               <p key={c.id} className="text-body-sm">
                 <strong>{c.name}</strong> · {c.issuer}
@@ -159,6 +157,7 @@ export default async function ProfilePage() {
           {answers.length > 0 && (
             <ProfileSection
               id="application"
+              editHref="/profile/edit#application"
               title="Voluntary self-identification"
               subtitle="Private. Never in your documents and never sent to the AI. Copy them into forms when you apply."
             >
@@ -178,8 +177,9 @@ export default async function ProfilePage() {
           {p.approvedFacts.length > 0 && (
             <ProfileSection
               id="answers"
+              editHref="/profile/edit#answers"
               title="Your answers"
-              subtitle="From job-match questions. Yes answers can be used in tailored resumes. Change them with Update profile."
+              subtitle="From job-match questions. Yes answers can be used in tailored resumes. Change them with Edit."
             >
               <ul className="flex flex-col gap-ds-2 text-body-sm">
                 {p.approvedFacts.map((f) => (

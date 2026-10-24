@@ -48,7 +48,7 @@ export function NewJobCard({ cost }: { cost: number }) {
                 <Input id="company" name="company" placeholder="Company" />
               </Field>
               <Field label="Link to the job posting" htmlFor="url">
-                <Input id="url" name="url" type="url" placeholder="https://" />
+                <Input id="url" name="url" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="https://" />
               </Field>
               <Field label="Location" htmlFor="location">
                 <Input id="location" name="location" placeholder="City, remote or hybrid" />

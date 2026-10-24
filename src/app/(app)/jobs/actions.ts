@@ -9,6 +9,7 @@ import { AINotConfiguredError, AIProviderError } from "@/server/ai/providers/typ
 import { recordError } from "@/server/admin/record-error";
 import { requireUser } from "@/server/auth/session";
 import { InsufficientCreditsError } from "@/server/credits/types";
+import { cleanJobUrl } from "@/lib/clean-url";
 import { extractText, UploadError } from "@/server/documents/extract-text";
 import { notice } from "@/lib/notices";
 import { overLimit, RULES } from "@/server/security/rate-limit";
@@ -80,7 +81,7 @@ const JobFields = z.object({
 export async function analyzeNewJob(_: ActionState, fd: FormData): Promise<ActionState> {
   const user = await requireUser();
   if (await tooFast(user.id)) return TOO_FAST;
-  const parsed = JobFields.safeParse({ ...Object.fromEntries(fd), file: undefined });
+  const parsed = JobFields.safeParse({ ...Object.fromEntries(fd), url: cleanJobUrl(fd.get("url")), file: undefined });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
   const store = await getStore();
   let jobId: string | null = null;

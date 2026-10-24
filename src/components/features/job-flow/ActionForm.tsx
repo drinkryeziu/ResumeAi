@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
+import { useActionState, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { Loader2 } from "lucide-react";
 import { BusyOverlay } from "@/components/ui/BusyOverlay";
@@ -37,7 +37,7 @@ export function ActionForm({
   variant?: "primary" | "secondary";
   /** Stretch the button to its container — for a card whose main action is this button. */
   fullWidth?: boolean;
-  /** The button stays disabled until at least one of these form fields has a value (text typed, or a file chosen). */
+  /** At least one of these form fields needs a value (text typed, or a file chosen); pressing the button without one explains what is missing instead of sending. */
   requireOneOf?: string[];
   /** Shown under the disabled button so people know what is missing. */
   requireHint?: string;
@@ -47,17 +47,28 @@ export function ActionForm({
   const [state, formAction] = useActionState(action, undefined);
   const formRef = useRef<HTMLFormElement>(null);
   const [filled, setFilled] = useState(!requireOneOf);
+  const [tried, setTried] = useState(false);
   const needs = requireOneOf?.join(",");
+
+  /** What is in the form right now, read when it is needed: never trusts an earlier guess, so autofill, dictation or a missed event cannot lock the button. */
+  const hasInput = (form: HTMLFormElement) => {
+    const fd = new FormData(form);
+    return (needs?.split(",") ?? []).some((n) => fd.getAll(n).some((v) => (v instanceof File ? v.size > 0 : v.toString().trim() !== "")));
+  };
+  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    if (!needs || hasInput(e.currentTarget)) return;
+    e.preventDefault();
+    setTried(true);
+    (e.currentTarget.querySelector("textarea, input[type=file]") as HTMLElement | null)?.focus();
+  };
 
   // Re-check after typing, choosing a file, or switching between paste and upload (the active field changes name).
   useEffect(() => {
     const form = formRef.current;
     if (!form || !needs) return;
-    const names = needs.split(",");
     const check = () =>
       setTimeout(() => {
-        const fd = new FormData(form);
-        setFilled(names.some((n) => fd.getAll(n).some((v) => (v instanceof File ? v.size > 0 : v.toString().trim() !== ""))));
+        setFilled(hasInput(form));
       }, 0);
     check();
     const events = ["input", "change", "click"] as const;
@@ -66,7 +77,7 @@ export function ActionForm({
   }, [needs]);
 
   return (
-    <form ref={formRef} action={formAction} className={className}>
+    <form ref={formRef} action={formAction} onSubmit={onSubmit} className={className}>
       {Object.entries(hidden).map(([k, v]) => (
         <input key={k} type="hidden" name={k} value={v} />
       ))}
@@ -79,11 +90,10 @@ export function ActionForm({
           cost={cost}
           variant={variant}
           className={fullWidth ? "w-full" : undefined}
-          blocked={!filled}
-          describedBy={!filled && requireHint ? "action-hint" : undefined}
+          describedBy={tried && !filled && requireHint ? "action-hint" : undefined}
         />
-        {!filled && requireHint && (
-          <p id="action-hint" className="text-caption">
+        {tried && !filled && requireHint && (
+          <p id="action-hint" role="alert" className="text-body-sm text-danger">
             {requireHint}
           </p>
         )}
@@ -100,7 +110,6 @@ function Submit({
   cost,
   variant,
   className,
-  blocked,
   describedBy,
 }: {
   label: string;
@@ -108,7 +117,6 @@ function Submit({
   cost?: number;
   variant: "primary" | "secondary";
   className?: string;
-  blocked?: boolean;
   describedBy?: string;
 }) {
   const { pending } = useFormStatus();
@@ -117,7 +125,7 @@ function Submit({
       type="submit"
       variant={variant}
       className={className}
-      disabled={pending || blocked}
+      disabled={pending}
       aria-describedby={describedBy}
       cost={pending ? undefined : cost}
       icon={pending ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : undefined}

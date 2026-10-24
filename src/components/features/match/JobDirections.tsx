@@ -1,5 +1,4 @@
 import { Badge } from "@/components/ui/Badge";
-import { ButtonLink } from "@/components/ui/Button";
 import { fmtYears, type Direction, type DirectionLevel } from "@/server/ai";
 
 const LEVEL: Record<DirectionLevel, { label: string; tone: "success" | "info" | "neutral" }> = {
@@ -14,7 +13,7 @@ export const DIRECTIONS_SUBTITLE =
 
 /**
  * The body of "Jobs to look for" on the profile page: which kinds of work the person's history points to, so they search where
- * they have a real chance, and a long button to start tailoring a resume to a job they found. Free (read from the career analysis)
+ * they have a real chance. Free (read from the career analysis)
  * and never worded as a chance of being hired.
  */
 export function JobDirectionsBody({ rows }: { rows: Direction[] }) {
@@ -42,9 +41,6 @@ export function JobDirectionsBody({ rows }: { rows: Direction[] }) {
         The percentages are each field&apos;s share of the time you have worked, added up from the dates in your profile.
         {small ? " A field marked as a long shot is a small part of your history: apply there only if the job is one you are ready to stretch for." : ""}
       </p>
-      <ButtonLink href="/dashboard#tailor" className="w-full">
-        Tailor your resume to a job
-      </ButtonLink>
     </div>
   );
 }

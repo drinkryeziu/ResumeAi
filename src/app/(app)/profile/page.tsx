@@ -1,3 +1,4 @@
+import { ButtonLink } from "@/components/ui/Button";
 import { DeleteProfileDialog } from "@/components/features/profile/DeleteProfileDialog";
 import { Badge } from "@/components/ui/Badge";
 import { CareerAnalysisBody, careerSubtitle } from "@/components/features/match/CareerAtAGlance";
@@ -204,6 +205,12 @@ export default async function ProfilePage() {
           <DeleteProfileDialog />
         </div>
       </ProfileSections>
+      {/* Stuck to the bottom of the screen while the page scrolls. The right side is left free for the Ask Drin button. */}
+      <div className="sticky bottom-3 z-30 mt-ds-5 pr-[152px] sm:bottom-5 sm:pr-[176px]">
+        <ButtonLink href="/dashboard#tailor" className="w-full text-center leading-tight shadow-[0_16px_36px_-10px_rgba(109,74,255,0.6)]">
+          Tailor your resume to a job
+        </ButtonLink>
+      </div>
     </>
   );
 }

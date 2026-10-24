@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { AlertTriangle, ArrowRight, Check, Compass, FileText, FileUp, Mail, Pencil } from "lucide-react";
+import { AlertTriangle, ArrowRight, Check, Compass, FileUp, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { PdfIcon, WordIcon } from "@/components/ui/FileIcons";
 import { ScoreRing } from "@/components/ui/ScoreRing";
@@ -104,26 +104,30 @@ function Profile() {
   );
 }
 
-function Masters() {
-  const doc = (icon: ReactNode, title: string, delay: number) => (
-    <Pop delay={delay} className="flex-1">
-      <Card className="flex items-center gap-ds-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-sky-50 text-blue-600">{icon}</span>
-        <span className="flex min-w-0 flex-col">
-          <span className="text-label-bold">{title}</span>
-          <span className="text-caption">Version 1</span>
-        </span>
-        <Badge tone="success" className="ml-auto">
-          Free
-        </Badge>
-      </Card>
+function Career() {
+  const row = (name: string, years: string, delay: number) => (
+    <Pop delay={delay}>
+      <span className="flex items-center justify-between gap-ds-3 text-body-sm">
+        <span>{name}</span>
+        <span className="font-bold">{years}</span>
+      </span>
     </Pop>
   );
   return (
-    <div className="flex w-full max-w-md flex-col gap-ds-3">
-      {doc(<FileText size={20} aria-hidden="true" />, "Master Resume", 0)}
-      {doc(<Mail size={20} aria-hidden="true" />, "Master Cover Letter", 450)}
-    </div>
+    <Card className="flex w-full max-w-md flex-col gap-ds-3">
+      <span className="flex items-center gap-ds-2 text-label-bold">
+        <Compass size={18} className="text-blue-600" aria-hidden="true" /> Your career at a glance
+      </span>
+      <span className="text-caption">Senior UX Designer · 12.9 years in total</span>
+      <div className="flex flex-col gap-ds-2 divide-y divide-gray-100">
+        {row("UX Designer", "7.7 years", 200)}
+        {row("Product Designer", "3.2 years", 650)}
+        {row("Graphic Designer", "2 years", 1100)}
+      </div>
+      <Badge tone="success" className="self-start">
+        Free
+      </Badge>
+    </Card>
   );
 }
 
@@ -280,7 +284,7 @@ function Download() {
   );
 }
 
-const SCENE_ART: Record<SceneId, () => React.JSX.Element> = { about: About, signup: Signup, profile: Profile, masters: Masters, directions: Directions, job: Job, match: Match, questions: Questions, documents: Documents, download: Download };
+const SCENE_ART: Record<SceneId, () => React.JSX.Element> = { about: About, signup: Signup, profile: Profile, career: Career, directions: Directions, job: Job, match: Match, questions: Questions, documents: Documents, download: Download };
 
 export function TourScene({ id }: { id: SceneId }) {
   const Art = SCENE_ART[id];

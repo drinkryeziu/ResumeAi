@@ -46,7 +46,7 @@ export function DeleteProfileDialog() {
           </div>
           <div className="flex flex-col gap-ds-2">
             <p className="text-body">
-              This deletes your professional profile, including your jobs, education, skills and answers, and your Master Resume and Master Cover Letter.{" "}
+              This deletes your professional profile, including your jobs, education, skills and answers, and your career summary.{" "}
               <strong>It can&apos;t be undone.</strong>
             </p>
             <p className="text-body-sm">You&apos;ll start again from the beginning to create a new profile. Your account, credits and applications you already created stay.</p>

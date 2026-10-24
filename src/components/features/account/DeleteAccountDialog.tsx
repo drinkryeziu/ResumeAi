@@ -50,7 +50,7 @@ export function DeleteAccountDialog({ email }: { email: string }) {
           </div>
           <div className="flex flex-col gap-ds-2">
             <p className="text-body">
-              This permanently deletes your profile, Master Resume and Cover Letter, every application and its documents, and your credit history.{" "}
+              This permanently deletes your profile, every application and its documents, and your credit history.{" "}
               <strong>It can&apos;t be undone.</strong>
             </p>
             <p className="text-body-sm">If you want a copy first, close this window and use “Download my data”.</p>

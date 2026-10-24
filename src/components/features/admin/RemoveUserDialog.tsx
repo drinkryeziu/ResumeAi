@@ -52,7 +52,7 @@ export function RemoveUserDialog({ userId, name, email }: { userId: string; name
           </div>
           <div className="flex flex-col gap-ds-2">
             <p className="text-body">
-              This permanently deletes the account of <strong>{name}</strong> ({email}): their profile, Master Resume and Cover Letter, every application and its documents, and their
+              This permanently deletes the account of <strong>{name}</strong> ({email}): their profile, every application and its documents, and their
               credit history. <strong>It can&apos;t be undone.</strong>
             </p>
             <p className="text-body-sm">They are not told, and they will no longer be able to sign in.</p>

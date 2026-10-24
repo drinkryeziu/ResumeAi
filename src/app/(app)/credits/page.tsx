@@ -19,7 +19,7 @@ const REASON: Record<string, { label: string; tone: "info" | "success" | "neutra
 };
 
 /** Only our own job pages: the saved work the credit-limit window sent the person from. */
-const SAVED_WORK = /^\/(jobs\/[A-Za-z0-9_-]+|dashboard|master)$/;
+const SAVED_WORK = /^\/(jobs\/[A-Za-z0-9_-]+|dashboard)$/;
 
 export default async function CreditsPage({ searchParams }: { searchParams: Promise<{ from?: string }> }) {
   const { from } = await searchParams;

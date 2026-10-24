@@ -253,7 +253,7 @@ export function ProfileEditor({
               id="summary"
               {...sec("summary")}
               title="Professional summary"
-              subtitle="3–4 sentences about what you do and what you're best at. We'll polish it for your Master Resume."
+              subtitle="3–4 sentences about what you do and what you're best at. We'll polish it for your resumes."
             >
               <Textarea aria-label="Professional summary" className="min-h-32" value={p.summary ?? ""} onChange={(e) => set("summary", e.target.value)} />
             </Section>
@@ -432,9 +432,9 @@ export function ProfileEditor({
           <div className={cn("flex gap-ds-4", wizard ? "flex-wrap items-center justify-between" : "flex-col")}>
             <div className="flex max-w-md flex-col gap-ds-2">
               {wizard ? (
-                step === lastStep && <p className="text-body-sm">Creating your documents is free. We only use what you entered here.</p>
+                step === lastStep && <p className="text-body-sm">Creating your profile is free. We only use what you entered here.</p>
               ) : (
-                <p className="text-body-sm">Saving also updates your Master Resume and Cover Letter. Resumes you already tailored to jobs keep their saved versions.</p>
+                <p className="text-body-sm">Resumes you already tailored to jobs keep their saved versions.</p>
               )}
             </div>
             <div className={cn("flex w-full flex-wrap items-center gap-ds-4", wizard && "sm:w-auto sm:justify-end")}>
@@ -450,7 +450,7 @@ export function ProfileEditor({
                   </Button>
                 ) : (
                   <div className="flex flex-wrap items-center gap-x-ds-4 gap-y-ds-2">
-                    <SaveButton label={wizard ? "Create my master documents" : "Save profile"} disabled={blocked || (!wizard && !changed)} long={!wizard} describedBy={blocked ? "required-hint" : undefined} />
+                    <SaveButton label={wizard ? "Create my profile" : "Save profile"} disabled={blocked || (!wizard && !changed)} long={!wizard} describedBy={blocked ? "required-hint" : undefined} />
                     {/* The way out is always beside Save. Leaving drops any unsaved change; the saved profile is untouched. */}
                     {!wizard && (
                       <ButtonLink href="/profile" variant="link" icon={<X size={16} aria-hidden="true" />}>
@@ -497,18 +497,18 @@ function StepPane({ show, children }: { show: boolean; children: ReactNode }) {
   return <div hidden={!show}>{children}</div>;
 }
 
-/** Saving writes the Master documents with AI, which is a long wait worth a window. */
+/** Saving has the AI read the career again, which is a long wait worth a window. */
 function SaveBusy({ wizard }: { wizard: boolean }) {
   const { pending } = useFormStatus();
   if (!pending) return null;
-  return <BusyOverlay title={wizard ? "Creating your documents…" : "Updating your documents…"} />;
+  return <BusyOverlay title={wizard ? "Creating your profile…" : "Updating your profile…"} />;
 }
 
 function SaveButton({ label, disabled, long, describedBy }: { label: string; disabled?: boolean; long?: boolean; describedBy?: string }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending || disabled} aria-describedby={describedBy} className={long ? "min-w-[12rem] flex-1" : "w-full sm:w-auto"}>
-      {pending ? (long ? "Saving and updating your documents…" : "Saving and creating your documents…") : label}
+      {pending ? (long ? "Saving and updating your profile…" : "Saving and creating your profile…") : label}
     </Button>
   );
 }

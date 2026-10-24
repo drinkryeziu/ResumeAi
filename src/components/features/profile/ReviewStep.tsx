@@ -28,7 +28,7 @@ export function ReviewStep({ p }: { p: ProfileInput }) {
   return (
     <>
       <Card>
-        <CardHeader title="What we'll build from" subtitle="A Master Resume and a Master Cover Letter, written only from these details." />
+        <CardHeader title="What we'll build from" subtitle="Your profile, built only from these details." />
         <dl className="flex flex-col gap-ds-2">
           {rows.map(([label, value]) => (
             <div key={label} className="flex justify-between gap-ds-4 text-body-sm">
@@ -40,13 +40,13 @@ export function ReviewStep({ p }: { p: ProfileInput }) {
       </Card>
       {tips.length > 0 && (
         <SoftPanel className="flex flex-col gap-ds-2">
-          <h3 className="text-label-bold">Make them stronger (optional)</h3>
+          <h3 className="text-label-bold">Make it stronger (optional)</h3>
           <ul className="flex list-disc flex-col gap-1 pl-5 text-body-sm">
             {tips.slice(0, 4).map((t) => (
               <li key={t}>{t}</li>
             ))}
           </ul>
-          <p className="text-caption">Use Back to add more, or create your documents now and update them later.</p>
+          <p className="text-caption">Use Back to add more, or create your profile now and update it later.</p>
         </SoftPanel>
       )}
     </>

@@ -65,7 +65,7 @@ const targetOf = (fd: FormData) => {
   const v = z.string().min(1).parse(fd.get("jobId"));
   return v === "master" ? null : v;
 };
-const pathOf = (jobId: string | null) => (jobId ? `/jobs/${jobId}` : "/master");
+const pathOf = (jobId: string | null) => (jobId ? `/jobs/${jobId}` : "/profile");
 /** A document opened from the Documents tab keeps its "Close" button after a save or restore. */
 const fromOf = (fd: FormData) => (fd.get("from") === "documents" ? "&from=documents" : "");
 
@@ -322,16 +322,4 @@ export async function setApplied(jobId: string, applied: boolean): Promise<boole
   const found = await (await getStore()).setJobApplied(id, parsed.data.jobId, parsed.data.applied);
   if (found) revalidatePath("/documents");
   return found;
-}
-
-export async function regenerateMasterDocuments(_: ActionState, fd: FormData): Promise<ActionState> {
-  const { id } = await requireUser();
-  if (await tooFast(id)) return TOO_FAST;
-  try {
-    await pipeline.generateMasterDocuments(await getStore(), id, requestId(fd));
-  } catch (e) {
-    return toState(e, { userId: id, jobId: null, action: "master_documents" });
-  }
-  revalidatePath("/master");
-  redirect(`/master?notice=${notice("masters-updated")}`);
 }

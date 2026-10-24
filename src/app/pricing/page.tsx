@@ -35,7 +35,7 @@ export default function PricingDetailsPage() {
           <div className="flex max-w-2xl flex-col gap-ds-2">
             <h1 className="text-heading-section">Pricing details</h1>
             <p className="text-body">
-              Every step that uses AI costs credits, and you see the price on the button before you click. Reading your CV, creating your profile and your master documents are free.
+              Every step that uses AI costs credits, and you see the price on the button before you click. Reading your CV, creating and updating your profile are free.
             </p>
           </div>
           <ButtonLink href="/" variant="secondary" icon={<X size={16} aria-hidden="true" />}>

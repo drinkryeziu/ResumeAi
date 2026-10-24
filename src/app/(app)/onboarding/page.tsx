@@ -9,12 +9,12 @@ import { requireUser } from "@/server/auth/session";
 import { mergeDraftIntoInput, toProfileInput } from "@/server/domain/profile-mapping";
 import { getStore } from "@/server/store";
 
-export const metadata = { title: "Create your master documents" };
+export const metadata = { title: "Create your profile" };
 
 /**
  * First-time users land here after sign-up (and any signed-in page without a profile redirects here). Two ways in:
  * upload or paste a CV to pre-fill the form, or type it. The form is a four-step setup ending in a review;
- * creating it saves the profile and builds the Master Resume + Master Cover Letter, then shows them on /onboarding/done.
+ * creating it saves the profile (the Master documents behind it are written out of sight) and lands on /profile with a notice.
  */
 export default async function OnboardingPage() {
   const user = await requireUser();
@@ -34,7 +34,7 @@ export default async function OnboardingPage() {
             <div>
               <h2 className="text-card-title">Already have a CV? Upload or paste it</h2>
               <p className="text-body-sm mt-ds-1">
-                We&apos;ll fill in the form for you from your CV. You check each step and fix anything we read wrong. Nothing is saved until you create your documents.
+                We&apos;ll fill in the form for you from your CV. You check each step and fix anything we read wrong. Nothing is saved until you create your profile.
               </p>
             </div>
             <CvImport returnTo="onboarding" requestId={crypto.randomUUID()} />
@@ -53,8 +53,8 @@ export default async function OnboardingPage() {
     <div className="mx-auto w-full max-w-[760px]">
       <PageHeader
         eyebrow="Welcome to ResumeAi"
-        title="Create your Master Resume and Cover Letter"
-        description="Tell us about your work once. We build both master documents from it, and every job application starts from them. We only ever use what you put here, and creating them is free."
+        title="Create your professional profile"
+        description="Tell us about your work once, and every job application starts from it. We only ever use what you put here, and creating your profile is free."
       />
       <ProfileEditor key={cv ? cv.createdAt.toISOString() : "blank"} initial={merged?.input ?? base} firstTime requestId={crypto.randomUUID()} intro={intro} />
     </div>

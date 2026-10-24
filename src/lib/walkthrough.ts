@@ -4,7 +4,7 @@
  * Keep it true to the app: plain words, no promises the product doesn't keep.
  */
 export type Speaker = "asks" | "explains";
-export type SceneId = "about" | "signup" | "profile" | "masters" | "directions" | "job" | "match" | "questions" | "documents" | "download";
+export type SceneId = "about" | "signup" | "profile" | "career" | "directions" | "job" | "match" | "questions" | "documents" | "download";
 
 export interface Line {
   speaker: Speaker;
@@ -45,11 +45,14 @@ export const SCENES: readonly Scene[] = [
     ],
   },
   {
-    id: "masters",
-    title: "Get your master documents",
+    id: "career",
+    title: "See your career at a glance",
     lines: [
       { speaker: "asks", text: "And then?" },
-      { speaker: "explains", text: "Then we write your Master Resume and Master Cover Letter from it. That part is free, and every application you make starts from them." },
+      {
+        speaker: "explains",
+        text: "Then we read your career for you: what you've done, for how long, and where you're strongest. You'll find it on your profile page, and it's free.",
+      },
     ],
   },
   {

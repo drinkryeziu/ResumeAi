@@ -52,7 +52,7 @@ export const ENTRIES: Entry[] = [
   },
   {
     id: "profile",
-    next: ["masters", "upload-problem"],
+    next: ["career", "upload-problem"],
     question: "How do I create my profile?",
     ask: [
       "how do i create my profile",
@@ -79,14 +79,14 @@ export const ENTRIES: Entry[] = [
       "A window tells you why. The usual causes are a file over 4 MB, a file that is not a PDF, Word (.docx) or text, or a scanned CV that is only a picture, which has no text for us to read. The quickest fix is to paste the text of your CV into the box instead (the Paste link is right there), or choose another file.",
   },
   {
-    id: "masters",
-    next: ["job"],
-    question: "What are the Master Resume and Master Cover Letter?",
-    ask: ["what are the master documents", "what is a master resume", "what is the master cover letter", "what do i get after my profile"],
-    words: ["master", "masters", "documents", "documentation", "base", "starting", "point", "general"],
+    id: "career",
+    question: "What do I get after I create my profile?",
+    ask: ["what do i get after my profile", "what happens after i create my profile", "what is career at a glance", "what is on my profile page", "what do you do with my profile"],
+    words: ["after", "profile", "career", "glance", "summary", "years", "strongest", "result", "get"],
     answer: () =>
-      "Once your profile is saved we write your Master Resume and Master Cover Letter from it. This part is free, and every application starts from them. Tailoring to a job never changes them. If you update your profile, you can recreate both from the Master page, and your earlier versions stay in history.",
-    link: { href: "/master", label: "Open my master documents" },
+      "Once your profile is saved you land on your profile page. There, Your career at a glance adds up your years of work by kind of work and industry, from the dates you gave us, and lists your strengths. It's free. Every application you make starts from your profile, and tailoring to a job never changes it.",
+    link: { href: "/profile", label: "Open my profile" },
+    next: ["job"],
   },
   {
     id: "job",
@@ -172,7 +172,7 @@ export const ENTRIES: Entry[] = [
     ],
     words: ["cost", "price", "pay", "free", "credits", "credit", "much", "expensive", "cheap", "money", "dollar", "fee"],
     answer: (f) =>
-      `Reading your CV, making your profile and creating your Master documents are free. AI actions use credits, and the price is on the button before you click. Tailoring to a job is ${credits(f.tailorCredits)}, creating the application is ${credits(f.createCredits)}, so one full application is ${credits(f.fullApplicationCredits)}. A new account starts with ${f.signupCredits} free credits.`,
+      `Reading your CV, making your profile and keeping it up to date are free. AI actions use credits, and the price is on the button before you click. Tailoring to a job is ${credits(f.tailorCredits)}, creating the application is ${credits(f.createCredits)}, so one full application is ${credits(f.fullApplicationCredits)}. A new account starts with ${f.signupCredits} free credits.`,
     link: { href: "/pricing", label: "See the full price list" },
   },
   {
@@ -200,7 +200,7 @@ export const ENTRIES: Entry[] = [
     ask: ["how many free credits do i get", "do i get free credits", "what do i get for free", "free trial", "free plan"],
     words: ["free", "credits", "trial", "start", "signup", "bonus", "gift", "launch", "offer"],
     answer: (f) =>
-      `Every new account starts with ${f.signupCredits} free credits, enough for your first tailored application${f.launchCredits ? `, and right now there is a launch offer of ${f.launchCredits} more credits for everyone, added the next time you open the app` : ""}. Reading your CV and creating your Master documents don't use any.`,
+      `Every new account starts with ${f.signupCredits} free credits, enough for your first tailored application${f.launchCredits ? `, and right now there is a launch offer of ${f.launchCredits} more credits for everyone, added the next time you open the app` : ""}. Reading your CV and making your profile don't use any.`,
   },
   {
     id: "out-of-credits",

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, ClipboardPaste, FileCheck2, FileText, Mail, Target } from "lucide-react";
+import { ArrowRight, ClipboardPaste, FileCheck2, Target } from "lucide-react";
 import { DeleteApplicationButton } from "@/components/features/job-flow/DeleteApplicationButton";
 import { Badge } from "@/components/ui/Badge";
 import { NewJobCard } from "@/components/features/job-flow/NewJobCard";
@@ -30,11 +30,10 @@ function unfinishedStep(jobs: Summary[]): { title: string; detail: string; href:
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const { user, profile } = await requireProfile();
   const store = await getStore();
-  const [balance, jobs, masterResume, masterLetter, prices] = await Promise.all([
+  const [balance, jobs, masterResume, prices] = await Promise.all([
     store.credits.balance(user.id),
     jobSummaries(store, user.id),
     store.resumeForJob(user.id, null),
-    store.coverLetterForJob(user.id, null),
     store.credits.listPrices(),
   ]);
   const strength = profileStrength(profile);
@@ -46,18 +45,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const tailorCost = price("ANALYZE_JOB") + price("JOB_MATCH");
   const applicationsLeft = applicationCost ? Math.floor(balance / applicationCost) : 0;
 
-  const masters = [
-    { key: "resume", title: "Master Resume", icon: <FileText size={22} />, record: masterResume },
-    { key: "cover-letter", title: "Master Cover Letter", icon: <Mail size={22} />, record: masterLetter },
-  ] as const;
-
   return (
     <div className="flex flex-col gap-ds-5">
       <header className="flex flex-col gap-ds-1">
         <h1 className="text-heading-section">{welcome ? `Welcome, ${user.firstName}` : `Welcome back, ${user.firstName}`}</h1>
         <p className="text-body">
           {welcome
-            ? "Your profile is saved and your Master Resume and Cover Letter are ready."
+            ? "Your profile is saved. Add a job below to see how well you match."
             : `You have ${formatNumber(balance)} credits — enough for about ${applicationsLeft} more ${applicationsLeft === 1 ? "application" : "applications"}.`}
         </p>
       </header>
@@ -80,7 +74,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       <JobDirectionsCard analysis={masterResume?.versions.find((v) => v.id === masterResume.currentVersionId)?.content.analysis} />
 
-      <div className="grid items-start gap-ds-5 md:grid-cols-2">
+      <div className="grid items-start gap-ds-5">
         <section aria-labelledby="applications">
           <div className="mb-ds-3 flex items-baseline justify-between">
             <h2 id="applications" className="text-card-title">
@@ -152,37 +146,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               })}
             </ul>
           )}
-        </section>
-
-        <section aria-labelledby="master-h">
-          <h2 id="master-h" className="text-card-title mb-ds-3">
-            Master documents
-          </h2>
-          <div className="rounded-md bg-white p-ds-4 shadow-card">
-            <p className="text-body-sm mb-ds-3">Built from your profile. Every application starts from these.</p>
-            <ul className="flex flex-col gap-ds-2">
-              {masters.map((m) => {
-                const v = m.record?.versions.find((x) => x.id === m.record!.currentVersionId);
-                return (
-                  <li key={m.key} className="relative flex items-center gap-ds-3 rounded-md bg-gray-100 px-ds-3 py-ds-3 transition-shadow hover:shadow-card">
-                    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-sky-50 text-blue-600" aria-hidden="true">
-                      {m.icon}
-                    </span>
-                    <span className="flex flex-1 flex-col">
-                      {/* The whole row opens the document; Edit and Download are on its page. */}
-                      <Link
-                        href={`/master?doc=${m.key}`}
-                        className="text-label-bold no-underline after:absolute after:inset-0 after:rounded-md after:content-[''] hover:text-blue-700 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-blue-600"
-                      >
-                        {m.title}
-                      </Link>
-                      <span className="text-caption">{v ? `Version ${v.number}, ${formatDate(v.createdAt)}` : "Not created yet"}</span>
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
         </section>
       </div>
 

@@ -11,11 +11,10 @@ export const NOTICES = {
   "ats-checked": "ATS check finished.",
   "version-saved": "Saved as a new version. Earlier versions are kept.",
   "version-restored": "Version restored as a new version.",
-  "masters-updated": "Master documents updated.",
   "application-deleted": "Application deleted.",
   "document-deleted": "Document deleted.",
   "profile-created": "Your profile was created.",
-  "profile-updated-docs": "Your profile was updated and your Master documents were refreshed.",
+  "profile-updated-docs": "Your profile was updated.",
   "profile-deleted": "Your profile was deleted. Create a new one to continue.",
 } as const;
 

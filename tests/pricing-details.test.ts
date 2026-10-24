@@ -10,9 +10,9 @@ describe("pricing details", () => {
     for (const a of DEFAULT_CREDIT_ACTIONS) expect(creditsFor(a.key)).toBe(a.credits);
   });
 
-  it("lists profile and Master documents as free, and every paid step with its credits", () => {
+  it("lists creating and updating the profile as free, and every paid step with its credits", () => {
     const by = (id: string) => ACTION_ROWS.find((r) => r.id === id)!;
-    expect(["profile", "masters", "update", "hand"].map((id) => by(id).credits)).toEqual([0, 0, 0, 0]);
+    expect(["profile", "update", "hand"].map((id) => by(id).credits)).toEqual([0, 0, 0]);
     expect(by("full").emphasis).toBe(true);
     expect(by("ats").credits).toBe(3);
     expect(by("tone").credits).toBe(3);

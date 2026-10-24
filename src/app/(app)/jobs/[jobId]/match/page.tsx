@@ -91,7 +91,7 @@ export default async function MatchPage({ params }: { params: Promise<{ jobId: s
         title={p.job.title}
         description={
           <>
-            Compared with your profile and Master Resume.
+            Compared with your profile.
             {a.minYears ? ` This role asks for ${a.minYears}+ years of experience` : ""}
             {a.seniority !== "unspecified" ? `${a.minYears ? " at" : " This is a"} ${a.seniority} level.` : a.minYears ? "." : ""}
           </>
@@ -127,7 +127,7 @@ export default async function MatchPage({ params }: { params: Promise<{ jobId: s
                   ? "Your tailored resume and cover letter are ready to review."
                   : resumeSaved
                     ? "Your tailored resume is saved. Only the cover letter is left."
-                    : "A resume and cover letter tailored to this job. Your Master Resume stays unchanged."}
+                    : "A resume and cover letter tailored to this job. Your profile stays unchanged."}
               </p>
               {!created && openQuestions > 0 && (
                 <a href="#questions" className="text-body-sm text-center text-blue-700 underline">

@@ -23,14 +23,11 @@ function MissingRow({ children, href, action }: { children: React.ReactNode; hre
 
 const dl = (target: string, doc: "resume" | "cover-letter") => `/api/jobs/${target}/download?doc=${doc}`;
 
-/** Every document in one place: the Master documents first, then each application's resume and cover letter, grouped by company. */
+/** Every document you created for a job, in one place: each application's resume and cover letter, grouped by company. */
 export default async function DocumentsPage() {
   const { user } = await requireProfile();
   const store = await getStore();
   const [resumes, letters, jobs] = await Promise.all([store.listResumes(user.id), store.listCoverLetters(user.id), store.listJobs(user.id)]);
-
-  const masterResume = resumes.find((r) => r.jobId === null) ?? null;
-  const masterLetter = letters.find((l) => l.jobId === null) ?? null;
 
   // One group per application that has at least one document, the most recently changed first.
   const groups = jobs
@@ -47,70 +44,9 @@ export default async function DocumentsPage() {
     <>
       <PageHeader
         title="Documents"
-        description="Your Master Resume and Cover Letter, and every resume and cover letter you created for a job. Edit, download or delete any of them."
+        description="Every resume and cover letter you created for a job. Edit, download or delete any of them."
       />
       <div className="flex flex-col gap-ds-6">
-        <section aria-labelledby="master-h" className="flex flex-col gap-ds-3">
-          <div>
-            <h2 id="master-h" className="text-heading-section">
-              Master documents
-            </h2>
-            <p className="text-body-sm">The starting point for every application. Tailoring to a job never changes them.</p>
-          </div>
-          <Card>
-            <ul className="flex flex-col gap-ds-2">
-              {masterResume ? (
-                <DocumentRow
-                  title="Master Resume"
-                  kind="resume"
-                  kindLabel="Master Resume"
-                  versions={masterResume.versions}
-                  currentVersionId={masterResume.currentVersionId}
-                  viewHref="/master?doc=resume&from=documents"
-                  editHref="/master?doc=resume&mode=edit&from=documents"
-                  downloadBase={dl("master", "resume")}
-                  deleteButton={
-                    <DeleteDocumentButton
-                      kind="resume"
-                      id={masterResume.id}
-                      label="Master Resume"
-                      consequence="Your profile and your applications aren't affected. You can create a new Master Resume from your profile any time."
-                    />
-                  }
-                />
-              ) : (
-                <MissingRow href="/master" action="Create from profile">
-                  You don&apos;t have a Master Resume.
-                </MissingRow>
-              )}
-              {masterLetter ? (
-                <DocumentRow
-                  title="Master Cover Letter"
-                  kind="cover-letter"
-                  kindLabel="Master Cover Letter"
-                  versions={masterLetter.versions}
-                  currentVersionId={masterLetter.currentVersionId}
-                  viewHref="/master?doc=cover-letter&from=documents"
-                  editHref="/master?doc=cover-letter&mode=edit&from=documents"
-                  downloadBase={dl("master", "cover-letter")}
-                  deleteButton={
-                    <DeleteDocumentButton
-                      kind="cover-letter"
-                      id={masterLetter.id}
-                      label="Master Cover Letter"
-                      consequence="Your profile and your applications aren't affected. You can create a new Master Cover Letter from your profile any time."
-                    />
-                  }
-                />
-              ) : (
-                <MissingRow href="/master?doc=cover-letter" action="Create from profile">
-                  You don&apos;t have a Master Cover Letter.
-                </MissingRow>
-              )}
-            </ul>
-          </Card>
-        </section>
-
         <section aria-labelledby="apps-h" className="flex flex-col gap-ds-4">
           <div>
             <h2 id="apps-h" className="text-heading-section">

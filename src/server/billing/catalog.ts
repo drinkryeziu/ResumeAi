@@ -25,8 +25,8 @@ export const DEFAULT_CREDIT_ACTIONS: Array<{ key: CreditActionKey; label: string
   { key: "EDIT_COVER_LETTER", label: "Rewrite cover letter", credits: 3, description: "Shorten, expand or change the tone." },
   { key: "ATS_CHECK", label: "ATS compatibility check", credits: 3, description: "Check structure and keyword coverage." },
   { key: "PARSE_RESUME", label: "Import resume", credits: 0, description: "Read an uploaded resume into your profile." },
-  { key: "MASTER_RESUME", label: "Create Master Resume", credits: 0, description: "Build your Master Resume from your profile." },
-  { key: "MASTER_COVER_LETTER", label: "Create Master Cover Letter", credits: 0, description: "Write a general cover letter from your profile." },
+  { key: "MASTER_RESUME", label: "Create your profile", credits: 0, description: "Read your career from your profile." },
+  { key: "MASTER_COVER_LETTER", label: "Update your profile", credits: 0, description: "Refresh what we know about your career." },
 ];
 
 export const DEFAULT_PLANS = [

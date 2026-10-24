@@ -54,7 +54,7 @@ export function DeleteApplicationButton({ jobId, title, company }: { jobId: stri
               </strong>{" "}
               will be removed with its match report, tailored resume and cover letter. This can&apos;t be undone.
             </p>
-            <p className="text-body-sm">Your profile and Master documents aren&apos;t affected. Credits already used aren&apos;t refunded.</p>
+            <p className="text-body-sm">Your profile isn&apos;t affected. Credits already used aren&apos;t refunded.</p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-ds-3">
             <Button type="button" variant="secondary" onClick={close}>

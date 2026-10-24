@@ -18,7 +18,7 @@ import { ProfileInputSchema } from "@/server/domain/profile-schema";
 import { generateMasterDocuments } from "@/server/services/job-pipeline";
 import { getStore } from "@/server/store";
 
-const NO_AI = "AI writing isn't switched on for this site yet, so your Master documents can't be created. The site owner needs to add the AI key.";
+const NO_AI = "AI writing isn't switched on for this site yet, so your profile can't be finished yet. The site owner needs to add the AI key.";
 
 /** `problem` (CV upload only) names what went wrong so the page can explain how to fix it; `detail` is for the curious. */
 export type ProfileState = { error?: string; problem?: CvProblem; detail?: string } | undefined;
@@ -52,7 +52,7 @@ export async function saveProfile(_: ProfileState, fd: FormData): Promise<Profil
 
   const store = await getStore();
   const existing = await store.findProfile(user.id);
-  // The Master documents are written by the AI. For a first profile, say so before saving anything, instead of leaving a half-finished setup.
+  // Creating a profile also has the AI read the career into the Master documents (not shown to people). For a first profile, say so before saving anything, instead of leaving a half-finished setup.
   if (!existing && !aiAvailable()) return { error: NO_AI };
   await store.saveProfile(user.id, toProfileSnapshot(existing?.id ?? `prof_${user.id}`, parsed.data, existing?.approvedFacts ?? []));
   // Corrected "Your answers": only the answers shown in the form change; any answered since the page opened stay as they are.
@@ -68,13 +68,13 @@ export async function saveProfile(_: ProfileState, fd: FormData): Promise<Profil
     await generateMasterDocuments(store, user.id, String(fd.get("requestId") || crypto.randomUUID()));
   } catch (e) {
     await recordError(store, { source: "save_profile", code: e instanceof WorkflowOutputError ? "answer_rejected" : e instanceof AIProviderError ? "ai_busy" : "unexpected", message: e instanceof Error ? `${e.name}: ${e.message}` : "Unknown error", userId: user.id });
-    if (e instanceof WorkflowOutputError) return { error: `Your profile was saved, but we couldn't update your Master documents. Save again to retry.${e.violations.length ? ` (Reason: ${e.violations.slice(0, 2).map((v) => v.slice(0, 180)).join(" · ")})` : ""}` };
-    if (e instanceof AIProviderError) return { error: `Your profile was saved. ${describeAIError(e, "update your Master documents")} Save again to retry.` };
+    if (e instanceof WorkflowOutputError) return { error: `Your profile was saved, but we couldn't finish updating it. Save again to retry.${e.violations.length ? ` (Reason: ${e.violations.slice(0, 2).map((v) => v.slice(0, 180)).join(" · ")})` : ""}` };
+    if (e instanceof AIProviderError) return { error: `Your profile was saved. ${describeAIError(e, "finish updating your profile")} Save again to retry.` };
     throw e;
   }
   revalidatePath("/", "layout");
-  if (firstTime) redirect(`/onboarding/done?notice=${notice("profile-created")}`);
-  // Updating lands on the profile with a confirmation; the Master documents are read from the Documents tab.
+  if (firstTime) redirect(`/profile?notice=${notice("profile-created")}`);
+  // Updating lands on the profile with a confirmation.
   redirect(`/profile?notice=${notice("profile-updated-docs")}`);
 }
 

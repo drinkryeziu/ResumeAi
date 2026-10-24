@@ -1,6 +1,7 @@
 import { DeleteProfileDialog } from "@/components/features/profile/DeleteProfileDialog";
 import { ButtonLink } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { CareerAnalysisBody, careerSubtitle } from "@/components/features/match/CareerAtAGlance";
 import { ProfileSection, ProfileSections } from "@/components/features/profile/CollapsibleSections";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -10,6 +11,7 @@ import { profileStrength } from "@/server/ai";
 import { requireProfile } from "@/server/auth/session";
 import { locationOf } from "@/server/documents/model";
 import { givenAnswers } from "@/server/domain/application-answers";
+import { getStore } from "@/server/store";
 
 export const metadata = { title: "Professional profile" };
 
@@ -21,13 +23,17 @@ const SKILL_GROUPS = [
   ["SOFT", "Soft skills"],
 ] as const;
 
-/** Read view of the Master Profile; editing happens at /profile/edit. */
+/** Read view of the profile, with the career at a glance; editing happens at /profile/edit. */
 export default async function ProfilePage() {
-  const { profile: p } = await requireProfile();
+  const { user, profile: p } = await requireProfile();
+  // The career reading is written with the profile (with the documents that start every application, which are not shown).
+  const resume = await (await getStore()).resumeForJob(user.id, null);
+  const career = resume?.versions.find((v) => v.id === resume.currentVersionId)?.content.analysis;
   const strength = profileStrength(p);
   const answers = givenAnswers(p.application);
   // Every section on the page in reading order (main column, then the side column). The first one starts open.
   const ids = [
+    ...(career ? ["career"] : []),
     "summary",
     "experience",
     ...(p.projects.length ? ["projects"] : []),
@@ -43,7 +49,7 @@ export default async function ProfilePage() {
     <>
       <PageHeader
         title="Your professional profile"
-        description="Your master source of truth. Every tailored resume and cover letter is built from this — tailoring never changes it."
+        description="Your source of truth. Every tailored resume and cover letter is built from this — tailoring never changes it."
         actions={<ButtonLink href="/profile/edit">Update profile</ButtonLink>}
       />
       <ProfileSections ids={ids}>
@@ -56,6 +62,11 @@ export default async function ProfilePage() {
               <p className="text-card-title text-blue-600">{p.headline}</p>
               <p className="text-body-sm mt-ds-2">{[p.email, p.phone, locationOf(p)].filter(Boolean).join(" · ")}</p>
             </Card>
+            {career && (
+              <ProfileSection id="career" title="Your career at a glance" subtitle={careerSubtitle(career)}>
+                <CareerAnalysisBody analysis={career} />
+              </ProfileSection>
+            )}
             <ProfileSection id="summary" title="Professional summary">
               {p.summary ? <p className="text-body">{p.summary}</p> : <p className="text-body-sm">No summary yet. A short one makes a stronger resume.</p>}
             </ProfileSection>

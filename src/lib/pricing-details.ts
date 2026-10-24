@@ -38,8 +38,7 @@ export interface ActionRow {
 
 export const ACTION_ROWS: ActionRow[] = [
   { id: "profile", label: "Create your profile", detail: "Type it in, or import your CV.", credits: creditsFor("PARSE_RESUME") },
-  { id: "masters", label: "Create your Master Resume and Cover Letter", detail: "Written from your profile.", credits: creditsFor("MASTER_RESUME", "MASTER_COVER_LETTER") },
-  { id: "update", label: "Update your profile and refresh the masters", detail: "Any time.", credits: creditsFor("MASTER_RESUME", "MASTER_COVER_LETTER") },
+  { id: "update", label: "Create or update your profile", detail: "Any time. Your career summary is refreshed with it.", credits: creditsFor("MASTER_RESUME", "MASTER_COVER_LETTER") },
   { id: "tailor", label: "Tailor to a job", detail: "Reads the job and shows how you match.", credits: creditsFor(...TAILOR) },
   { id: "create", label: "Create the application", detail: "A resume and a cover letter written for that job.", credits: creditsFor(...CREATE) },
   { id: "full", label: "One full application", detail: "Tailor to a job, then create the application.", credits: FULL_APPLICATION_CREDITS, emphasis: true },

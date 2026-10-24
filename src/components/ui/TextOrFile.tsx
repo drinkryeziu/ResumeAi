@@ -116,7 +116,7 @@ export function TextOrFile({
       <div hidden={mode !== "upload"}>
         <label
           className={cn(
-            "flex cursor-pointer flex-col items-center gap-ds-2 rounded-md p-ds-5 text-center transition-shadow hover:shadow-card focus-within:shadow-card focus-within:outline focus-within:outline-2 focus-within:outline-blue-600",
+            "flex cursor-pointer flex-col items-center gap-ds-2 rounded-md p-ds-5 text-center transition-shadow hover:shadow-card focus-within:shadow-card focus-within:outline focus-within:outline-2 focus-within:outline-blue-600 has-[input[aria-invalid=true]]:shadow-[inset_0_0_0_2px_var(--color-danger)]",
             onTint ? "bg-white" : "bg-sky-50",
           )}
         >

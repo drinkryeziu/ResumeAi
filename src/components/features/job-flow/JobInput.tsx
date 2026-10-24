@@ -13,7 +13,6 @@ export function JobInput({ defaultText }: { defaultText?: string }) {
   return (
     <TextOrFile
       label="Job description"
-      required
       mode={mode}
       onModeChange={setMode}
       text={text}

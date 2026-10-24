@@ -51,17 +51,32 @@ export function ActionForm({
   const [problem, setProblem] = useState<string | null>(null);
   const tried = useRef(false);
 
+  /** The controls that make up each requirement, found when needed (the paste box and the file field both belong to the description). */
+  const controls = (form: HTMLFormElement, n: NonNullable<typeof needs>) => ({
+    oneOf: [...form.querySelectorAll<HTMLElement>("textarea, input[type=file]")],
+    all: (n.all ?? []).map((f) => form.elements.namedItem(f.name) as HTMLElement | null),
+  });
+
   /** What is missing from the form right now, read when it is needed: never trusts an earlier guess, so autofill, dictation or a missed event cannot lock the button. */
-  const missing = (form: HTMLFormElement): Array<{ label: string; focus: () => void }> => {
+  const missing = (form: HTMLFormElement): Array<{ label: string; els: HTMLElement[] }> => {
     if (!needs) return [];
     const fd = new FormData(form);
     const has = (n: string) => fd.getAll(n).some((v) => (v instanceof File ? v.size > 0 : v.toString().trim() !== ""));
-    const field = (n: string) => () => (form.elements.namedItem(n) as HTMLElement | null)?.focus();
-    const out: Array<{ label: string; focus: () => void }> = [];
-    if (needs.oneOf && !needs.oneOf.names.some(has))
-      out.push({ label: needs.oneOf.label, focus: () => (form.querySelector("textarea, input[type=file]") as HTMLElement | null)?.focus() });
-    for (const f of needs.all ?? []) if (!has(f.name)) out.push({ label: f.label, focus: field(f.name) });
+    const c = controls(form, needs);
+    const out: Array<{ label: string; els: HTMLElement[] }> = [];
+    if (needs.oneOf && !needs.oneOf.names.some(has)) out.push({ label: needs.oneOf.label, els: c.oneOf });
+    (needs.all ?? []).forEach((f, i) => {
+      const el = c.all[i];
+      if (!has(f.name)) out.push({ label: f.label, els: el ? [el] : [] });
+    });
     return out;
+  };
+  /** Red border on what is missing (the inputs already draw one for aria-invalid), and none on what has been filled in since. */
+  const paint = (form: HTMLFormElement, m: Array<{ els: HTMLElement[] }>) => {
+    if (!needs) return;
+    const c = controls(form, needs);
+    [...c.oneOf, ...c.all].forEach((el) => el?.removeAttribute("aria-invalid"));
+    m.forEach((x) => x.els.forEach((el) => el.setAttribute("aria-invalid", "true")));
   };
   const sentence = (m: Array<{ label: string }>) => {
     const labels = m.map((x) => x.label);
@@ -74,7 +89,9 @@ export function ActionForm({
     e.preventDefault();
     tried.current = true;
     setProblem(sentence(m));
-    m[0]!.focus();
+    paint(e.currentTarget, m);
+    // The paste box when only that is showing, otherwise the first empty field.
+    (m[0]!.els.find((el) => el.offsetParent !== null) ?? m[0]!.els[0])?.focus();
   };
 
   // After a refused press, keep the message true as the person fills things in (typing, choosing a file, switching between paste and upload).
@@ -86,6 +103,7 @@ export function ActionForm({
         if (!tried.current) return;
         const m = missing(form);
         setProblem(m.length ? sentence(m) : null);
+        paint(form, m);
       }, 0);
     const events = ["input", "change", "click"] as const;
     events.forEach((e) => form.addEventListener(e, check));

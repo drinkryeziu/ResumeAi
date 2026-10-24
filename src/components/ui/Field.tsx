@@ -12,6 +12,7 @@ export function Field({
   label,
   hint,
   required,
+  plain,
   error,
   children,
   htmlFor,
@@ -19,6 +20,8 @@ export function Field({
   label: string;
   hint?: ReactNode;
   required?: boolean;
+  /** A required field without the asterisk: the form says what is missing when it is pressed, and what is optional says "(optional)". */
+  plain?: boolean;
   error?: string;
   children: ReactNode;
   htmlFor: string;
@@ -27,7 +30,7 @@ export function Field({
     <div className="flex flex-col gap-ds-1">
       <label htmlFor={htmlFor} className="text-label-bold">
         {label}
-        {required ? <span aria-hidden="true"> *</span> : <span className="text-caption font-normal"> (optional)</span>}
+        {required ? plain ? null : <span aria-hidden="true"> *</span> : <span className="text-caption font-normal"> (optional)</span>}
       </label>
       {children}
       {error ? (

@@ -46,10 +46,10 @@ export function NewJobCard({ cost }: { cost: number }) {
           <div className="mb-ds-4 flex flex-col gap-ds-4">
             <JobInput />
             <div className="grid gap-ds-4 md:grid-cols-2">
-              <Field label="Job title" htmlFor="title" required>
+              <Field label="Job title" htmlFor="title" required plain>
                 <Input id="title" name="title" autoComplete="off" placeholder="Senior UX Designer" />
               </Field>
-              <Field label="Company name" htmlFor="company" required>
+              <Field label="Company name" htmlFor="company" required plain>
                 <Input id="company" name="company" autoComplete="off" placeholder="Company" />
               </Field>
               <Field label="Link to the job posting" htmlFor="url">

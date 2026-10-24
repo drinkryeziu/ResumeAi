@@ -70,8 +70,8 @@ const pathOf = (jobId: string | null) => (jobId ? `/jobs/${jobId}` : "/master");
 const fromOf = (fd: FormData) => (fd.get("from") === "documents" ? "&from=documents" : "");
 
 const JobFields = z.object({
-  title: z.string().trim().max(200).default(""),
-  company: z.string().trim().max(200).default(""),
+  title: z.string({ error: "Enter the job title." }).trim().min(1, "Enter the job title.").max(200),
+  company: z.string({ error: "Enter the company name." }).trim().min(1, "Enter the company name.").max(200),
   location: z.string().trim().max(200).optional(),
   url: z.union([z.literal(""), z.url().max(2000)]).optional(),
   description: z.string().trim().max(30_000, "That description is too long — trim it to under 30,000 characters.").default(""),

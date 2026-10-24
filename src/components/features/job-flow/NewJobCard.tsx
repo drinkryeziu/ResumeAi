@@ -35,17 +35,22 @@ export function NewJobCard({ cost }: { cost: number }) {
           pendingLabel="Analyzing the job…"
           cost={cost}
           fullWidth
-          requireOneOf={["description", "file"]}
-          requireHint="Paste the job description or upload a file to continue."
+          needs={{
+            oneOf: { names: ["description", "file"], label: "the job description (or upload a file)" },
+            all: [
+              { name: "title", label: "the job title" },
+              { name: "company", label: "the company name" },
+            ],
+          }}
         >
           <div className="mb-ds-4 flex flex-col gap-ds-4">
             <JobInput />
             <div className="grid gap-ds-4 md:grid-cols-2">
-              <Field label="Job title" htmlFor="title">
-                <Input id="title" name="title" placeholder="Senior UX Designer" />
+              <Field label="Job title" htmlFor="title" required>
+                <Input id="title" name="title" autoComplete="off" placeholder="Senior UX Designer" />
               </Field>
-              <Field label="Company name" htmlFor="company">
-                <Input id="company" name="company" placeholder="Company" />
+              <Field label="Company name" htmlFor="company" required>
+                <Input id="company" name="company" autoComplete="off" placeholder="Company" />
               </Field>
               <Field label="Link to the job posting" htmlFor="url">
                 <Input id="url" name="url" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="https://" />
@@ -57,7 +62,8 @@ export function NewJobCard({ cost }: { cost: number }) {
           </div>
         </ActionForm>
         <p className="text-caption">
-          We never add experience, skills, education or results you haven&apos;t given us. If the job asks for something we can&apos;t find, it shows as missing.
+          We never add experience, skills, education or results you haven&apos;t given us. If the job asks for something we can&apos;t find, it shows as
+          missing.
         </p>
       </Card>
     </section>

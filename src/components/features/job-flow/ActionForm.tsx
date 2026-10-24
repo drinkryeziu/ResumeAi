@@ -24,8 +24,7 @@ export function ActionForm({
   cost,
   variant = "primary",
   fullWidth = false,
-  requireOneOf,
-  requireHint,
+  needs,
   children,
   className,
 }: {
@@ -37,44 +36,63 @@ export function ActionForm({
   variant?: "primary" | "secondary";
   /** Stretch the button to its container — for a card whose main action is this button. */
   fullWidth?: boolean;
-  /** At least one of these form fields needs a value (text typed, or a file chosen); pressing the button without one explains what is missing instead of sending. */
-  requireOneOf?: string[];
-  /** Shown under the disabled button so people know what is missing. */
-  requireHint?: string;
+  /**
+   * What the form must have before it is sent. `oneOf`: at least one of these fields has a value (text typed, or a file chosen).
+   * `all`: each of these fields has a value. Pressing the button without them says what is missing and moves to it, and sends
+   * nothing; everything else in the form is optional and never stops it.
+   */
+  needs?: { oneOf?: { names: string[]; label: string }; all?: Array<{ name: string; label: string }> };
   children?: ReactNode;
   className?: string;
 }) {
   const [state, formAction] = useActionState(action, undefined);
   const formRef = useRef<HTMLFormElement>(null);
-  const [filled, setFilled] = useState(!requireOneOf);
-  const [tried, setTried] = useState(false);
-  const needs = requireOneOf?.join(",");
+  /** Said under the button after a press that was refused; null while nothing is missing. */
+  const [problem, setProblem] = useState<string | null>(null);
+  const tried = useRef(false);
 
-  /** What is in the form right now, read when it is needed: never trusts an earlier guess, so autofill, dictation or a missed event cannot lock the button. */
-  const hasInput = (form: HTMLFormElement) => {
+  /** What is missing from the form right now, read when it is needed: never trusts an earlier guess, so autofill, dictation or a missed event cannot lock the button. */
+  const missing = (form: HTMLFormElement): Array<{ label: string; focus: () => void }> => {
+    if (!needs) return [];
     const fd = new FormData(form);
-    return (needs?.split(",") ?? []).some((n) => fd.getAll(n).some((v) => (v instanceof File ? v.size > 0 : v.toString().trim() !== "")));
+    const has = (n: string) => fd.getAll(n).some((v) => (v instanceof File ? v.size > 0 : v.toString().trim() !== ""));
+    const field = (n: string) => () => (form.elements.namedItem(n) as HTMLElement | null)?.focus();
+    const out: Array<{ label: string; focus: () => void }> = [];
+    if (needs.oneOf && !needs.oneOf.names.some(has))
+      out.push({ label: needs.oneOf.label, focus: () => (form.querySelector("textarea, input[type=file]") as HTMLElement | null)?.focus() });
+    for (const f of needs.all ?? []) if (!has(f.name)) out.push({ label: f.label, focus: field(f.name) });
+    return out;
+  };
+  const sentence = (m: Array<{ label: string }>) => {
+    const labels = m.map((x) => x.label);
+    const list = labels.length > 1 ? `${labels.slice(0, -1).join(", ")} and ${labels.at(-1)}` : labels[0];
+    return `Please add ${list} to continue.`;
   };
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
-    if (!needs || hasInput(e.currentTarget)) return;
+    const m = missing(e.currentTarget);
+    if (m.length === 0) return;
     e.preventDefault();
-    setTried(true);
-    (e.currentTarget.querySelector("textarea, input[type=file]") as HTMLElement | null)?.focus();
+    tried.current = true;
+    setProblem(sentence(m));
+    m[0]!.focus();
   };
 
-  // Re-check after typing, choosing a file, or switching between paste and upload (the active field changes name).
+  // After a refused press, keep the message true as the person fills things in (typing, choosing a file, switching between paste and upload).
   useEffect(() => {
     const form = formRef.current;
     if (!form || !needs) return;
     const check = () =>
       setTimeout(() => {
-        setFilled(hasInput(form));
+        if (!tried.current) return;
+        const m = missing(form);
+        setProblem(m.length ? sentence(m) : null);
       }, 0);
-    check();
     const events = ["input", "change", "click"] as const;
     events.forEach((e) => form.addEventListener(e, check));
     return () => events.forEach((e) => form.removeEventListener(e, check));
-  }, [needs]);
+    // `missing` and `sentence` only read `needs`, which is what this depends on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(needs)]);
 
   return (
     <form ref={formRef} action={formAction} onSubmit={onSubmit} className={className}>
@@ -90,11 +108,11 @@ export function ActionForm({
           cost={cost}
           variant={variant}
           className={fullWidth ? "w-full" : undefined}
-          describedBy={tried && !filled && requireHint ? "action-hint" : undefined}
+          describedBy={problem ? "action-hint" : undefined}
         />
-        {tried && !filled && requireHint && (
+        {problem && (
           <p id="action-hint" role="alert" className="text-body-sm text-danger">
-            {requireHint}
+            {problem}
           </p>
         )}
         <FormMessage state={state} />

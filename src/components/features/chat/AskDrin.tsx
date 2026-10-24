@@ -26,6 +26,10 @@ const speech = () =>
   typeof window !== "undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined" ? window.speechSynthesis : null;
 
 const VOICE_NAME_KEY = "ask-drin-voice-name";
+/** The voice Drin uses when nobody has picked one, if the device has it ("Alex" comes with every Mac); otherwise the best one found. */
+const PREFERRED_VOICE = "Alex";
+/** How fast he talks: a little quicker than the default, which sounds drawn out for a helper. */
+const RATE = 1.01;
 /** The voices worth offering: English, without the novelty ones, best first. */
 const goodVoices = () => (speech()?.getVoices() ?? []).filter((v) => voiceScore(v) > -10).sort((a, b) => voiceScore(b) - voiceScore(a));
 
@@ -38,7 +42,8 @@ function say(text: string, onEnd: () => void, voiceName?: string, onStart?: () =
   if (!synth) return onEnd();
   const pick = pickVoices(synth.getVoices());
   // "plain" is the last resort: no chosen voice, the device's own default.
-  const voice = plain ? undefined : (voiceName && synth.getVoices().find((v) => v.name === voiceName)) || pick.explains;
+  const named = (name: string) => synth.getVoices().find((v) => v.name === name && v.lang.toLowerCase().startsWith("en"));
+  const voice = plain ? undefined : (voiceName && named(voiceName)) || named(PREFERRED_VOICE) || pick.explains;
   const parts = sentences(text);
   synth.cancel();
   synth.resume(); // some browsers stay paused after a tab was in the background
@@ -46,8 +51,8 @@ function say(text: string, onEnd: () => void, voiceName?: string, onStart?: () =
     const u = new SpeechSynthesisUtterance(part);
     if (voice) u.voice = voice;
     u.lang = voice?.lang ?? "en-US";
-    u.rate = 0.95;
-    u.pitch = pick.distinct || voiceName ? 1 : 0.92;
+    u.rate = RATE;
+    u.pitch = voice?.name === PREFERRED_VOICE || voiceName || pick.distinct ? 1 : 0.92;
     if (i === 0) u.onstart = () => onStart?.();
     if (i === parts.length - 1) u.onend = onEnd;
     u.onerror = onEnd;
@@ -266,7 +271,7 @@ export function AskDrin({ facts }: { facts: Facts }) {
                 onChange={(e) => chooseVoice(e.target.value)}
                 className="min-w-0 flex-1 rounded-pill bg-gray-100 px-ds-3 py-1.5 text-body-sm outline-none focus-visible:outline-2 focus-visible:outline-blue-600"
               >
-                <option value="">Automatic (best on this device)</option>
+                <option value="">{voices.includes(PREFERRED_VOICE) ? `${PREFERRED_VOICE} (default)` : "Automatic (best on this device)"}</option>
                 {voices.map((n) => (
                   <option key={n} value={n}>
                     {n}

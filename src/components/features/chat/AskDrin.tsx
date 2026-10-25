@@ -2,13 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowUp, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowUp, X } from "lucide-react";
 import type { Facts } from "@/lib/ask-drin/facts";
 import { byId, STARTERS } from "@/lib/ask-drin/knowledge";
 import { reply, type Reply } from "@/lib/ask-drin/match";
 import { cn } from "@/lib/cn";
-import { sentences } from "@/lib/ask-drin/speech-text";
-import { pickVoices, score as voiceScore } from "@/lib/tour-voices";
 import { DrinAvatar } from "./DrinAvatar";
 
 type Turn = { from: "you"; text: string } | { from: "drin"; reply: Reply };
@@ -20,45 +18,6 @@ const THINK_MAX_MS = 2000;
 const TICK_MS = 22;
 const CHARS_PER_TICK = 2;
 const prefersReducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-
-const VOICE_KEY = "ask-drin-voice";
-const speech = () =>
-  typeof window !== "undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined" ? window.speechSynthesis : null;
-
-const VOICE_NAME_KEY = "ask-drin-voice-name";
-/** The voice Drin uses when nobody has picked one, if the device has it ("Alex" comes with every Mac); otherwise the best one found. */
-const PREFERRED_VOICE = "Alex";
-/** How fast he talks: a little quicker than the default, which sounds drawn out for a helper. */
-const RATE = 1.01;
-/** The voices worth offering: English, without the novelty ones, best first. */
-const goodVoices = () => (speech()?.getVoices() ?? []).filter((v) => voiceScore(v) > -10).sort((a, b) => voiceScore(b) - voiceScore(a));
-
-/**
- * Reads text aloud, a sentence at a time so there is a breath between them, in the voice the person chose or else the most natural
- * man's voice the device has (the same picker the first-page tour uses). `onEnd` is called when it is finished or cut off.
- */
-function say(text: string, onEnd: () => void, voiceName?: string, onStart?: () => void, plain = false) {
-  const synth = speech();
-  if (!synth) return onEnd();
-  const pick = pickVoices(synth.getVoices());
-  // "plain" is the last resort: no chosen voice, the device's own default.
-  const named = (name: string) => synth.getVoices().find((v) => v.name === name && v.lang.toLowerCase().startsWith("en"));
-  const voice = plain ? undefined : (voiceName && named(voiceName)) || named(PREFERRED_VOICE) || pick.explains;
-  const parts = sentences(text);
-  synth.cancel();
-  synth.resume(); // some browsers stay paused after a tab was in the background
-  parts.forEach((part, i) => {
-    const u = new SpeechSynthesisUtterance(part);
-    if (voice) u.voice = voice;
-    u.lang = voice?.lang ?? "en-US";
-    u.rate = RATE;
-    u.pitch = voice?.name === PREFERRED_VOICE || voiceName || pick.distinct ? 1 : 0.92;
-    if (i === 0) u.onstart = () => onStart?.();
-    if (i === parts.length - 1) u.onend = onEnd;
-    u.onerror = onEnd;
-    synth.speak(u);
-  });
-}
 
 /**
  * "Ask Drin": a small helper on every page. Questions are answered from the app's own information (what the app does, what it
@@ -78,94 +37,14 @@ export function AskDrin({ facts }: { facts: Facts }) {
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const ticker = useRef<ReturnType<typeof setInterval>>(undefined);
   const busy = thinking || typing !== null;
-  /** Read aloud: the switch in the header (answers are read as they are typed), and which answer is being read now. */
-  const [canSpeak, setCanSpeak] = useState(false);
-  const [voiceOn, setVoiceOn] = useState(false);
-  const [speaking, setSpeaking] = useState<string | null>(null);
-  const [voices, setVoices] = useState<string[]>([]);
-  /** True when a reading did not start at all (no sound could be played). */
-  const [silent, setSilent] = useState(false);
-  const [voiceName, setVoiceName] = useState("");
-  const voiceNameRef = useRef("");
-  const voiceRef = useRef(false);
-  const spoken = useRef(0);
 
-  /** Starts reading `text`; a newer reading (or a stop) makes the older one's "finished" signal harmless. */
-  const read = (text: string) => {
-    const mine = ++spoken.current;
-    setSpeaking(text);
-    const done = () => spoken.current === mine && setSpeaking(null);
-    // Some voices are listed but not installed, and then the browser stays silent. If nothing starts within three seconds, try the
-    // device's default voice, and if that is silent too, say so instead of leaving the person wondering.
-    const attempt = (plain: boolean) => {
-      let started = false;
-      say(
-        text,
-        done,
-        voiceNameRef.current,
-        () => {
-          started = true;
-          setSilent(false);
-        },
-        plain,
-      );
-      setTimeout(() => {
-        if (spoken.current !== mine || started) return;
-        if (!plain) return attempt(true);
-        speech()?.cancel();
-        setSilent(true);
-        setSpeaking(null);
-      }, 3000);
-    };
-    attempt(false);
-  };
-  const hush = () => {
-    spoken.current++;
-    speech()?.cancel();
-    setSpeaking(null);
-  };
-  /** The person picked a voice from the list ("" is the automatic choice): remember it and let them hear it. */
-  const chooseVoice = (name: string) => {
-    setVoiceName(name);
-    voiceNameRef.current = name;
-    try {
-      localStorage.setItem(VOICE_NAME_KEY, name);
-    } catch {}
-    read("Hi, I'm Drin. This is how I sound.");
-  };
-  const toggleVoice = () => {
-    const on = !voiceOn;
-    setVoiceOn(on);
-    voiceRef.current = on;
-    try {
-      localStorage.setItem(VOICE_KEY, on ? "1" : "0");
-    } catch {}
-    if (!on) hush();
-  };
-
-  useEffect(() => {
-    const synth = speech();
-    const load = () => setVoices(goodVoices().map((v) => v.name)); // some browsers load their voices late
-    setCanSpeak(synth !== null);
-    if (synth) {
-      load();
-      synth.addEventListener?.("voiceschanged", load);
-      try {
-        const on = localStorage.getItem(VOICE_KEY) === "1";
-        setVoiceOn(on);
-        voiceRef.current = on;
-        const name = localStorage.getItem(VOICE_NAME_KEY) ?? "";
-        setVoiceName(name);
-        voiceNameRef.current = name;
-      } catch {}
-    }
-    return () => {
+  useEffect(
+    () => () => {
       clearTimeout(timer.current);
       clearInterval(ticker.current);
-      synth?.removeEventListener?.("voiceschanged", load);
-      synth?.cancel();
-    };
-  }, []);
+    },
+    [],
+  );
   useEffect(() => {
     if (open) input.current?.focus();
   }, [open]);
@@ -174,7 +53,6 @@ export function AskDrin({ facts }: { facts: Facts }) {
   }, [turns, thinking, typing?.shown, open]);
 
   const close = () => {
-    hush();
     setOpen(false);
     launcher.current?.focus();
   };
@@ -183,7 +61,6 @@ export function AskDrin({ facts }: { facts: Facts }) {
   const ask = (text: string) => {
     const q = text.trim().slice(0, 300);
     if (!q || busy) return;
-    hush();
     setTurns((t) => [...t, { from: "you", text: q }]);
     setDraft("");
     setThinking(true);
@@ -197,7 +74,6 @@ export function AskDrin({ facts }: { facts: Facts }) {
     timer.current = setTimeout(
       () => {
         setThinking(false);
-        if (voiceRef.current) read(answer.text);
         if (calm) return finish();
         setTyping({ reply: answer, shown: 0 });
         let shown = 0;
@@ -230,21 +106,6 @@ export function AskDrin({ facts }: { facts: Facts }) {
               <p className="text-card-title">Ask Drin</p>
               <p className="text-caption text-white/90">Questions about ResumeAi, answered from the app</p>
             </div>
-            {canSpeak && (
-              <button
-                type="button"
-                onClick={toggleVoice}
-                aria-pressed={voiceOn}
-                aria-label="Read answers aloud"
-                title={voiceOn ? "Reading answers aloud: on" : "Read answers aloud"}
-                className={cn(
-                  "grid size-10 shrink-0 place-items-center rounded-full hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white",
-                  voiceOn && "bg-white/25",
-                )}
-              >
-                {voiceOn ? <Volume2 size={20} aria-hidden="true" /> : <VolumeX size={20} aria-hidden="true" />}
-              </button>
-            )}
             <button
               type="button"
               onClick={close}
@@ -254,32 +115,6 @@ export function AskDrin({ facts }: { facts: Facts }) {
               <X size={20} aria-hidden="true" />
             </button>
           </header>
-
-          {silent && (
-            <p role="status" className="bg-warning-tint px-ds-4 py-ds-2 text-caption text-warning">
-              I couldn&apos;t play any sound. Check that your volume is up, or pick another voice from the list.
-            </p>
-          )}
-          {canSpeak && voiceOn && voices.length > 0 && (
-            <div className="flex items-center gap-ds-2 bg-white px-ds-4 py-ds-2">
-              <label htmlFor="ask-drin-voice" className="shrink-0 text-caption">
-                Voice
-              </label>
-              <select
-                id="ask-drin-voice"
-                value={voiceName}
-                onChange={(e) => chooseVoice(e.target.value)}
-                className="min-w-0 flex-1 rounded-pill bg-gray-100 px-ds-3 py-1.5 text-body-sm outline-none focus-visible:outline-2 focus-visible:outline-blue-600"
-              >
-                <option value="">{voices.includes(PREFERRED_VOICE) ? `${PREFERRED_VOICE} (default)` : "Automatic (best on this device)"}</option>
-                {voices.map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
 
           <div
             role="log"
@@ -296,16 +131,6 @@ export function AskDrin({ facts }: { facts: Facts }) {
               ) : (
                 <div key={i} className="flex flex-col gap-ds-2">
                   <Bubble from="drin">{t.reply.text}</Bubble>
-                  {canSpeak && (
-                    <button
-                      type="button"
-                      onClick={() => (speaking === t.reply.text ? hush() : read(t.reply.text))}
-                      className="inline-flex items-center gap-1 self-start rounded-pill px-ds-2 py-1 text-caption text-blue-700 hover:bg-white focus-visible:outline-2 focus-visible:outline-blue-600"
-                    >
-                      {speaking === t.reply.text ? <VolumeX size={14} aria-hidden="true" /> : <Volume2 size={14} aria-hidden="true" />}
-                      {speaking === t.reply.text ? "Stop" : "Listen"}
-                    </button>
-                  )}
                   {t.reply.link && (
                     <Link
                       href={t.reply.link.href}

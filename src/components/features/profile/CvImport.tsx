@@ -1,5 +1,6 @@
 "use client";
 
+import { BrandText } from "@/components/ui/Brand";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { CircleAlert, Loader2, X } from "lucide-react";
@@ -122,7 +123,9 @@ export function CvImport({ returnTo, requestId, compact }: { returnTo: "onboardi
               <p className="text-label-bold">How to fix it</p>
               <ol className="flex list-decimal flex-col gap-ds-2 pl-5 text-body-sm">
                 {guide.steps.map((step) => (
-                  <li key={step}>{step}</li>
+                  <li key={step}>
+                    <BrandText>{step}</BrandText>
+                  </li>
                 ))}
               </ol>
             </div>

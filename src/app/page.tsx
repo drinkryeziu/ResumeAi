@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { ArrowRight, Download, FileCheck2, FilePlus2, Gauge, MessageCircleQuestion, PlayCircle, ShieldCheck, UserRound } from "lucide-react";
-import { Brand } from "@/components/ui/Brand";
+import { Brand, BrandText } from "@/components/ui/Brand";
 import { LegalLinks } from "@/components/features/legal/LegalLinks";
 import { PublicHeader } from "@/components/layout/PublicHeader";
 import { ResumeShowcase } from "@/components/features/marketing/ResumeShowcase";
@@ -111,8 +111,11 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
                 Create your profile <span className="au-grad-text">once.</span> Tailor your application for <span className="au-grad-text">every job.</span>
               </h1>
               <p className="max-w-[52ch] text-[20px] leading-[1.55] text-[#3c3566]">
-                Paste any job description. KRZResumeBuilder shows how well you match, then writes a resume and cover letter for that job using only what&apos;s
-                true about you.
+                <BrandText>
+                  {
+                    "Paste any job description. KRZResumeBuilder shows how well you match, then writes a resume and cover letter for that job using only what's true about you."
+                  }
+                </BrandText>
               </p>
               <div className="mt-ds-2 flex flex-wrap items-center gap-x-[22px] gap-y-ds-3">
                 <ButtonLink
@@ -174,8 +177,11 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
               Nothing on your resume that <span className="au-grad-text-light">isn&apos;t true</span>
             </h2>
             <p className="mb-12 max-w-[60ch] text-[19px] leading-[1.6] text-[#dad3f5]">
-              KRZResumeBuilder rewords and reorders what you&apos;ve done to fit each job. It never adds experience, skills, schools or results you didn&apos;t
-              give it.
+              <BrandText onDark>
+                {
+                  "KRZResumeBuilder rewords and reorders what you've done to fit each job. It never adds experience, skills, schools or results you didn't give it."
+                }
+              </BrandText>
             </p>
             <div className="flex flex-col gap-[22px]">
               {[PROMISES.slice(0, 2), PROMISES.slice(2)].map((row) => (
@@ -260,7 +266,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
       <footer className="flex flex-col items-center gap-ds-1 bg-navy-900 px-ds-4 py-ds-5 text-center text-caption text-[#dad3f5] [&_a]:text-white">
         <LegalLinks />
         <span>
-          © {new Date().getFullYear()} <Brand />
+          © {new Date().getFullYear()} <Brand onDark />
         </span>
       </footer>
     </div>

@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { AlertTriangle, ExternalLink } from "lucide-react";
 import { ActionForm } from "@/components/features/job-flow/ActionForm";
+import { BrandText } from "@/components/ui/Brand";
 import { AtsHelp } from "@/components/features/match/ScoreHelp";
 import { StepProgress } from "@/components/features/job-flow/StepProgress";
 import { MatchMetricsCard } from "@/components/features/match/MatchMetricsCard";
@@ -18,7 +19,13 @@ import { continueAnalysis, improveResume, rewriteCoverLetter, runAtsCheck } from
 
 export const metadata = { title: "Your application" };
 
-const TONE_LABEL = { PROFESSIONAL: "Professional", CONVERSATIONAL: "Conversational", EXECUTIVE: "Executive", CONCISE: "Concise", ENTHUSIASTIC: "Enthusiastic" } as const;
+const TONE_LABEL = {
+  PROFESSIONAL: "Professional",
+  CONVERSATIONAL: "Conversational",
+  EXECUTIVE: "Executive",
+  CONCISE: "Concise",
+  ENTHUSIASTIC: "Enthusiastic",
+} as const;
 
 /** Step 4 — Review & download. Before the application exists, this sends the user to the match. */
 export default async function JobApplicationPage({
@@ -39,7 +46,10 @@ export default async function JobApplicationPage({
     if (p.match) redirect(`/jobs/${jobId}/match`);
     // Saved, but not fully analyzed (for example the credits ran out): pick up from the saved state, paying only for what is left.
     const todo = { analysis: !p.analysis, match: true };
-    const price = (await Promise.all([todo.analysis ? store.credits.priceOf("ANALYZE_JOB") : 0, store.credits.priceOf("JOB_MATCH")])).reduce<number>((a, b) => a + b, 0);
+    const price = (await Promise.all([todo.analysis ? store.credits.priceOf("ANALYZE_JOB") : 0, store.credits.priceOf("JOB_MATCH")])).reduce<number>(
+      (a, b) => a + b,
+      0,
+    );
     return (
       <>
         <PageHeader
@@ -97,7 +107,8 @@ export default async function JobApplicationPage({
               ATS compatibility <AtsHelp />
             </span>
           }
-          subtitle="Optional: check how this version's structure and keywords line up with the job." />
+          subtitle="Optional: check how this version's structure and keywords line up with the job."
+        />
         {ats ? (
           <div className="flex flex-col gap-ds-4">
             <ScoreRing value={ats.overallScore} label="ATS Compatibility Score" size={112} />
@@ -125,7 +136,14 @@ export default async function JobApplicationPage({
                 ))}
               </ul>
             )}
-            <ActionForm action={improveResume} hidden={{ jobId, requestId: rid() }} label="Improve resume" pendingLabel="Improving…" cost={optCost} variant="secondary">
+            <ActionForm
+              action={improveResume}
+              hidden={{ jobId, requestId: rid() }}
+              label="Improve resume"
+              pendingLabel="Improving…"
+              cost={optCost}
+              variant="secondary"
+            >
               {ats.result.scores.findings
                 .filter((f) => !f.ok)
                 .map((f) => (
@@ -138,7 +156,14 @@ export default async function JobApplicationPage({
             <p className="text-caption">Employers&apos; systems differ; this is an estimate, not a guarantee.</p>
           </div>
         ) : (
-          <ActionForm action={runAtsCheck} hidden={{ jobId, requestId: rid() }} label="Run ATS check" pendingLabel="Checking…" cost={atsCost} variant="secondary" />
+          <ActionForm
+            action={runAtsCheck}
+            hidden={{ jobId, requestId: rid() }}
+            label="Run ATS check"
+            pendingLabel="Checking…"
+            cost={atsCost}
+            variant="secondary"
+          />
         )}
       </Card>
     </>
@@ -211,7 +236,8 @@ export default async function JobApplicationPage({
       {unfinished && (
         <SoftPanel className="mb-ds-4 flex flex-wrap items-center justify-between gap-ds-3">
           <p className="text-body-sm max-w-xl">
-            <strong>This application isn&apos;t finished.</strong> {currentResume ? "Its cover letter is missing." : "Its resume is missing."} What is saved stays as it is.
+            <strong>This application isn&apos;t finished.</strong> {currentResume ? "Its cover letter is missing." : "Its resume is missing."} What is saved
+            stays as it is.
           </p>
           <ButtonLink href={`/jobs/${jobId}/match`} variant="secondary" compact>
             Finish the application
@@ -233,8 +259,8 @@ export default async function JobApplicationPage({
       />
       <SoftPanel className="mt-ds-5 flex flex-wrap items-center justify-between gap-ds-4">
         <p className="text-body-sm max-w-xl">
-          <strong>Next: apply yourself.</strong> Upload these files on the company&apos;s careers site, LinkedIn, Indeed, Workday or Glassdoor. KRZResumeBuilder never submits applications
-          for you.
+          <strong>Next: apply yourself.</strong> Upload these files on the company&apos;s careers site, LinkedIn, Indeed, Workday or Glassdoor.{" "}
+          <BrandText>{"KRZResumeBuilder never submits applications for you."}</BrandText>
         </p>
         {p.job.url && (
           <a href={p.job.url} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 text-body-sm text-blue-700 underline">

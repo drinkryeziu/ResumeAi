@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { AlertTriangle, ArrowRight, Check, Compass, FileUp, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
+import { BrandText } from "@/components/ui/Brand";
 import { PdfIcon, WordIcon } from "@/components/ui/FileIcons";
 import { ScoreRing } from "@/components/ui/ScoreRing";
 import { cn } from "@/lib/cn";
@@ -21,9 +22,13 @@ const Pop = ({ delay = 0, className, children }: { delay?: number; className?: s
 const Bar = ({ w, delay = 0, tone = "gray" }: { w: string; delay?: number; tone?: "gray" | "blue" }) => (
   <span className={cn("wt-fill block h-[8px] rounded-full", tone === "blue" ? "bg-blue-600" : "bg-[#dfe5ee]")} style={{ width: w, ...at(delay) }} />
 );
-const Card = ({ children, className }: { children: ReactNode; className?: string }) => <div className={cn("rounded-md bg-white p-ds-3 shadow-card", className)}>{children}</div>;
+const Card = ({ children, className }: { children: ReactNode; className?: string }) => (
+  <div className={cn("rounded-md bg-white p-ds-3 shadow-card", className)}>{children}</div>
+);
 const Pill = ({ children, className }: { children: ReactNode; className?: string }) => (
-  <span className={cn("inline-flex items-center justify-center gap-1 rounded-pill px-ds-4 py-1.5 text-[11px] font-bold tracking-[0.4px] uppercase", className)}>{children}</span>
+  <span className={cn("inline-flex items-center justify-center gap-1 rounded-pill px-ds-4 py-1.5 text-[11px] font-bold tracking-[0.4px] uppercase", className)}>
+    {children}
+  </span>
 );
 
 function About() {
@@ -179,7 +184,11 @@ function Match() {
   const row = (ok: boolean, label: string, delay: number) => (
     <Pop delay={delay}>
       <span className="flex items-center gap-ds-2 text-body-sm">
-        {ok ? <Check size={16} className="shrink-0 text-success" aria-hidden="true" /> : <AlertTriangle size={16} className="shrink-0 text-warning" aria-hidden="true" />}
+        {ok ? (
+          <Check size={16} className="shrink-0 text-success" aria-hidden="true" />
+        ) : (
+          <AlertTriangle size={16} className="shrink-0 text-warning" aria-hidden="true" />
+        )}
         {label}
         <span className="ml-auto text-caption">{ok ? "Covered" : "Not found"}</span>
       </span>
@@ -277,14 +286,27 @@ function Download() {
               </span>
             </span>
           </span>
-          <span className="text-caption">You apply on the company&apos;s own site. KRZResumeBuilder never applies for you.</span>
+          <span className="text-caption">
+            <BrandText>{"You apply on the company's own site. KRZResumeBuilder never applies for you."}</BrandText>
+          </span>
         </Card>
       </Pop>
     </div>
   );
 }
 
-const SCENE_ART: Record<SceneId, () => React.JSX.Element> = { about: About, signup: Signup, profile: Profile, career: Career, directions: Directions, job: Job, match: Match, questions: Questions, documents: Documents, download: Download };
+const SCENE_ART: Record<SceneId, () => React.JSX.Element> = {
+  about: About,
+  signup: Signup,
+  profile: Profile,
+  career: Career,
+  directions: Directions,
+  job: Job,
+  match: Match,
+  questions: Questions,
+  documents: Documents,
+  download: Download,
+};
 
 export function TourScene({ id }: { id: SceneId }) {
   const Art = SCENE_ART[id];

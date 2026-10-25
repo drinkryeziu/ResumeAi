@@ -7,6 +7,7 @@ import type { Facts } from "@/lib/ask-drin/facts";
 import { byId, STARTERS } from "@/lib/ask-drin/knowledge";
 import { reply, type Reply } from "@/lib/ask-drin/match";
 import { cn } from "@/lib/cn";
+import { BrandText } from "@/components/ui/Brand";
 import { DrinAvatar } from "./DrinAvatar";
 
 type Turn = { from: "you"; text: string } | { from: "drin"; reply: Reply };
@@ -104,7 +105,9 @@ export function AskDrin({ facts }: { facts: Facts }) {
             <DrinAvatar size={44} className="shrink-0 rounded-full ring-2 ring-white/70" />
             <div className="min-w-0 flex-1">
               <p className="text-card-title">Ask Drin</p>
-              <p className="text-caption text-white/90">Questions about KRZResumeBuilder, answered from the app</p>
+              <p className="text-caption text-white/90">
+                <BrandText onDark>{"Questions about KRZResumeBuilder, answered from the app"}</BrandText>
+              </p>
             </div>
             <button
               type="button"
@@ -220,7 +223,7 @@ function Bubble({ from, children }: { from: "you" | "drin"; children: string }) 
           from === "you" ? "au-grad rounded-[18px_18px_6px_18px] text-white" : "rounded-[18px_18px_18px_6px] bg-white text-navy-900 shadow-card",
         )}
       >
-        {children}
+        <BrandText onDark={from === "you"}>{children}</BrandText>
       </span>
     </div>
   );

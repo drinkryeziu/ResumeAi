@@ -1,6 +1,7 @@
 import { Activity, Briefcase, CheckCircle2, Database, Server, ShieldAlert, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { AddViewerForm } from "@/components/features/admin/AddViewerForm";
 import { LocalTime } from "@/components/features/admin/LocalTime";
+import { Brand } from "@/components/ui/Brand";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, SoftPanel } from "@/components/ui/Card";
 import { CollapsibleCard } from "@/components/ui/CollapsibleCard";
@@ -25,7 +26,11 @@ const ERROR_DAYS = 30;
 const MONEY_DAYS = 30;
 const LEVEL_TEXT: Record<Level, string> = { normal: "Normal", elevated: "Elevated", high: "High" };
 const LEVEL_TONE = { normal: "ok", elevated: "warn", high: "bad" } as const;
-const EVENT_TEXT = { sign_in_failed: "Wrong password at sign-in", rate_limited: "Request turned away, too many tries", account_removed: "Account deleted by the owner" } as const;
+const EVENT_TEXT = {
+  sign_in_failed: "Wrong password at sign-in",
+  rate_limited: "Request turned away, too many tries",
+  account_removed: "Account deleted by the owner",
+} as const;
 
 const count = (n: number, noun: string) => `${formatNumber(n)} ${noun}${n === 1 ? "" : "s"}`;
 const score = (n: number | null) => (n === null ? "—" : `${n}%`);
@@ -46,13 +51,25 @@ export default async function AdminPage() {
     store.errorSummary(new Date(+now - ERROR_DAYS * DAY), 200),
     owner ? store.listAdmins() : Promise.resolve([]),
     // The money report is the owner's alone: it is not even read for a viewer.
-    owner ? Promise.all([store.listPurchases(monthAgo), store.aiCostSince(monthAgo), store.creditTotalsSince(monthAgo), store.listRunningCosts()]) : Promise.resolve(null),
+    owner
+      ? Promise.all([store.listPurchases(monthAgo), store.aiCostSince(monthAgo), store.creditTotalsSince(monthAgo), store.listRunningCosts()])
+      : Promise.resolve(null),
   ]);
   const checkedMs = Date.now() - started;
   const rows = buildUserRows(snapshot, now);
   const totals = totalsOf(rows);
   // Dates travel to the browser as text.
-  const people: PersonRow[] = rows.map((r) => ({ id: r.id, name: r.name, email: r.email, hasProfile: r.hasProfile, applications: r.applications, applied: r.applied, averageScore: r.averageScore, lastActiveAt: r.lastActiveAt.toISOString(), active: r.active }));
+  const people: PersonRow[] = rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    hasProfile: r.hasProfile,
+    applications: r.applications,
+    applied: r.applied,
+    averageScore: r.averageScore,
+    lastActiveAt: r.lastActiveAt.toISOString(),
+    active: r.active,
+  }));
   const level = threatLevel(security.counts);
   const ai = aiHealth(aiStats);
   const siteOk = setup.ready;
@@ -84,7 +101,13 @@ export default async function AdminPage() {
               value={dbText}
               tone={setup.database === "ok" ? "ok" : setup.database === "failed" ? "bad" : "warn"}
               icon={<Database size={22} />}
-              hint={setup.database === "ok" ? `Answered within ${formatNumber(checkedMs)} ms` : setup.database === "failed" ? "Could not be reached" : "Data is lost on restart"}
+              hint={
+                setup.database === "ok"
+                  ? `Answered within ${formatNumber(checkedMs)} ms`
+                  : setup.database === "failed"
+                    ? "Could not be reached"
+                    : "Data is lost on restart"
+              }
             />
             <StatCard
               label="AI writing (last 24 hours)"
@@ -118,8 +141,18 @@ export default async function AdminPage() {
             Usage
           </h2>
           <div className="grid gap-ds-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="People" value={formatNumber(totals.users)} icon={<Users size={22} />} hint={`${formatNumber(totals.active)} active in the last ${ACTIVE_DAYS} days`} />
-            <StatCard label="Applications created" value={formatNumber(totals.applications)} icon={<Briefcase size={22} />} hint="Jobs with a tailored resume or cover letter" />
+            <StatCard
+              label="People"
+              value={formatNumber(totals.users)}
+              icon={<Users size={22} />}
+              hint={`${formatNumber(totals.active)} active in the last ${ACTIVE_DAYS} days`}
+            />
+            <StatCard
+              label="Applications created"
+              value={formatNumber(totals.applications)}
+              icon={<Briefcase size={22} />}
+              hint="Jobs with a tailored resume or cover letter"
+            />
             <StatCard label="Applied" value={formatNumber(totals.applied)} icon={<CheckCircle2 size={22} />} hint="Applications people ticked as applied" />
             <StatCard label="Average Job Match Score" value={score(totals.averageScore)} icon={<Activity size={22} />} hint="Across all applications" />
           </div>
@@ -127,7 +160,11 @@ export default async function AdminPage() {
 
         <Card aria-labelledby="people-h">
           <CardHeader
-            title={<span id="people-h">People using KRZResumeBuilder</span>}
+            title={
+              <span id="people-h">
+                People using <Brand />
+              </span>
+            }
             subtitle={`Most recently active first; press a column heading to sort. Active means any activity in the last ${ACTIVE_DAYS} days. Application counts only include jobs with a tailored resume or cover letter.`}
           />
           {rows.length === 0 ? (
@@ -158,7 +195,11 @@ export default async function AdminPage() {
         <CollapsibleCard
           id="events-h"
           title="Security events"
-          badge={<Badge tone={security.recent.length === 0 ? "success" : "warning"}>{security.recent.length === 0 ? "Nothing unusual" : count(security.recent.length, "event")}</Badge>}
+          badge={
+            <Badge tone={security.recent.length === 0 ? "success" : "warning"}>
+              {security.recent.length === 0 ? "Nothing unusual" : count(security.recent.length, "event")}
+            </Badge>
+          }
           subtitle="Wrong passwords and requests turned away because of too many tries. No names, emails or addresses are kept."
         >
           {security.recent.length === 0 ? (
@@ -166,7 +207,10 @@ export default async function AdminPage() {
           ) : (
             <ul className="flex flex-col gap-ds-2">
               {security.recent.map((e, i) => (
-                <li key={`${e.type}-${+new Date(e.at)}-${i}`} className="flex flex-wrap items-center justify-between gap-x-ds-4 gap-y-1 rounded-md bg-gray-100 px-ds-3 py-ds-2 text-body-sm">
+                <li
+                  key={`${e.type}-${+new Date(e.at)}-${i}`}
+                  className="flex flex-wrap items-center justify-between gap-x-ds-4 gap-y-1 rounded-md bg-gray-100 px-ds-3 py-ds-2 text-body-sm"
+                >
                   <span>
                     {EVENT_TEXT[e.type]}
                     {e.rule && <span className="text-caption"> · {RULE_LABELS[e.rule] ?? e.rule}</span>}

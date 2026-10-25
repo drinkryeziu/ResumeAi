@@ -7,7 +7,7 @@ export default function PrivacyPage() {
     <LegalPage
       title="Privacy policy"
       updated="October 19, 2026"
-      intro="KRZ Resume AI helps you write a resume and cover letter for each job. To do that we handle personal information about you and your work history. This page says what we keep, why, who helps us, and how you stay in control."
+      intro="KRZResumeBuilder helps you write a resume and cover letter for each job. To do that we handle personal information about you and your work history. This page says what we keep, why, who helps us, and how you stay in control."
     >
       <Section title="What we collect">
         <List
@@ -85,7 +85,7 @@ export default function PrivacyPage() {
         </P>
       </Section>
       <Section title="Children">
-        <P>KRZ Resume AI is not meant for anyone under 16, and we do not knowingly collect their information.</P>
+        <P>KRZResumeBuilder is not meant for anyone under 16, and we do not knowingly collect their information.</P>
       </Section>
       <Section title="Changes and contact">
         <P>If this policy changes in a way that matters, we will update the date above and, where we can, tell you.</P>

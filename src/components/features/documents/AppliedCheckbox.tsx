@@ -6,7 +6,7 @@ import { formatDate } from "@/lib/format";
 
 /**
  * "Applied": the person ticks it after they have sent the application on the employer's site. It is only a note for them;
- * KRZ Resume AI never applies for anyone. The tick shows at once and is put back if saving fails.
+ * KRZResumeBuilder never applies for anyone. The tick shows at once and is put back if saving fails.
  */
 export function AppliedCheckbox({ jobId, company, appliedAt }: { jobId: string; company: string; appliedAt: string | null }) {
   const [at, setAt] = useState<string | null>(appliedAt);

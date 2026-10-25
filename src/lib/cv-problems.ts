@@ -102,7 +102,7 @@ export function guideFor(problem: CvProblem, opts: { sizeMb?: number } = {}): Cv
       return {
         title: "Reading CVs isn't available right now",
         reason: "The AI that reads CVs isn't switched on, or its account is out of credit, on this site.",
-        steps: [BY_HAND, "Everything else in KRZ Resume AI works as usual. If you run this site, check the AI key and its billing."],
+        steps: [BY_HAND, "Everything else in KRZResumeBuilder works as usual. If you run this site, check the AI key and its billing."],
         next: "close",
         nextLabel: "Fill it in by hand",
       };

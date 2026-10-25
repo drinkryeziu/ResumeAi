@@ -23,11 +23,11 @@ export const ENTRIES: Entry[] = [
   {
     id: "about",
     next: ["account", "cost"],
-    question: "What is KRZ Resume AI?",
-    ask: ["what is krz resume ai", "what is resume ai", "what is resumeai", "what is this app about", "what does this app do", "what is this", "tell me about the app", "how does it work"],
-    words: ["about", "app", "krz", "resumeai", "do", "purpose", "tailor", "work"],
+    question: "What is KRZResumeBuilder?",
+    ask: ["what is krzresumebuilder", "what is krz resume builder", "what is resume builder", "what is krz resume ai", "what is resumeai", "what is this app about", "what does this app do", "what is this", "tell me about the app", "how does it work"],
+    words: ["about", "app", "krz", "krzresumebuilder", "resumebuilder", "resumeai", "do", "purpose", "tailor", "work"],
     answer: () =>
-      "KRZ Resume AI helps you apply for jobs without starting from scratch every time. You make your profile once. For each job you paste in, it shows how well you match and writes a resume and a cover letter that fit that job, using only what's true about you. You always apply yourself.",
+      "KRZResumeBuilder helps you apply for jobs without starting from scratch every time. You make your profile once. For each job you paste in, it shows how well you match and writes a resume and a cover letter that fit that job, using only what's true about you. You always apply yourself.",
     link: { href: "/#how-it-works", label: "See how it works" },
   },
   {
@@ -155,7 +155,7 @@ export const ENTRIES: Entry[] = [
       "never",
     ],
     answer: () =>
-      "No. KRZ Resume AI only rewords and reorders what is in your profile. It never adds experience, skills, schools, dates or results you didn't give it. If a job asks for something we can't find, we ask you, and you decide: tell us in your own words if you've done it, or we leave it out.",
+      "No. KRZResumeBuilder only rewords and reorders what is in your profile. It never adds experience, skills, schools, dates or results you didn't give it. If a job asks for something we can't find, we ask you, and you decide: tell us in your own words if you've done it, or we leave it out.",
   },
   {
     id: "cost",
@@ -332,7 +332,7 @@ export const ENTRIES: Entry[] = [
     ask: ["how do i contact you", "i need help", "talk to a person", "support", "report a problem", "email"],
     words: ["contact", "support", "help", "human", "person", "report", "bug", "problem", "complaint", "reach"],
     answer: () =>
-      "I'm Ask Drin, a helper built into KRZ Resume AI, so I can't take messages. For a person, the Privacy policy and the Terms say how to get in touch with whoever runs the site. If something went wrong in the app, tell them what you were doing when it happened.",
+      "I'm Ask Drin, a helper built into KRZResumeBuilder, so I can't take messages. For a person, the Privacy policy and the Terms say how to get in touch with whoever runs the site. If something went wrong in the app, tell them what you were doing when it happened.",
     link: { href: "/terms", label: "Open the terms and contact details" },
   },
   {
@@ -342,7 +342,7 @@ export const ENTRIES: Entry[] = [
     ask: ["who are you", "what is your name", "are you a person", "are you a bot", "are you human", "who is drin"],
     words: ["who", "you", "name", "bot", "human", "drin", "person", "real", "robot"],
     answer: () =>
-      "I'm Ask Drin, the helper built into KRZ Resume AI. I'm not a live person: I answer from what the app really does, like how to sign up, what things cost and how your documents are made. If I don't know something I'll say so.",
+      "I'm Ask Drin, the helper built into KRZResumeBuilder. I'm not a live person: I answer from what the app really does, like how to sign up, what things cost and how your documents are made. If I don't know something I'll say so.",
   },
 ];
 

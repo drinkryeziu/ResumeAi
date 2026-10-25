@@ -233,7 +233,7 @@ export default async function JobApplicationPage({
       />
       <SoftPanel className="mt-ds-5 flex flex-wrap items-center justify-between gap-ds-4">
         <p className="text-body-sm max-w-xl">
-          <strong>Next: apply yourself.</strong> Upload these files on the company&apos;s careers site, LinkedIn, Indeed, Workday or Glassdoor. KRZ Resume AI never submits applications
+          <strong>Next: apply yourself.</strong> Upload these files on the company&apos;s careers site, LinkedIn, Indeed, Workday or Glassdoor. KRZResumeBuilder never submits applications
           for you.
         </p>
         {p.job.url && (

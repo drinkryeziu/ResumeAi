@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { Brand } from "@/components/ui/Brand";
 
-/** The KRZ Resume AI mark and name, shared by the signed-out and signed-in headers. */
+/** The KRZResumeBuilder mark and name, shared by the signed-out and signed-in headers. */
 export function Wordmark({ href = "/" }: { href?: string }) {
   return (
     <Link href={href} className="flex items-center gap-2 text-[18px] leading-none sm:text-[22px] font-bold tracking-[-0.3px] text-navy-900 no-underline">
@@ -10,7 +11,7 @@ export function Wordmark({ href = "/" }: { href?: string }) {
           <path d="M9 14l2 2 4-4" />
         </svg>
       </span>
-      KRZ Resume AI
+      <Brand />
     </Link>
   );
 }

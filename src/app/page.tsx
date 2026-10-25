@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { ArrowRight, Download, FileCheck2, FilePlus2, Gauge, MessageCircleQuestion, PlayCircle, ShieldCheck, UserRound } from "lucide-react";
+import { Brand } from "@/components/ui/Brand";
 import { LegalLinks } from "@/components/features/legal/LegalLinks";
 import { PublicHeader } from "@/components/layout/PublicHeader";
 import { ResumeShowcase } from "@/components/features/marketing/ResumeShowcase";
@@ -8,22 +9,74 @@ import { ButtonLink } from "@/components/ui/Button";
 import { signedInUserId } from "@/server/auth/session";
 import { DEFAULT_PLANS } from "@/server/billing/catalog";
 
-export const metadata = { title: "KRZ Resume AI — Tailor your resume to every job" };
+export const metadata = { title: "KRZResumeBuilder — Tailor your resume to every job" };
 
 /** A genuine sequence, so the steps are numbered. */
 const STEPS = [
-  { title: "Create your profile once", body: "Type it in or upload your CV. We read it into your profile and show which kinds of jobs your experience fits.", icon: UserRound, card: "bg-[#efe9ff]", dot: "bg-[#6d4aff]", ink: "text-[#6d4aff]" },
-  { title: "Add a job", body: "Paste the job description or upload it as a file.", icon: FilePlus2, card: "bg-[#ffe6f3]", dot: "bg-[#d6338f]", ink: "text-[#b3216f]" },
-  { title: "See how you match", body: "A Job Match Score with your matching skills, missing keywords and gaps.", icon: Gauge, card: "bg-[#ffebd9]", dot: "bg-[#c75a12]", ink: "text-[#a04a0b]" },
-  { title: "Download and apply", body: "A resume and cover letter tailored to that job, as PDF or Word.", icon: Download, card: "bg-[#d9f6f1]", dot: "bg-[#0e8f7e]", ink: "text-[#0b6b5e]" },
+  {
+    title: "Create your profile once",
+    body: "Type it in or upload your CV. We read it into your profile and show which kinds of jobs your experience fits.",
+    icon: UserRound,
+    card: "bg-[#efe9ff]",
+    dot: "bg-[#6d4aff]",
+    ink: "text-[#6d4aff]",
+  },
+  {
+    title: "Add a job",
+    body: "Paste the job description or upload it as a file.",
+    icon: FilePlus2,
+    card: "bg-[#ffe6f3]",
+    dot: "bg-[#d6338f]",
+    ink: "text-[#b3216f]",
+  },
+  {
+    title: "See how you match",
+    body: "A Job Match Score with your matching skills, missing keywords and gaps.",
+    icon: Gauge,
+    card: "bg-[#ffebd9]",
+    dot: "bg-[#c75a12]",
+    ink: "text-[#a04a0b]",
+  },
+  {
+    title: "Download and apply",
+    body: "A resume and cover letter tailored to that job, as PDF or Word.",
+    icon: Download,
+    card: "bg-[#d9f6f1]",
+    dot: "bg-[#0e8f7e]",
+    ink: "text-[#0b6b5e]",
+  },
 ];
 
 /** The four promises of "Nothing on your resume that isn't true"; the first and last cards are wide. */
 const PROMISES = [
-  { title: "Your profile is the source", body: "Every line in a tailored resume traces back to something in your profile.", icon: ShieldCheck, tint: "from-[#7c5cff] to-[#d6338f]", wide: true },
-  { title: "It asks instead of guessing", body: "If a job wants something we can't find, we ask whether you have it.", icon: MessageCircleQuestion, tint: "from-[#d6338f] to-[#e8590c]", wide: false },
-  { title: "Built to get read", body: "Single-column, ATS-friendly PDF and Word files that tracking systems can parse.", icon: FileCheck2, tint: "from-[#0e8f7e] to-[#3b82f6]", wide: false },
-  { title: "You stay in control", body: "Edit anything before you download. You apply yourself — we never submit for you.", icon: Download, tint: "from-[#e8590c] to-[#c99a00]", wide: true },
+  {
+    title: "Your profile is the source",
+    body: "Every line in a tailored resume traces back to something in your profile.",
+    icon: ShieldCheck,
+    tint: "from-[#7c5cff] to-[#d6338f]",
+    wide: true,
+  },
+  {
+    title: "It asks instead of guessing",
+    body: "If a job wants something we can't find, we ask whether you have it.",
+    icon: MessageCircleQuestion,
+    tint: "from-[#d6338f] to-[#e8590c]",
+    wide: false,
+  },
+  {
+    title: "Built to get read",
+    body: "Single-column, ATS-friendly PDF and Word files that tracking systems can parse.",
+    icon: FileCheck2,
+    tint: "from-[#0e8f7e] to-[#3b82f6]",
+    wide: false,
+  },
+  {
+    title: "You stay in control",
+    body: "Edit anything before you download. You apply yourself — we never submit for you.",
+    icon: Download,
+    tint: "from-[#e8590c] to-[#c99a00]",
+    wide: true,
+  },
 ];
 
 export default async function LandingPage({ searchParams }: { searchParams: Promise<{ "account-deleted"?: string }> }) {
@@ -40,25 +93,42 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
       )}
       <main>
         <section className="relative overflow-hidden px-ds-4 pt-[72px] pb-[150px] md:px-ds-5">
-          <div aria-hidden="true" className="au-blob -top-[200px] -right-[160px] size-[640px] bg-[radial-gradient(circle,rgba(109,74,255,0.28),rgba(109,74,255,0)_68%)]" />
-          <div aria-hidden="true" className="au-blob -bottom-[60px] -left-[200px] size-[560px] bg-[radial-gradient(circle,rgba(255,138,61,0.32),rgba(255,138,61,0)_68%)]" />
-          <div aria-hidden="true" className="au-blob right-[20%] -bottom-[220px] size-[480px] bg-[radial-gradient(circle,rgba(242,63,166,0.22),rgba(242,63,166,0)_68%)]" />
+          <div
+            aria-hidden="true"
+            className="au-blob -top-[200px] -right-[160px] size-[640px] bg-[radial-gradient(circle,rgba(109,74,255,0.28),rgba(109,74,255,0)_68%)]"
+          />
+          <div
+            aria-hidden="true"
+            className="au-blob -bottom-[60px] -left-[200px] size-[560px] bg-[radial-gradient(circle,rgba(255,138,61,0.32),rgba(255,138,61,0)_68%)]"
+          />
+          <div
+            aria-hidden="true"
+            className="au-blob right-[20%] -bottom-[220px] size-[480px] bg-[radial-gradient(circle,rgba(242,63,166,0.22),rgba(242,63,166,0)_68%)]"
+          />
           <div className="relative mx-auto grid max-w-[1120px] items-center gap-[52px] lg:grid-cols-[1fr_440px]">
             <div className="flex flex-col gap-ds-4">
               <h1 className="text-[clamp(38px,5.4vw,64px)] leading-[1.04] font-extrabold tracking-[-0.03em] text-balance">
                 Create your profile <span className="au-grad-text">once.</span> Tailor your application for <span className="au-grad-text">every job.</span>
               </h1>
               <p className="max-w-[52ch] text-[20px] leading-[1.55] text-[#3c3566]">
-                Paste any job description. KRZ Resume AI shows how well you match, then writes a resume and cover letter for that job using only what&apos;s true about you.
+                Paste any job description. KRZResumeBuilder shows how well you match, then writes a resume and cover letter for that job using only what&apos;s
+                true about you.
               </p>
               <div className="mt-ds-2 flex flex-wrap items-center gap-x-[22px] gap-y-ds-3">
-                <ButtonLink href="/sign-up" className="au-grad px-9 py-4 shadow-[0_14px_30px_-10px_rgba(109,74,255,0.65)] hover:brightness-110" icon={<ArrowRight size={18} aria-hidden="true" />}>
+                <ButtonLink
+                  href="/sign-up"
+                  className="au-grad px-9 py-4 shadow-[0_14px_30px_-10px_rgba(109,74,255,0.65)] hover:brightness-110"
+                  icon={<ArrowRight size={18} aria-hidden="true" />}
+                >
                   Get started free
                 </ButtonLink>
                 <a href="/sign-in" className="text-label-bold underline underline-offset-4">
                   I already have an account
                 </a>
-                <a href="#tour" className="inline-flex items-center gap-2 rounded-pill border-[1.5px] border-[#d9cff7] bg-white px-5 py-3 text-label-bold no-underline">
+                <a
+                  href="#tour"
+                  className="inline-flex items-center gap-2 rounded-pill border-[1.5px] border-[#d9cff7] bg-white px-5 py-3 text-label-bold no-underline"
+                >
                   <PlayCircle size={20} className="text-blue-600" aria-hidden="true" /> Watch how it works
                 </a>
               </div>
@@ -91,14 +161,21 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
         </section>
 
         <section className="relative overflow-hidden bg-navy-900 px-ds-4 py-[96px] text-white md:px-ds-5">
-          <div aria-hidden="true" className="au-blob -top-[200px] -right-[180px] size-[560px] bg-[radial-gradient(circle,rgba(242,63,166,0.35),rgba(242,63,166,0)_68%)]" />
-          <div aria-hidden="true" className="au-blob -bottom-[240px] -left-[200px] size-[520px] bg-[radial-gradient(circle,rgba(109,74,255,0.5),rgba(109,74,255,0)_68%)]" />
+          <div
+            aria-hidden="true"
+            className="au-blob -top-[200px] -right-[180px] size-[560px] bg-[radial-gradient(circle,rgba(242,63,166,0.35),rgba(242,63,166,0)_68%)]"
+          />
+          <div
+            aria-hidden="true"
+            className="au-blob -bottom-[240px] -left-[200px] size-[520px] bg-[radial-gradient(circle,rgba(109,74,255,0.5),rgba(109,74,255,0)_68%)]"
+          />
           <div className="relative mx-auto max-w-[1120px]">
             <h2 className="mb-4 max-w-[20ch] text-[clamp(30px,4vw,48px)] leading-[1.08] font-extrabold tracking-[-0.03em]">
               Nothing on your resume that <span className="au-grad-text-light">isn&apos;t true</span>
             </h2>
             <p className="mb-12 max-w-[60ch] text-[19px] leading-[1.6] text-[#dad3f5]">
-              KRZ Resume AI rewords and reorders what you&apos;ve done to fit each job. It never adds experience, skills, schools or results you didn&apos;t give it.
+              KRZResumeBuilder rewords and reorders what you&apos;ve done to fit each job. It never adds experience, skills, schools or results you didn&apos;t
+              give it.
             </p>
             <div className="flex flex-col gap-[22px]">
               {[PROMISES.slice(0, 2), PROMISES.slice(2)].map((row) => (
@@ -128,14 +205,23 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
             {DEFAULT_PLANS.map((p) => {
               const pro = p.key === "PRO";
               return (
-                <li key={p.key} className={`relative flex flex-col gap-1.5 rounded-[28px] p-[30px] ${pro ? "au-grad text-white shadow-[0_30px_50px_-20px_rgba(109,74,255,0.7)]" : "bg-white shadow-card"}`}>
-                  {pro && <span className="absolute -top-3.5 right-[22px] rounded-pill bg-[#ffd66b] px-3.5 py-1.5 text-[13px] font-extrabold text-navy-900">Most popular</span>}
+                <li
+                  key={p.key}
+                  className={`relative flex flex-col gap-1.5 rounded-[28px] p-[30px] ${pro ? "au-grad text-white shadow-[0_30px_50px_-20px_rgba(109,74,255,0.7)]" : "bg-white shadow-card"}`}
+                >
+                  {pro && (
+                    <span className="absolute -top-3.5 right-[22px] rounded-pill bg-[#ffd66b] px-3.5 py-1.5 text-[13px] font-extrabold text-navy-900">
+                      Most popular
+                    </span>
+                  )}
                   <span className={`text-[20px] font-extrabold ${pro ? "" : "text-blue-700"}`}>{p.name}</span>
                   <span className="text-[44px] leading-[1.1] font-extrabold tracking-[-0.03em]">
                     {money(p.priceCents)}
                     {p.interval === "MONTH" && <span className="text-[17px] font-medium tracking-normal">/month</span>}
                   </span>
-                  <span className={`text-[16px] ${pro ? "" : "text-[#3c3566]"}`}>{p.monthlyCredits ? `${p.monthlyCredits} credits a month` : `${p.signupCredits} credits to try it`}</span>
+                  <span className={`text-[16px] ${pro ? "" : "text-[#3c3566]"}`}>
+                    {p.monthlyCredits ? `${p.monthlyCredits} credits a month` : `${p.signupCredits} credits to try it`}
+                  </span>
                 </li>
               );
             })}
@@ -149,10 +235,18 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
 
         <section className="px-ds-4 pb-[96px] md:px-ds-5">
           <div className="relative mx-auto max-w-[1120px] overflow-hidden rounded-[40px] bg-[linear-gradient(120deg,#4a2bd1,#c0287f)] px-ds-4 py-[72px] text-center sm:px-8">
-            <div aria-hidden="true" className="au-blob -right-[90px] -bottom-[130px] size-[320px] bg-[radial-gradient(circle,rgba(255,138,61,0.7),rgba(255,138,61,0)_68%)]" />
-            <div aria-hidden="true" className="au-blob -top-[100px] -left-[70px] size-[260px] bg-[radial-gradient(circle,rgba(255,255,255,0.25),rgba(255,255,255,0)_68%)]" />
+            <div
+              aria-hidden="true"
+              className="au-blob -right-[90px] -bottom-[130px] size-[320px] bg-[radial-gradient(circle,rgba(255,138,61,0.7),rgba(255,138,61,0)_68%)]"
+            />
+            <div
+              aria-hidden="true"
+              className="au-blob -top-[100px] -left-[70px] size-[260px] bg-[radial-gradient(circle,rgba(255,255,255,0.25),rgba(255,255,255,0)_68%)]"
+            />
             <div className="relative mx-auto flex max-w-[780px] flex-col items-center gap-[30px]">
-              <h2 className="text-[clamp(30px,5vw,54px)] leading-[1.06] font-extrabold tracking-[-0.03em] text-white text-balance">Your next application starts with your profile</h2>
+              <h2 className="text-[clamp(30px,5vw,54px)] leading-[1.06] font-extrabold tracking-[-0.03em] text-white text-balance">
+                Your next application starts with your profile
+              </h2>
               <a
                 href="/sign-up"
                 className="inline-flex items-center gap-2.5 rounded-pill bg-white px-9 py-[18px] text-button text-navy-900 no-underline shadow-[0_16px_30px_-12px_rgba(10,5,60,0.6)] hover:brightness-95"
@@ -165,7 +259,9 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
       </main>
       <footer className="flex flex-col items-center gap-ds-1 bg-navy-900 px-ds-4 py-ds-5 text-center text-caption text-[#dad3f5] [&_a]:text-white">
         <LegalLinks />
-        <span>© {new Date().getFullYear()} KRZ Resume AI</span>
+        <span>
+          © {new Date().getFullYear()} <Brand />
+        </span>
       </footer>
     </div>
   );

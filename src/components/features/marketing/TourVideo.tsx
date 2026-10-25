@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw, Volume2, VolumeX } from "lucide-react";
+import { Brand } from "@/components/ui/Brand";
 import { Button, IconButton } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { firstStepOf, SCENES, sceneProgress, shownLines, STEPS, stepAt, TOUR_AUDIO, tourLength } from "@/lib/walkthrough";
@@ -105,7 +106,7 @@ export function TourVideo() {
     <section aria-labelledby="tour-h" className="rounded-[34px] bg-white p-ds-4 shadow-[0_40px_80px_-30px_rgba(50,25,150,0.45)] md:p-9">
       <div className="mb-ds-4 flex flex-wrap items-baseline justify-between gap-x-ds-4 gap-y-ds-1">
         <h2 id="tour-h" className="text-[clamp(26px,3.2vw,40px)] leading-tight font-extrabold tracking-[-0.02em]">
-          See how KRZ Resume AI works
+          See how <Brand /> works
         </h2>
         <p className="text-body-sm">A short conversation, about {tourLength()}. Press play, or read it below.</p>
       </div>
@@ -139,14 +140,14 @@ export function TourVideo() {
         <div className="flex flex-col gap-ds-3">
           <div role="log" aria-live="polite" aria-label="The conversation" className="flex min-h-[200px] flex-col gap-ds-3 rounded-[24px] bg-sky-50 p-ds-4">
             {lines.length === 0 ? (
-              <p className="m-auto max-w-[28ch] text-center text-body-sm">Listen in on a new user asking, and the KRZ Resume AI guide explaining.</p>
+              <p className="m-auto max-w-[28ch] text-center text-body-sm">Listen in on a new user asking, and the KRZResumeBuilder guide explaining.</p>
             ) : (
               lines.map((l) => (
                 <div
                   key={`${l.scene}-${l.line}`}
                   className={cn("wt-in flex max-w-[92%] flex-col gap-0.5", l.speaker === "asks" ? "items-start" : "items-end self-end")}
                 >
-                  <span className="text-caption">{l.speaker === "asks" ? "New user" : "KRZ Resume AI guide"}</span>
+                  <span className="text-caption">{l.speaker === "asks" ? "New user" : "KRZResumeBuilder guide"}</span>
                   <span
                     className={cn(
                       "px-ds-3 py-ds-2 text-body-sm",

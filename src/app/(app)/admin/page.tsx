@@ -127,7 +127,7 @@ export default async function AdminPage() {
 
         <Card aria-labelledby="people-h">
           <CardHeader
-            title={<span id="people-h">People using KRZ Resume AI</span>}
+            title={<span id="people-h">People using KRZResumeBuilder</span>}
             subtitle={`Most recently active first; press a column heading to sort. Active means any activity in the last ${ACTIVE_DAYS} days. Application counts only include jobs with a tailored resume or cover letter.`}
           />
           {rows.length === 0 ? (

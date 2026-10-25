@@ -277,7 +277,7 @@ function Download() {
               </span>
             </span>
           </span>
-          <span className="text-caption">You apply on the company&apos;s own site. KRZ Resume AI never applies for you.</span>
+          <span className="text-caption">You apply on the company&apos;s own site. KRZResumeBuilder never applies for you.</span>
         </Card>
       </Pop>
     </div>

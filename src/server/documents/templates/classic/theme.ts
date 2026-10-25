@@ -1,5 +1,5 @@
 /**
- * "Classic" — a single-column, ATS-safe template. Colors come from the KRZ Resume AI design system
+ * "Classic" — a single-column, ATS-safe template. Colors come from the KRZResumeBuilder design system
  * (navy-900 ink, blue-700 accents) but documents stay mostly black-on-white for printing and parsing.
  * Helvetica is used because it is built into PDF readers and Word on every platform.
  */

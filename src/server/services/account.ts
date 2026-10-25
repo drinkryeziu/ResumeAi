@@ -1,7 +1,7 @@
 import type { AppStore } from "@/server/store/types";
 
 /**
- * Everything KRZ Resume AI holds about one person, as plain JSON they can keep. Never includes the password hash.
+ * Everything KRZResumeBuilder holds about one person, as plain JSON they can keep. Never includes the password hash.
  */
 export async function exportAccountData(store: AppStore, userId: string, now = new Date()) {
   const user = await store.getUser(userId);
@@ -31,7 +31,7 @@ export async function exportAccountData(store: AppStore, userId: string, now = n
   );
   return {
     exportedAt: now.toISOString(),
-    note: "Everything KRZ Resume AI holds about you. Resumes and cover letters include every saved version.",
+    note: "Everything KRZResumeBuilder holds about you. Resumes and cover letters include every saved version.",
     account: { name: user.name, email: user.email, createdAt: user.createdAt },
     profile,
     pendingCvImport: cvImport,

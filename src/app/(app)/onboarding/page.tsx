@@ -4,6 +4,7 @@ import { CvImport } from "@/components/features/profile/CvImport";
 import { ImportBanner } from "@/components/features/profile/ImportBanner";
 import { ProfileEditor } from "@/components/features/profile/ProfileEditor";
 import { Card, SoftPanel } from "@/components/ui/Card";
+import { Brand } from "@/components/ui/Brand";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { requireUser } from "@/server/auth/session";
 import { mergeDraftIntoInput, toProfileInput } from "@/server/domain/profile-mapping";
@@ -34,7 +35,8 @@ export default async function OnboardingPage() {
             <div>
               <h2 className="text-card-title">Already have a CV? Upload or paste it</h2>
               <p className="text-body-sm mt-ds-1">
-                We&apos;ll fill in the form for you from your CV. You check each step and fix anything we read wrong. Nothing is saved until you create your profile.
+                We&apos;ll fill in the form for you from your CV. You check each step and fix anything we read wrong. Nothing is saved until you create your
+                profile.
               </p>
             </div>
             <CvImport returnTo="onboarding" requestId={crypto.randomUUID()} />
@@ -52,7 +54,11 @@ export default async function OnboardingPage() {
   return (
     <div className="mx-auto w-full max-w-[760px]">
       <PageHeader
-        eyebrow="Welcome to KRZ Resume AI"
+        eyebrow={
+          <>
+            Welcome to <Brand />
+          </>
+        }
         title="Create your professional profile"
         description="Tell us about your work once, and every job application starts from it. We only ever use what you put here, and creating your profile is free."
       />

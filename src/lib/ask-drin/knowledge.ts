@@ -322,7 +322,7 @@ export const ENTRIES: Entry[] = [
     ask: ["is there a video", "show me how it works", "tour", "demo", "walkthrough", "tutorial"],
     words: ["video", "tour", "demo", "walkthrough", "tutorial", "show", "watch", "guide", "example"],
     answer: () =>
-      "Yes. On the first page, under the headline, there is a short conversation that walks through every step. Press play, turn on Read aloud if you like, or read it all below the player.",
+      "Yes. On the first page, under the headline, there is a short conversation that walks through every step. Press play to hear it in two voices while the words follow along, turn the sound off if you prefer to read, or read it all below the player.",
     link: { href: "/#tour", label: "Watch the tour" },
   },
   {

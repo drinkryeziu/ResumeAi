@@ -33,7 +33,10 @@ export const SCENES: readonly Scene[] = [
     title: "Sign up",
     lines: [
       { speaker: "asks", text: "Okay, that sounds useful. How do I use it?" },
-      { speaker: "explains", text: "It's pretty simple. First, you sign up for a free account. After that it's just a few steps, and I'll walk you through them." },
+      {
+        speaker: "explains",
+        text: "It's pretty simple. First, you sign up for a free account. After that it's just a few steps, and I'll walk you through them.",
+      },
     ],
   },
   {
@@ -41,7 +44,10 @@ export const SCENES: readonly Scene[] = [
     title: "Create your profile once",
     lines: [
       { speaker: "asks", text: "Alright, I'm signed up. Now what?" },
-      { speaker: "explains", text: "Now you tell us about yourself, once. Type it in, or upload your CV and we'll read it for you. That's your profile, and you won't have to redo it for every job." },
+      {
+        speaker: "explains",
+        text: "Now you tell us about yourself, once. Type it in, or upload your CV and we'll read it for you. That's your profile, and you won't have to redo it for every job.",
+      },
     ],
   },
   {
@@ -87,7 +93,10 @@ export const SCENES: readonly Scene[] = [
     title: "Answer, never invent",
     lines: [
       { speaker: "asks", text: "What if the job asks for something I've never listed?" },
-      { speaker: "explains", text: "Then we ask you, and you decide. If you've done it, tell us in your own words. If not, we leave it out. We never make anything up." },
+      {
+        speaker: "explains",
+        text: "Then we ask you, and you decide. If you've done it, tell us in your own words. If not, we leave it out. We never make anything up.",
+      },
     ],
   },
   {
@@ -95,7 +104,10 @@ export const SCENES: readonly Scene[] = [
     title: "Review your documents",
     lines: [
       { speaker: "asks", text: "So what do I get at the end?" },
-      { speaker: "explains", text: "A resume and a cover letter written for that job. Read them, change anything you want, and you can always go back to an earlier version." },
+      {
+        speaker: "explains",
+        text: "A resume and a cover letter written for that job. Read them, change anything you want, and you can always go back to an earlier version.",
+      },
     ],
   },
   {
@@ -103,39 +115,48 @@ export const SCENES: readonly Scene[] = [
     title: "Download and apply",
     lines: [
       { speaker: "asks", text: "Last thing. How do I actually send it?" },
-      { speaker: "explains", text: "Download it as a PDF or Word file, then apply on the company's own site. We never apply for you. Tick Applied to remember where you've sent it." },
+      {
+        speaker: "explains",
+        text: "Download it as a PDF or Word file, then apply on the company's own site. We never apply for you. Tick Applied to remember where you've sent it.",
+      },
       { speaker: "explains", text: "And that's it. Create your free profile and give it a try." },
     ],
   },
 ];
 
-/** How long a line stays up when nobody is reading it aloud: reading time plus a short pause. */
-export const lineMs = (text: string) => Math.max(2600, Math.round(text.length * 62) + 900);
+/**
+ * The tour is played from a recording of this conversation (two voices), and the text follows the recording: each line appears
+ * when its voice starts. `LINE_STARTS_MS` says where each line starts in the file, in the order of `STEPS`.
+ * If a line here is changed, the recording has to be made again and these times found again (a test checks the count and the order).
+ */
+export const TOUR_AUDIO = { src: "/tour/resumeai-conversation.mp3", durationMs: 118_361 } as const;
+export const LINE_STARTS_MS: readonly number[] = [
+  0, 2110, 14860, 18130, 25600, 27820, 38320, 39130, 48160, 50200, 62980, 65560, 71770, 74080, 80170, 83200, 91960, 93970, 101860, 104560, 114580,
+];
 
 export interface Step extends Line {
   /** Position in `SCENES`, and in that scene's lines. */
   scene: number;
   line: number;
-  /** Where this line starts on the whole timeline, and how long it lasts, in milliseconds. */
+  /** Where this line starts in the recording, and how long it lasts until the next one, in milliseconds. */
   start: number;
   ms: number;
 }
 
-export const STEPS: readonly Step[] = (() => {
-  let start = 0;
-  return SCENES.flatMap((scene, s) =>
-    scene.lines.map((l, i) => {
-      const step: Step = { ...l, scene: s, line: i, start, ms: lineMs(l.text) };
-      start += step.ms;
-      return step;
-    }),
-  );
-})();
+export const STEPS: readonly Step[] = SCENES.flatMap((scene, s) => scene.lines.map((l, i) => ({ ...l, scene: s, line: i }))).map((l, n, all) => {
+  const start = LINE_STARTS_MS[n] ?? 0;
+  const next = n + 1 < all.length ? (LINE_STARTS_MS[n + 1] ?? TOUR_AUDIO.durationMs) : TOUR_AUDIO.durationMs;
+  return { ...l, start, ms: Math.max(0, next - start) };
+});
 
-export const TOTAL_MS = STEPS.reduce((a, s) => a + s.ms, 0);
+export const TOTAL_MS = TOUR_AUDIO.durationMs;
 
 /** Index in `STEPS` of the first line of a scene. */
-export const firstStepOf = (scene: number) => Math.max(0, STEPS.findIndex((s) => s.scene === scene));
+export const firstStepOf = (scene: number) =>
+  Math.max(
+    0,
+    STEPS.findIndex((s) => s.scene === scene),
+  );
 
 /** The lines of the scene that are on screen once step `i` has started (the conversation so far). */
 export const shownLines = (i: number): Step[] => {
@@ -160,3 +181,10 @@ export const tourLength = () => {
   const s = Math.round(TOTAL_MS / 10_000) * 10;
   return `${Math.floor(s / 60)} min${s % 60 ? ` ${s % 60} s` : ""}`;
 };
+
+/** Index in `STEPS` of the line being spoken `timeMs` into the recording. */
+export function stepAt(timeMs: number): number {
+  let found = 0;
+  for (let n = 0; n < STEPS.length; n++) if (STEPS[n]!.start <= timeMs) found = n;
+  return found;
+}

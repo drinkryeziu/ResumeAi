@@ -17,3 +17,6 @@ coverage/
 /*.docx
 /*.doc
 /*.pdf
+
+# Audio files dropped into the project folder (the one the app plays lives in public/tour)
+/*.mp3

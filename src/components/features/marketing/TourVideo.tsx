@@ -4,33 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { Button, IconButton } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import { pickVoices } from "@/lib/tour-voices";
-import { firstStepOf, SCENES, sceneProgress, shownLines, STEPS, tourLength, type Speaker } from "@/lib/walkthrough";
+import { firstStepOf, SCENES, sceneProgress, shownLines, STEPS, stepAt, TOUR_AUDIO, tourLength } from "@/lib/walkthrough";
 import { TourScene } from "./TourScenes";
-
-/**
- * Reads a line aloud with the most natural voices the device has: a woman's for the person asking and a man's for the guide when it
- * has both. Only when it has to share one voice does it fall back to a higher and a lower pitch to tell them apart.
- */
-function speak(text: string, who: Speaker, onEnd: () => void): () => void {
-  const synth = window.speechSynthesis;
-  const u = new SpeechSynthesisUtterance(text);
-  const pick = pickVoices(synth.getVoices());
-  const voice = who === "asks" ? pick.asks : pick.explains;
-  if (voice) u.voice = voice;
-  u.lang = voice?.lang ?? "en-US";
-  u.rate = who === "asks" ? 1 : 0.96; // a touch slower than the questions, as if explaining
-  u.pitch = pick.distinct ? 1 : who === "asks" ? 1.2 : 0.9;
-  u.onend = onEnd;
-  u.onerror = onEnd;
-  synth.cancel();
-  synth.speak(u);
-  return () => {
-    u.onend = null;
-    u.onerror = null;
-    synth.cancel();
-  };
-}
 
 /**
  * The tour under the first page's headline: a drawn screen for each step of the app, and beside it a short conversation, one person
@@ -42,64 +17,85 @@ export function TourVideo() {
   const [playing, setPlaying] = useState(false);
   const [i, setI] = useState(0);
   const [ended, setEnded] = useState(false);
-  const [voice, setVoice] = useState(false);
-  const [canSpeak, setCanSpeak] = useState(false);
+  const [sound, setSound] = useState(true);
   const [elapsed, setElapsed] = useState(0);
-  const stepStarted = useRef(0);
+  const [problem, setProblem] = useState(false);
+  const audio = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    const ok = "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined";
-    setCanSpeak(ok);
-    // Some browsers load their voices late; asking once wakes the list up so the right ones are there when "Read aloud" is pressed.
-    if (ok) window.speechSynthesis.getVoices();
-  }, []);
-
-  const step = STEPS[i]!;
-  const advance = () => {
-    if (i >= STEPS.length - 1) {
-      setPlaying(false);
-      setEnded(true);
-    } else setI(i + 1);
+  /** The recording, made when it is first needed. Everything on screen follows its clock, so the text and the voices never drift apart. */
+  const player = () => {
+    if (!audio.current) {
+      const a = new Audio(TOUR_AUDIO.src);
+      a.preload = "auto";
+      a.onended = () => {
+        setPlaying(false);
+        setEnded(true);
+        setI(STEPS.length - 1);
+        setElapsed(STEPS[STEPS.length - 1]!.ms);
+      };
+      a.onerror = () => {
+        setPlaying(false);
+        setProblem(true);
+      };
+      audio.current = a;
+    }
+    return audio.current;
   };
 
-  // One line at a time: it stays up for its reading time, or until it has been read aloud, then the next one starts.
+  // While it plays, follow the recording's clock: the line being spoken is the one on screen, and the step bars fill with it.
   useEffect(() => {
     if (!playing) return;
-    stepStarted.current = performance.now();
-    setElapsed(0);
-    let stopSpeech = () => {};
-    let timer: ReturnType<typeof setTimeout>;
-    let fallback: ReturnType<typeof setTimeout> | undefined;
-    if (voice && canSpeak) {
-      stopSpeech = speak(step.text, step.speaker, () => {
-        timer = setTimeout(advance, 450); // a breath between speakers
-      });
-      fallback = setTimeout(advance, step.ms + 6000); // some browsers never say "done"
-    } else timer = setTimeout(advance, step.ms);
-    const tick = setInterval(() => setElapsed(performance.now() - stepStarted.current), 150);
+    const a = player();
+    a.muted = !sound;
+    a.play().catch(() => {
+      setPlaying(false);
+      setProblem(true);
+    });
+    const tick = setInterval(() => {
+      const t = a.currentTime * 1000;
+      const n = stepAt(t);
+      setI(n);
+      setElapsed(t - STEPS[n]!.start);
+    }, 80);
     return () => {
-      clearTimeout(timer);
-      clearTimeout(fallback);
       clearInterval(tick);
-      stopSpeech();
+      a.pause();
     };
-    // `advance` changes with `i` only, which is already a dependency.
+    // `sound` is applied below without restarting the recording.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, i, voice, canSpeak]);
+  }, [playing]);
 
-  useEffect(() => () => void (typeof window !== "undefined" && "speechSynthesis" in window && window.speechSynthesis.cancel()), []);
+  useEffect(() => {
+    if (audio.current) audio.current.muted = !sound;
+  }, [sound]);
 
+  useEffect(
+    () => () => {
+      audio.current?.pause();
+      audio.current = null;
+    },
+    [],
+  );
+
+  const step = STEPS[i]!;
+  const seek = (n: number) => {
+    const a = player();
+    a.currentTime = STEPS[n]!.start / 1000;
+    setI(n);
+    setElapsed(0);
+  };
   const play = () => {
     setStarted(true);
     setEnded(false);
+    setProblem(false);
     setPlaying(true);
   };
   const restart = () => {
-    setI(0);
+    seek(0);
     play();
   };
   const goTo = (scene: number) => {
-    setI(firstStepOf(scene));
+    seek(firstStepOf(scene));
     play();
   };
   const sceneNow = step.scene;
@@ -126,7 +122,13 @@ export function TourVideo() {
           </div>
           {!started && (
             <div className="absolute inset-0 grid place-items-center bg-white/75 p-ds-4 backdrop-blur-[1px]">
-              <Button type="button" variant="secondary" onClick={play} icon={<Play size={18} aria-hidden="true" />} aria-label={`Play the tour, about ${tourLength()}`}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={play}
+                icon={<Play size={18} aria-hidden="true" />}
+                aria-label={`Play the tour, about ${tourLength()}`}
+              >
                 Play the tour
               </Button>
             </div>
@@ -140,9 +142,21 @@ export function TourVideo() {
               <p className="m-auto max-w-[28ch] text-center text-body-sm">Listen in on a new user asking, and the ResumeAi guide explaining.</p>
             ) : (
               lines.map((l) => (
-                <div key={`${l.scene}-${l.line}`} className={cn("wt-in flex max-w-[92%] flex-col gap-0.5", l.speaker === "asks" ? "items-start" : "items-end self-end")}>
+                <div
+                  key={`${l.scene}-${l.line}`}
+                  className={cn("wt-in flex max-w-[92%] flex-col gap-0.5", l.speaker === "asks" ? "items-start" : "items-end self-end")}
+                >
                   <span className="text-caption">{l.speaker === "asks" ? "New user" : "ResumeAi guide"}</span>
-                  <span className={cn("px-ds-3 py-ds-2 text-body-sm", l.speaker === "asks" ? "rounded-[20px_20px_20px_6px] bg-white text-navy-900 shadow-card" : "au-grad rounded-[20px_20px_6px_20px] text-white")}>{l.text}</span>
+                  <span
+                    className={cn(
+                      "px-ds-3 py-ds-2 text-body-sm",
+                      l.speaker === "asks"
+                        ? "rounded-[20px_20px_20px_6px] bg-white text-navy-900 shadow-card"
+                        : "au-grad rounded-[20px_20px_6px_20px] text-white",
+                    )}
+                  >
+                    {l.text}
+                  </span>
                 </div>
               ))
             )}
@@ -170,18 +184,24 @@ export function TourVideo() {
             <IconButton label="Next step" disabled={sceneNow === SCENES.length - 1} onClick={() => goTo(sceneNow + 1)} className="disabled:opacity-40">
               <ChevronRight size={18} aria-hidden="true" />
             </IconButton>
-            {canSpeak && (
-              <button
-                type="button"
-                aria-pressed={voice}
-                onClick={() => setVoice((v) => !v)}
-                className={cn("ml-auto inline-flex items-center gap-1 rounded-pill px-ds-3 py-1.5 text-body-sm focus-visible:outline-2 focus-visible:outline-blue-600", voice ? "bg-sky-50 font-bold text-blue-700" : "text-navy-900 hover:bg-gray-100")}
-              >
-                {voice ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />}
-                Read aloud
-              </button>
-            )}
+            <button
+              type="button"
+              aria-pressed={sound}
+              onClick={() => setSound((v) => !v)}
+              className={cn(
+                "ml-auto inline-flex items-center gap-1 rounded-pill px-ds-3 py-1.5 text-body-sm focus-visible:outline-2 focus-visible:outline-blue-600",
+                sound ? "bg-sky-50 font-bold text-blue-700" : "text-navy-900 hover:bg-gray-100",
+              )}
+            >
+              {sound ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />}
+              Sound
+            </button>
           </div>
+          {problem && (
+            <p role="status" className="text-caption text-danger">
+              The recording couldn&apos;t be played here. You can read the whole conversation below.
+            </p>
+          )}
         </div>
       </div>
 
@@ -199,7 +219,9 @@ export function TourVideo() {
               <span className="block h-1.5 overflow-hidden rounded-pill bg-gray-100">
                 <span className="block h-full rounded-pill au-grad" style={{ width: `${(started ? sceneProgress(n, i, elapsed) : 0) * 100}%` }} />
               </span>
-              <span className={cn("hidden text-caption group-hover:text-blue-700 lg:block", started && n === sceneNow && "font-bold text-blue-700")}>{s.title}</span>
+              <span className={cn("hidden text-caption group-hover:text-blue-700 lg:block", started && n === sceneNow && "font-bold text-blue-700")}>
+                {s.title}
+              </span>
             </button>
           </li>
         ))}

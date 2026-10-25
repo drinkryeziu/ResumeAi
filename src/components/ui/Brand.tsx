@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
  * The product's name, "KRZResumeBuilder", as it is shown to people.
  *
  * - `display` (the logo, a title, a heading): KRZ in black type (weight 900), ResumeBuilder in light type (weight 300).
- * - `text` (inside a sentence): KRZ is always weight 900, ResumeBuilder keeps the weight of the text around it.
+ * - `text` (inside a sentence): KRZ is always weight 900, ResumeBuilder is weight 500, a little heavier than the text around it so the name stands out.
  *
  * Colour: KRZ in a lighter blue and ResumeBuilder in a darker blue, both chosen to pass AA contrast (4.5:1) on white and on every
  * light tint the app uses. On a dark or gradient background pass `onDark`: both parts are white.
@@ -15,7 +15,7 @@ export function Brand({ variant = "display", onDark = false, className }: { vari
   return (
     <span className={className}>
       <span className={cn("font-black", onDark ? "text-white" : "text-[#2a5bd7]")}>KRZ</span>
-      <span className={cn(variant === "display" && "font-light", onDark ? "text-white" : "text-[#172554]")}>ResumeBuilder</span>
+      <span className={cn(variant === "display" ? "font-light" : "font-medium", onDark ? "text-white" : "text-[#172554]")}>ResumeBuilder</span>
     </span>
   );
 }

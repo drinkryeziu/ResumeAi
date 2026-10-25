@@ -19,7 +19,7 @@ export async function GET() {
   return new NextResponse(JSON.stringify(data, null, 2), {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      "Content-Disposition": `attachment; filename="resumeai-my-data-${day}.json"`,
+      "Content-Disposition": `attachment; filename="krz-resume-ai-my-data-${day}.json"`,
       "Cache-Control": "no-store",
     },
   });

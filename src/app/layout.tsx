@@ -3,7 +3,7 @@ import "./globals.css";
 import { AskDrinLoader } from "@/components/features/chat/AskDrinLoader";
 
 export const metadata: Metadata = {
-  title: { default: "ResumeAi — Tailor your resume to every job", template: "%s · ResumeAi" },
+  title: { default: "KRZ Resume AI — Tailor your resume to every job", template: "%s · KRZ Resume AI" },
   description: "Create your professional profile once, then tailor your resume and cover letter to every job.",
 };
 

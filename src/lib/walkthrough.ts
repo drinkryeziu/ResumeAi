@@ -19,12 +19,12 @@ export interface Scene {
 export const SCENES: readonly Scene[] = [
   {
     id: "about",
-    title: "What ResumeAi is",
+    title: "What KRZ Resume AI is",
     lines: [
       { speaker: "asks", text: "Hey, what is this app about?" },
       {
         speaker: "explains",
-        text: "Glad you asked. ResumeAi helps you apply for jobs without starting from scratch every time. For each job, it writes a resume and a cover letter that fit it, using only what's true about you.",
+        text: "Glad you asked. KRZ Resume AI helps you apply for jobs without starting from scratch every time. For each job, it writes a resume and a cover letter that fit it, using only what's true about you.",
       },
     ],
   },

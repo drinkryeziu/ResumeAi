@@ -1,4 +1,4 @@
-# ResumeAi — project guide for Claude Code
+# KRZ Resume AI — project guide for Claude Code
 
 Resume & cover-letter tailoring web app. Users create a professional profile once (typed or imported from a CV),
 get a Master Resume + Master Cover Letter, then for each job: paste/upload the description → Analyze Job (Job Match

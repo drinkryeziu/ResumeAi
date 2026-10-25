@@ -1,4 +1,4 @@
-# ResumeAi — Resume & Cover Letter Optimizer
+# KRZ Resume AI — Resume & Cover Letter Optimizer
 
 Create your professional profile once, then tailor your resume and cover letter to every job.
 Built on the **ApplyAiJobBoard design system** (tokens in `src/styles/tokens.css`).
@@ -77,7 +77,7 @@ Atlas is always a replica set, which the credit ledger needs (it writes balance 
 | `CONTACT_EMAIL` | recommended | the address shown on the Privacy policy and Terms pages |
 | `ALLOW_MEMORY_STORE` | no | `true` lets a Vercel preview run on the temporary in-memory store (data is lost). Leave unset |
 | `AUTH_GOOGLE_ID/SECRET`, `AUTH_LINKEDIN_ID/SECRET` | no | enable social sign-in |
-| `RESEND_API_KEY`, `EMAIL_FROM` | for "Forgot password?" | send reset emails through [Resend](https://resend.com). `EMAIL_FROM` must be on a domain you verified there (e.g. `ResumeAi <hello@example.com>`); Resend's test sender only reaches your own address. Without a key people cannot reset a forgotten password; `/api/health` shows `"email": false` |
+| `RESEND_API_KEY`, `EMAIL_FROM` | for "Forgot password?" | send reset emails through [Resend](https://resend.com). `EMAIL_FROM` must be on a domain you verified there (e.g. `KRZ Resume AI <hello@example.com>`); Resend's test sender only reaches your own address. Without a key people cannot reset a forgotten password; `/api/health` shows `"email": false` |
 | `AUTH_URL` | no | public address of the site (`https://…`), used for the link in reset emails. Leave unset to use the address of the request |
 
 3. **Deploy.** Every push to `main` redeploys.

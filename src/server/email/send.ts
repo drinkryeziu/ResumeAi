@@ -8,7 +8,7 @@ export const emailConfigured = () => Boolean(process.env.RESEND_API_KEY?.trim())
 /**
  * Sends one plain-text email through Resend's HTTP API (no extra dependency).
  *  - RESEND_API_KEY  the key from resend.com
- *  - EMAIL_FROM      "ResumeAi <hello@your-domain.com>" — a domain verified in Resend. Resend's test sender
+ *  - EMAIL_FROM      "KRZ Resume AI <hello@your-domain.com>" — a domain verified in Resend. Resend's test sender
  *                    (the default below) only delivers to the address that owns the Resend account.
  * With no key the message is only written to the server log, outside production, so local development can follow the link.
  */
@@ -22,7 +22,7 @@ export async function sendEmail(email: Email): Promise<{ sent: boolean }> {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: process.env.EMAIL_FROM?.trim() || "ResumeAi <onboarding@resend.dev>", to: [email.to], subject: email.subject, text: email.text }),
+    body: JSON.stringify({ from: process.env.EMAIL_FROM?.trim() || "KRZ Resume AI <onboarding@resend.dev>", to: [email.to], subject: email.subject, text: email.text }),
   });
   if (!res.ok) throw new Error(`Email provider answered ${res.status}.`);
   return { sent: true };

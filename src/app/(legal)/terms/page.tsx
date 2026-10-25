@@ -7,12 +7,12 @@ export default function TermsPage() {
     <LegalPage
       title="Terms of use"
       updated="October 19, 2026"
-      intro="These terms are the agreement between you and the operator of ResumeAi. By creating an account or using the service you agree to them. If you do not agree, please do not use it."
+      intro="These terms are the agreement between you and the operator of KRZ Resume AI. By creating an account or using the service you agree to them. If you do not agree, please do not use it."
     >
-      <Section title="What ResumeAi does">
+      <Section title="What KRZ Resume AI does">
         <P>
-          ResumeAi turns the information you give us into a resume and cover letter written for a specific job. You review, edit and download the result and apply yourself.
-          ResumeAi never applies to jobs for you and never sends your documents to anyone.
+          KRZ Resume AI turns the information you give us into a resume and cover letter written for a specific job. You review, edit and download the result and apply yourself.
+          KRZ Resume AI never applies to jobs for you and never sends your documents to anyone.
         </P>
       </Section>
       <Section title="Your account">
@@ -58,7 +58,7 @@ export default function TermsPage() {
       </Section>
       <Section title="Availability and changes">
         <P>
-          We work to keep ResumeAi running but cannot promise it will always be available or error free. Features, prices and these terms may change; if they change in a way that
+          We work to keep KRZ Resume AI running but cannot promise it will always be available or error free. Features, prices and these terms may change; if they change in a way that
           matters, we will update the date above.
         </P>
       </Section>

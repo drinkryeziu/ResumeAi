@@ -27,8 +27,8 @@ export async function requestPasswordReset(store: AppStore, email: string, baseU
   try {
     await send({
       to: user.email,
-      subject: "Reset your ResumeAi password",
-      text: `Hi ${user.name.split(" ")[0] || "there"},\n\nUse this link to choose a new password. It works once and expires in ${RESET_LINK_MINUTES} minutes:\n\n${link}\n\nIf you didn't ask for this, you can ignore this email. Your password stays as it is.\n\nResumeAi`,
+      subject: "Reset your KRZ Resume AI password",
+      text: `Hi ${user.name.split(" ")[0] || "there"},\n\nUse this link to choose a new password. It works once and expires in ${RESET_LINK_MINUTES} minutes:\n\n${link}\n\nIf you didn't ask for this, you can ignore this email. Your password stays as it is.\n\nKRZ Resume AI`,
     });
   } catch (e) {
     console.error("[password-reset] could not send the email:", (e as Error).message);

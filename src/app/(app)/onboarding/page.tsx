@@ -52,7 +52,7 @@ export default async function OnboardingPage() {
   return (
     <div className="mx-auto w-full max-w-[760px]">
       <PageHeader
-        eyebrow="Welcome to ResumeAi"
+        eyebrow="Welcome to KRZ Resume AI"
         title="Create your professional profile"
         description="Tell us about your work once, and every job application starts from it. We only ever use what you put here, and creating your profile is free."
       />

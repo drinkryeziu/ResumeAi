@@ -11,7 +11,7 @@ import { DrinAvatar } from "./DrinAvatar";
 
 type Turn = { from: "you"; text: string } | { from: "drin"; reply: Reply };
 
-const GREETING = "Hi, I'm Drin. Ask me anything about how ResumeAi works, or pick a question below.";
+const GREETING = "Hi, I'm Drin. Ask me anything about how KRZ Resume AI works, or pick a question below.";
 /** How long Drin "thinks" before he starts to write (1 to 2 seconds), and how fast he types (characters every tick). */
 const THINK_MIN_MS = 1000;
 const THINK_MAX_MS = 2000;
@@ -104,7 +104,7 @@ export function AskDrin({ facts }: { facts: Facts }) {
             <DrinAvatar size={44} className="shrink-0 rounded-full ring-2 ring-white/70" />
             <div className="min-w-0 flex-1">
               <p className="text-card-title">Ask Drin</p>
-              <p className="text-caption text-white/90">Questions about ResumeAi, answered from the app</p>
+              <p className="text-caption text-white/90">Questions about KRZ Resume AI, answered from the app</p>
             </div>
             <button
               type="button"

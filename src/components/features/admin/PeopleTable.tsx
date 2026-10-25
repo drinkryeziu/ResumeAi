@@ -117,7 +117,7 @@ export function PeopleTable({ rows, canRemove, ownerEmail }: { rows: PersonRow[]
 
           <div className="hidden md:block">
             <table className="w-full text-left text-body-sm">
-              <caption className="sr-only">People using ResumeAi. Press a column heading to sort by it.</caption>
+              <caption className="sr-only">People using KRZ Resume AI. Press a column heading to sort by it.</caption>
               <thead>
                 <tr className="text-caption">
                   {COLUMNS.map((c) => {

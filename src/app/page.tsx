@@ -8,7 +8,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { signedInUserId } from "@/server/auth/session";
 import { DEFAULT_PLANS } from "@/server/billing/catalog";
 
-export const metadata = { title: "ResumeAi — Tailor your resume to every job" };
+export const metadata = { title: "KRZ Resume AI — Tailor your resume to every job" };
 
 /** A genuine sequence, so the steps are numbered. */
 const STEPS = [
@@ -49,7 +49,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
                 Create your profile <span className="au-grad-text">once.</span> Tailor your application for <span className="au-grad-text">every job.</span>
               </h1>
               <p className="max-w-[52ch] text-[20px] leading-[1.55] text-[#3c3566]">
-                Paste any job description. ResumeAi shows how well you match, then writes a resume and cover letter for that job using only what&apos;s true about you.
+                Paste any job description. KRZ Resume AI shows how well you match, then writes a resume and cover letter for that job using only what&apos;s true about you.
               </p>
               <div className="mt-ds-2 flex flex-wrap items-center gap-x-[22px] gap-y-ds-3">
                 <ButtonLink href="/sign-up" className="au-grad px-9 py-4 shadow-[0_14px_30px_-10px_rgba(109,74,255,0.65)] hover:brightness-110" icon={<ArrowRight size={18} aria-hidden="true" />}>
@@ -98,7 +98,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
               Nothing on your resume that <span className="au-grad-text-light">isn&apos;t true</span>
             </h2>
             <p className="mb-12 max-w-[60ch] text-[19px] leading-[1.6] text-[#dad3f5]">
-              ResumeAi rewords and reorders what you&apos;ve done to fit each job. It never adds experience, skills, schools or results you didn&apos;t give it.
+              KRZ Resume AI rewords and reorders what you&apos;ve done to fit each job. It never adds experience, skills, schools or results you didn&apos;t give it.
             </p>
             <div className="flex flex-col gap-[22px]">
               {[PROMISES.slice(0, 2), PROMISES.slice(2)].map((row) => (
@@ -165,7 +165,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Prom
       </main>
       <footer className="flex flex-col items-center gap-ds-1 bg-navy-900 px-ds-4 py-ds-5 text-center text-caption text-[#dad3f5] [&_a]:text-white">
         <LegalLinks />
-        <span>© {new Date().getFullYear()} ResumeAi</span>
+        <span>© {new Date().getFullYear()} KRZ Resume AI</span>
       </footer>
     </div>
   );
